@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="KY1R">
+<title>KY1R</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M95.8 26.3C99.3 29.4 100.4 30.4 102.1 32.3C103.9 34.1 105.2 35.7 106.4 37.4C107.5 39.2 108.3 41 108.8 42.6C109.3 44.2 109.4 45.7 109.5 47.3C109.5 48.9 109.2 50.5 108.9 52C108.5 53.6 109.4 52.3 107.2 56.6C105 60.8 98.4 72.6 95.6 77.4C92.8 82.1 92.4 82.9 90.5 85C88.6 87.1 85.8 89.1 84.2 90.1C82.6 91.2 82.1 91.1 80.9 91.5C79.8 91.8 78.6 92 77.4 92C76.2 92 75 91.9 73.8 91.7C72.7 91.5 72 91.5 70.4 90.6C68.9 89.8 66.2 88.2 64.6 86.6C62.9 85 61.8 83.8 60.3 80.9C58.8 78.1 56.9 73.3 55.6 69.4C54.3 65.4 53.2 62.2 52.4 57.4C51.6 52.7 50.9 46.7 50.6 41C50.4 35.3 50.5 27.5 50.9 23.4C51.3 19.2 52.4 18 53.2 16.2C54 14.4 54.8 13.7 55.7 12.8C56.5 11.9 57.2 11.3 58.3 10.6C59.3 10 60.7 9.2 62 8.8C63.4 8.4 64.8 8.1 66.3 8C67.7 7.9 69.5 8.2 70.8 8.4C72.1 8.7 72.7 8.7 74.3 9.5C76 10.4 77.3 10.7 80.9 13.5C84.5 16.3 92.3 23.2 95.8 26.3Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M98.1 23.7L93.5 28.9"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M98.7 79.1L92.6 75.6"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M49 58.1L55.8 56.8"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M98.4 23.3L93.1 29.3"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M99.1 79.3L92.2 75.4"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M48 58.3L56.8 56.6"/>
+</svg>

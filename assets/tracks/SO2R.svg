@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="SO2R">
+<title>SO2R</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M109.3 89.3C105.8 86.7 99.9 82.3 92.3 76.2C84.8 70.1 72 59.7 64.1 52.6C56.2 45.4 48.6 37 45 33.3C41.4 29.5 43.3 31.3 42.6 30C41.8 28.8 41 27.4 40.5 25.7C40 23.9 39.4 21.5 39.4 19.6C39.4 17.8 39.9 16 40.7 14.4C41.6 12.8 43.5 10.9 44.6 10C45.6 9 46.4 8.8 47.2 8.5C48.1 8.2 49 8 49.8 8C50.5 8 51.1 8.1 51.7 8.4C52.4 8.8 51.3 6.8 53.6 9.9C56 13.1 62.1 22.2 65.9 27.4C69.7 32.6 73.1 37 76.3 40.9C79.5 44.7 82.8 48.6 85 50.5C87.3 52.4 88.4 52.1 89.7 52.4C91.1 52.6 91.7 52.5 93.2 52.2C94.6 51.9 97.1 50.9 98.2 50.7C99.4 50.6 99.7 51 100.2 51.2C100.7 51.5 99.3 49.2 101.4 52.3C103.5 55.4 109.6 64.3 112.8 69.9C115.9 75.4 119.3 82.4 120.5 85.6C121.7 88.9 120.6 88.2 120 89.3C119.3 90.3 117.8 91.4 116.7 91.8C115.6 92.2 114.6 92.1 113.4 91.7C112.2 91.3 112.8 91.9 109.3 89.3Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M107.2 92.1L111.3 86.5"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M37.2 26.8L43.8 24.5"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M68.7 25.3L63.1 29.5"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M106.9 92.5L111.6 86.1"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M36.7 27L44.3 24.3"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M69.6 24.7L62.3 30"/>
+</svg>

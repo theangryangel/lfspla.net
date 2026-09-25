@@ -1,0 +1,24 @@
+[Unit]
+Description=lfsplanet worker
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ host.data.app_user }}
+Group={{ host.data.app_group }}
+WorkingDirectory={{ host.data.state_dir }}
+Environment=RUST_LOG=warn,lfsplanet=info
+ExecStart={{ host.data.app_root }}/lfsplanet --config {{ host.data.config_dir }}/config.yaml worker
+Restart=on-failure
+RestartSec=5s
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths={{ host.data.config_dir }}
+ReadWritePaths={{ host.data.state_dir }}
+
+[Install]
+WantedBy=multi-user.target

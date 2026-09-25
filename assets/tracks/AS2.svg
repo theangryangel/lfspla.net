@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="AS2">
+<title>AS2</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M87.1 48.2C87.2 53.5 87.7 63.8 87 68.1C86.3 72.4 83.9 71.6 83 73.9C82.1 76.3 82.1 80.4 81.7 82.4C81.3 84.3 81 84.4 80.5 85.4C80 86.4 79.5 87.2 78.6 88.2C77.7 89.2 76.1 90.5 75.3 91.2C74.5 91.8 74.3 91.8 73.8 91.9C73.3 92.1 72.6 92 72.2 91.9C71.7 91.7 71.3 91.5 71 91.1C70.7 90.8 70.1 91.1 70.4 89.7C70.6 88.3 72.1 87.8 72.4 82.7C72.6 77.6 71.8 65.1 71.6 59C71.5 52.9 71.5 49.6 71.7 46.3C71.9 43.1 72.3 41.5 72.8 39.5C73.4 37.4 73.4 37.1 74.9 34.2C76.3 31.4 80.1 26.4 81.6 22.4C83.2 18.3 83.7 12.3 84.3 10C84.9 7.6 84.8 8.6 85.4 8.3C85.9 8 86.8 8 87.4 8.2C88 8.5 88.6 9.2 89 9.8C89.3 10.5 89.5 11.2 89.6 12.2C89.7 13.3 89.7 14.6 89.4 16C89.2 17.5 89.2 18.6 88.1 20.8C87 23 83.8 27.6 82.8 29.4C81.9 31.1 82.3 30.6 82.3 31.2C82.3 31.7 82.3 32.1 82.8 32.6C83.4 33.2 85 34 85.6 34.7C86.3 35.4 86.4 34.5 86.7 36.7C86.9 39 87.1 43 87.1 48.2Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M90.6 48.3L83.6 48.2"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M68.1 59L75.1 59"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M91.1 48.3L83.1 48.2"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M67.2 59L76.1 58.9"/>
+</svg>

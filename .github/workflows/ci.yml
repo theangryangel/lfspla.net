@@ -1,0 +1,75 @@
+name: ci
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+env:
+  RUST_BACKTRACE: 1
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: lfsplanet_test
+          POSTGRES_PASSWORD: lfsplanet_test
+          POSTGRES_DB: lfsplanet_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lfsplanet_test -d lfsplanet_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://lfsplanet_test:lfsplanet_test@localhost:5432/lfsplanet_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: j178/prek-action@v3.0.0
+      - name: Run formatting and lint hooks
+        run: prek run --all-files --show-diff-on-failure
+      - name: Run cargo test
+        run: cargo test --locked --workspace --all-targets --all-features
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Generate OpenAPI document
+        run: cargo run --locked -- openapi > target/openapi.json
+      - name: Validate OpenAPI document
+        env:
+          REDOCLY_TELEMETRY: "off"
+          REDOCLY_SUPPRESS_UPDATE_NOTICE: "true"
+        run: npx --yes @redocly/cli@2.53.2 lint --extends=spec target/openapi.json
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend2
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend2/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      # `build` runs svelte-check before vite build, so this type-checks the
+      # frontend as well as proving it still compiles. The deploy uploads this
+      # same `dist/` output, so a green build here is the artefact it ships.
+      - name: Build the frontend
+        run: npm run build

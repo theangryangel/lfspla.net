@@ -1,0 +1,95 @@
+# Configuration file for `prek`, a git hook framework written in Rust.
+# See https://prek.j178.dev for more information.
+#
+# Adapted from anomalous-motorsports. This is prek-only: it uses
+# `repo = "builtin"` and local `system` hooks, none of which stock pre-commit
+# understands, so there is deliberately no `.pre-commit-config.yaml`.
+#:schema https://www.schemastore.org/prek.json
+
+minimum_prek_version = "0.4.9"
+default_install_hook_types = ["pre-commit", "pre-merge-commit", "pre-push"]
+
+exclude = '''
+(?x)
+^LICENSE$|
+^Cargo\.lock$|
+^migrations/
+'''
+
+[[repos]]
+repo = "https://github.com/JoC0de/pre-commit-prettier"
+rev = "v3.9.6"
+
+[[repos.hooks]]
+id = "prettier"
+args = [
+  "--write",
+  "--ignore-unknown",
+]
+files = '\.(css|scss|html|svelte|js|jsx|ts|tsx|mjs|cjs|json|ya?ml|md)$'
+additional_dependencies = ["prettier@3.9.6", "prettier-plugin-svelte@4.1.1"]
+
+[[repos]]
+repo = "builtin"
+
+# These hooks rewrite files, so exclude *.rs (owned by cargo fmt). Prettier
+# already normalises whitespace and line endings for the files it formats.
+[[repos.hooks]]
+id = "trailing-whitespace"
+exclude = '\.rs$'
+
+[[repos.hooks]]
+id = "end-of-file-fixer"
+exclude = '\.rs$'
+
+[[repos.hooks]]
+id = "mixed-line-ending"
+args = ["--fix=lf"]
+exclude = '\.rs$'
+
+[[repos.hooks]]
+id = "check-case-conflict"
+
+[[repos.hooks]]
+id = "check-merge-conflict"
+
+[[repos.hooks]]
+id = "check-symlinks"
+
+# Rust toolchain hooks operate on the complete Cargo workspace.
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "fmt"
+name = "cargo fmt"
+description = "Format workspace Rust sources with cargo fmt."
+entry = "cargo fmt --all"
+language = "system"
+types = ["rust"]
+files = '^(src/|build\.rs$|crates/)'
+pass_filenames = false
+stages = ["pre-commit", "pre-merge-commit", "manual"]
+
+[[repos.hooks]]
+id = "clippy"
+name = "cargo clippy"
+description = "Lint all workspace targets with clippy."
+entry = "cargo clippy --locked --workspace --all-targets --all-features"
+language = "system"
+args = ["--", "-D", "warnings"]
+types = ["file"]
+files = '^(Cargo\.toml|build\.rs|src/.*\.rs|crates/.*(Cargo\.toml|.*\.rs))$'
+pass_filenames = false
+stages = ["pre-commit", "pre-merge-commit", "pre-push", "manual"]
+
+[[repos.hooks]]
+id = "test"
+name = "cargo test"
+description = "Run workspace tests without a database."
+entry = "cargo test --locked --workspace"
+language = "system"
+types = ["file"]
+files = '^(Cargo\.toml|build\.rs|src/.*\.rs|crates/.*(Cargo\.toml|.*\.rs))$'
+pass_filenames = false
+stages = ["pre-push", "pre-merge-commit", "manual"]

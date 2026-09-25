@@ -1,0 +1,41 @@
+{
+  "extends": ["config:recommended"],
+  "cargo": {
+    "rangeStrategy": "replace"
+  },
+  "packageRules": [
+    {
+      "description": "insim, insim_core are pulled from the insim.rs main branch as git dependencies; renovate must not manage them.",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["insim", "insim_core"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["cargo"],
+      "separateMajorMinor": true,
+      "separateMultipleMajor": true
+    },
+    {
+      "description": "oauth2 and reqwest share an HTTP client dependency, so upgrade them together.",
+      "matchManagers": ["cargo"],
+      "matchDepNames": ["oauth2", "reqwest"],
+      "groupName": "cargo:oauth2-reqwest",
+      "separateMajorMinor": false,
+      "separateMultipleMajor": false
+    },
+    {
+      "description": "SeaORM and the tower-sessions PostgreSQL stack share our direct SQLx dependency, so upgrade the complete stack together.",
+      "matchManagers": ["cargo"],
+      "matchDepNames": [
+        "axum-login",
+        "sea-orm",
+        "sqlx",
+        "tower-sessions",
+        "tower-sessions-sqlx-store"
+      ],
+      "groupName": "cargo:sqlx-stack",
+      "separateMajorMinor": false,
+      "separateMultipleMajor": false
+    }
+  ]
+}

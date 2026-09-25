@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="RO3">
+<title>RO3</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M38.7 58C40.8 64.2 44.4 73.1 46.3 77.2C48.2 81.3 48.6 80.8 49.9 82.3C51.3 83.9 52.8 85.3 54.4 86.5C56 87.8 57.8 88.9 59.6 89.7C61.4 90.6 63.3 91.2 65.3 91.6C67.3 92 69.1 92.1 71.3 92C73.6 91.8 75.7 91.7 79 90.7C82.4 89.7 86.1 88.4 91.3 86.1C96.4 83.9 105.9 79.2 109.9 77.1C114 75 113.9 75 115.6 73.8C117.3 72.5 118.8 71.4 120.3 69.6C121.8 67.8 123.5 65.4 124.6 63C125.7 60.7 126.6 58 127 55.4C127.4 52.8 127.4 50.6 127 47.3C126.5 44.1 125.4 39.1 124.5 35.9C123.6 32.7 122.9 30.3 121.7 27.8C120.5 25.4 119.1 23 117.4 21C115.7 19 113.6 17.2 111.4 15.7C109.2 14.3 106.7 13.1 104.1 12.2C101.6 11.2 98.9 10.6 96.1 10.1C93.4 9.6 93.5 9.4 87.7 9C81.9 8.7 67.1 8 61.2 8C55.4 8 55.1 8.3 52.6 8.8C50.2 9.3 48.3 10 46.4 11C44.5 12 42.9 13.1 41.2 14.8C39.5 16.4 37.5 19 36.2 21C35 23.1 34.2 24.9 33.7 27C33.1 29.1 32.8 31.3 32.7 33.4C32.6 35.6 32.2 35.9 33.2 40C34.2 44.1 36.5 51.8 38.7 58Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M121.1 36.8L127.9 35"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M41.9 56.8L35.4 59.2"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M120.7 37L128.4 34.8"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M42.9 56.4L34.4 59.5"/>
+</svg>

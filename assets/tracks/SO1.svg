@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="SO1">
+<title>SO1</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M62.1 59.7C66.4 65.3 81.4 83.6 86 89C90.7 94.3 88.8 91.2 90.2 91.6C91.6 92.1 93.2 92 94.5 91.7C95.7 91.4 96.9 90.7 97.8 89.9C98.8 89 99.6 88 100.4 86.6C101.2 85.3 101.9 83.5 102.4 81.7C102.9 80 103.3 79 103.5 76.1C103.7 73.1 104 68.8 103.4 64.1C102.7 59.5 101.4 54.4 99.6 48C97.8 41.7 94.3 30.5 92.8 26.1C91.3 21.7 91.6 23.1 90.8 21.8C90 20.4 89.2 19.1 87.9 18C86.7 16.9 85.3 15.9 83.3 14.9C81.3 13.9 79.3 13.1 76.2 12C73 10.9 67.1 8.9 64.2 8.3C61.4 7.7 60.3 8 59.1 8.3C57.9 8.6 57.3 9.3 56.8 9.9C56.3 10.6 56 10.7 56.2 12.2C56.4 13.7 57.5 16.2 58 18.9C58.5 21.7 58.7 25.9 59.3 28.7C59.9 31.6 61.1 34.3 61.4 36C61.7 37.7 61.4 37.4 61 38.8C60.6 40.3 59.1 42.8 58.7 44.7C58.3 46.6 58.4 48.7 58.6 50.5C58.7 52.2 59.2 53.6 59.7 55.1C60.3 56.6 57.7 54 62.1 59.7Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M65 57.8L59.1 61.5"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M96.2 49L103 47"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M65.4 57.6L58.7 61.8"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M95.3 49.3L103.9 46.8"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="FE2R">
+<title>FE2R</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M92.8 59.2C92.3 62.8 92.4 62.2 92.6 65.1C92.8 68 93.9 74 94 76.8C94 79.6 94.4 79.7 93.1 81.7C91.9 83.7 89.2 87.1 86.4 88.8C83.7 90.5 78.7 91.4 76.6 91.9C74.4 92.4 74.5 92.1 73.6 91.8C72.6 91.6 71.7 91 71.1 90.5C70.4 89.9 70.2 89.5 69.7 88.4C69.2 87.2 69.3 84.9 68.3 83.5C67.3 82 64.7 80.8 63.9 79.7C63.2 78.6 63.3 79.7 63.8 77C64.3 74.3 66 66.3 66.7 63.4C67.4 60.5 67.4 60.7 67.9 59.6C68.3 58.4 68.9 57.6 69.6 56.7C70.2 55.8 70.3 55.5 71.8 54.3C73.3 53 77 50.6 78.5 49.2C80 47.7 80.2 46.9 80.6 45.7C81 44.5 81.3 44.5 80.9 41.9C80.5 39.3 78.6 33.6 78.1 30.3C77.5 27 77.4 24.5 77.5 22C77.7 19.6 78.1 17.7 79.1 15.8C80 13.9 81.9 12 83.1 10.8C84.3 9.5 85.3 8.7 86.3 8.3C87.3 7.9 87.8 7.4 89.3 8.2C90.8 9 94.1 12 95.2 13.2C96.4 14.4 96.1 13.8 96.2 15.2C96.3 16.7 96.2 18.8 95.8 22C95.3 25.2 93.7 31 93.6 34.6C93.6 38.1 95.7 39.3 95.5 43.5C95.4 47.6 93.3 55.6 92.8 59.2Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M63.3 62.6L70.1 64.2"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M80.6 8.4L85.7 13.2"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M96.3 59.6L89.3 58.8"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M62.8 62.5L70.6 64.3"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M80.2 8.1L86 13.5"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M97.3 59.7L88.3 58.7"/>
+</svg>

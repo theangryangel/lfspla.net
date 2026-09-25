@@ -1,0 +1,20 @@
+[package]
+name = "lfsplanet_spr"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Strongly typed parser for Live for Speed single-player replay headers"
+
+[lib]
+bench = false
+doctest = false
+
+[dependencies]
+bytes = { workspace = true }
+insim = { workspace = true }
+insim_core = { workspace = true }
+regex = { workspace = true }
+thiserror = { workspace = true }
+
+[lints.rust]
+unsafe_code = "deny"

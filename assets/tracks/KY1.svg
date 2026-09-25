@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="KY1">
+<title>KY1</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M52.2 56.6C53 61.2 54 64.6 55.3 68.5C56.6 72.4 58.4 77.2 59.9 80.1C61.3 83.1 62.3 84.3 63.9 86C65.5 87.7 67.5 89.2 69.6 90.2C71.7 91.2 74.7 91.8 76.5 92C78.2 92.2 78.9 91.9 80 91.7C81.2 91.4 81.8 91.5 83.4 90.5C85.1 89.5 87.9 87.7 89.9 85.7C91.9 83.6 92.4 82.9 95.2 78.2C98 73.5 104.6 61.6 106.8 57.4C109.1 53.2 108.2 54.5 108.6 53C109 51.4 109.4 49.8 109.4 48.3C109.5 46.7 109.4 45.2 109 43.5C108.6 41.9 107.9 40 106.9 38.2C105.8 36.5 104.5 34.9 102.8 33C101 31.1 100.2 30.2 96.5 26.9C92.9 23.7 84.6 16.4 80.9 13.5C77.2 10.6 76 10.4 74.3 9.5C72.7 8.7 72.1 8.7 70.8 8.4C69.5 8.2 67.7 7.9 66.3 8C64.8 8.1 63.4 8.4 62 8.8C60.7 9.2 59.3 10 58.3 10.6C57.2 11.3 56.5 11.9 55.7 12.8C54.8 13.7 54 14.4 53.2 16.2C52.4 18 51.3 19.2 50.9 23.4C50.5 27.5 50.4 35.4 50.6 41C50.9 46.5 51.5 52 52.2 56.6Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M92.1 76.4L98.2 79.9"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M94.2 29.6L98.8 24.3"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M55.7 56L48.8 57.2"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M91.7 76.2L98.6 80.2"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M93.9 29.9L99.2 24"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M56.7 55.8L47.8 57.3"/>
+</svg>

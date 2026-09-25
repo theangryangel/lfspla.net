@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="SO6R">
+<title>SO6R</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M91.6 36.8C90.4 31.8 87.5 22.9 86.2 19.4C85 16 85 16.9 84.2 15.9C83.5 14.9 82.7 14.3 81.7 13.6C80.7 12.9 80.6 12.7 78.3 11.8C75.9 11 70 9.1 67.5 8.5C65 7.9 64.2 8 63.2 8.1C62.3 8.2 62.1 8.5 61.7 8.9C61.4 9.3 60.9 9.1 61 10.4C61.2 11.7 61.9 13.8 62.5 16.9C63.1 20.1 64.7 26.4 64.8 29.2C64.8 32 63.2 32.3 62.9 33.6C62.7 34.9 63.2 36.2 63.1 37.1C63.1 37.9 63.6 37.9 62.6 38.8C61.6 39.6 58.4 41 57.2 42C56 43 55.6 43.9 55.2 44.8C54.8 45.7 54.8 46.4 54.9 47.5C55 48.6 55.3 50.1 55.8 51.5C56.3 52.9 57.1 54.6 58 55.8C58.8 57 58.4 56.6 60.6 58.8C62.9 61 67.4 65.4 71.5 69C75.6 72.6 80.5 76.6 85.2 80.4C90 84.1 97.1 89.6 100.1 91.5C103.2 93.4 102.6 91.9 103.3 91.8C104 91.7 104.2 91.3 104.5 90.9C104.8 90.5 105.1 90.1 105.1 89.5C105.1 88.8 105.3 88.6 104.8 87.2C104.3 85.8 103.5 83.7 101.9 81C100.3 78.3 96.5 73.2 95.1 71C93.8 68.7 94 68.6 93.6 67.2C93.3 65.8 93 65.4 93 62.4C93 59.4 93.8 53.5 93.6 49.2C93.3 44.9 92.8 41.7 91.6 36.8Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M66 16.4L59 17.4"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M87.4 77.6L83 83.1"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M88.2 37.6L95 36"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M66.5 16.3L58.5 17.5"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M87.7 77.2L82.7 83.5"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M87.2 37.8L96 35.8"/>
+</svg>

@@ -1,0 +1,35 @@
+database:
+  url: "postgresql:///lfsplanet?user=lfsplanet"
+
+web:
+  session_key: {{ session_key | tojson }}
+  listen: "127.0.0.1:8000"
+  public_base_url: {{ ("https://" ~ site_domain) | tojson }}
+  cookie_secure: true
+  site_notice: "This is a test site; data and features may change. Consider all uploads to be lost and deleted at anytime."
+
+lfs_installation_root: {{ (state_dir ~ "/games") | tojson }}
+installer_download_root: {{ (state_dir ~ "/downloads") | tojson }}
+wine_prefix: {{ (state_dir ~ "/wine") | tojson }}
+wine_executable: "/usr/bin/wine"
+bubblewrap_executable: "/usr/bin/bwrap"
+
+storage:
+  object_store_root: {{ (state_dir ~ "/spr") | tojson }}
+
+hotlaps:
+  max_spr_upload_bytes: {{ max_spr_upload_bytes | tojson }}
+
+worker:
+  hlvc:
+    poll_interval_seconds: 2
+    timeout_seconds: 300
+  webhooks:
+    workers: {{ webhook_workers | tojson }}
+
+{% if oauth_client_id %}
+lfs:
+  oauth:
+    client_id: {{ oauth_client_id | tojson }}
+    client_secret: {{ oauth_client_secret | tojson }}
+{% endif %}

@@ -1,0 +1,19 @@
+[package]
+name = "lfsplanet_track_gen"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Renders Live for Speed path files as thumbnail-scale track outline SVGs"
+
+[[bin]]
+name = "lfsplanet_track_gen"
+path = "src/main.rs"
+bench = false
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+insim_pth = { workspace = true }
+
+[lints.rust]
+unsafe_code = "deny"

@@ -1,0 +1,17 @@
+.env
+/planet.yaml
+/deploy/secrets/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+/target/
+/openapi.json
+content/spr/
+content/historical/
+node_modules/
+
+# Local LFS installers and bundles used to build validator installations.
+*.exe
+*.7z

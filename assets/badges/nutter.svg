@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" focusable="false">
+  <circle cx="16" cy="16" r="15" stroke="color-mix(in srgb, currentColor 20%, black)" stroke-width=".9"/>
+  <g fill="white" stroke="color-mix(in srgb, currentColor 20%, black)" stroke-width=".8">
+    <ellipse cx="8.4" cy="15.7" rx="7.1" ry="10.1"/>
+    <ellipse cx="23.6" cy="15.7" rx="7.1" ry="10.1"/>
+  </g>
+  <g fill="color-mix(in srgb, currentColor 20%, black)">
+    <ellipse cx="8.4" cy="17.1" rx="4" ry="4.1"/>
+    <ellipse cx="23.6" cy="17.1" rx="4" ry="4.1"/>
+    <circle cx="16" cy="27" r="1.35"/>
+  </g>
+  <g fill="white">
+    <ellipse cx="10.3" cy="14.9" rx=".8" ry="1.2" transform="rotate(-40 10.3 14.9)"/>
+    <ellipse cx="25.5" cy="14.9" rx=".8" ry="1.2" transform="rotate(-40 25.5 14.9)"/>
+  </g>
+</svg>

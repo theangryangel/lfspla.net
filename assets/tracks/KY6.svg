@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" width="160" height="100" fill="none" role="img" aria-label="KY6">
+<title>KY6</title>
+<style>@media(prefers-color-scheme:dark){svg:root{--muted-foreground:oklch(0.708 0 0);--muted:oklch(0.269 0 0);--foreground:oklch(0.985 0 0);--destructive:oklch(0.704 0.191 22.216)}}</style>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M51.5 57C52.1 61 53 64.3 54.5 68.5C56 72.7 59 79.1 60.5 82C62 85 62.1 84.7 63.6 86.3C65.1 87.9 68.3 90.4 69.7 91.4C71.1 92.3 70.6 91.9 72.1 92C73.5 92.1 76.5 92.1 78.5 91.7C80.5 91.4 82.4 91 84.2 89.9C86 88.9 87.5 87.6 89.3 85.6C91.1 83.6 92 82.6 94.9 77.7C97.9 72.9 104.6 61.1 106.9 56.6C109.3 52.1 108.4 53.1 108.8 50.8C109.3 48.6 109.7 45.1 109.7 43.3C109.7 41.5 109.7 41.6 108.7 40C107.7 38.4 105.8 35.8 103.7 33.5C101.6 31.3 99.9 30 95.9 26.5C92 23.1 83.8 15.7 80.1 12.8C76.5 10 75.9 10.1 74.1 9.3C72.4 8.6 71.1 8.4 69.6 8.2C68.1 8 66.3 8 65 8.1C63.6 8.2 62.8 8.4 61.6 8.9C60.4 9.3 58.8 10.2 57.8 10.9C56.7 11.5 56.2 12 55.4 12.9C54.6 13.8 53.7 14.6 52.9 16.3C52.2 18.1 51.2 18.9 50.8 23.5C50.4 28.2 50.3 38.6 50.4 44.2C50.5 49.8 50.8 52.9 51.5 57Z"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M92 75.8L97.9 79.6"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4" stroke-linecap="round" d="M93.6 29.2L98.3 23.9"/>
+<path class="cut-out" stroke="var(--muted, oklch(0.97 0 0))" stroke-width="4.4" stroke-linecap="round" d="M54.9 56.3L48 57.6"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M91.6 75.6L98.3 79.9"/>
+<path class="split" stroke="var(--foreground, oklch(0.145 0 0))" stroke-width="1.8" stroke-linecap="round" d="M93.3 29.5L98.6 23.5"/>
+<path class="start-finish" stroke="var(--destructive, oklch(0.577 0.245 27.325))" stroke-width="2.2" stroke-linecap="round" d="M55.9 56.2L47 57.8"/>
+</svg>

@@ -1,0 +1,16 @@
+name: lfsplanet
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: lfsplanet
+      POSTGRES_PASSWORD: lfsplanet
+      POSTGRES_DB: lfsplanet
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

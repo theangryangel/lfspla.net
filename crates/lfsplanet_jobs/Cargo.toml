@@ -1,0 +1,17 @@
+[package]
+name = "lfsplanet_jobs"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Concurrent workers for application-owned record processors"
+
+[dependencies]
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"] }
+tracing = "0.1"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true

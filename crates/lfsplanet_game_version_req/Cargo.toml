@@ -1,0 +1,31 @@
+[package]
+name = "lfsplanet_game_version_req"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Semver-style requirements over Live for Speed game versions"
+
+[lib]
+bench = false
+doctest = false
+
+[features]
+sea-orm = ["dep:sea-orm"]
+
+[dependencies]
+insim_core = { workspace = true }
+sea-orm = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+doc_markdown = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"

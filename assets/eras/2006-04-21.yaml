@@ -1,0 +1,700 @@
+id: "2006-04-21"
+title: "0.5T - 0.5X"
+installation: "0.7"
+open: false
+version: ">=0.5T,<0.5Y"
+rankings:
+  - id: mhr
+    title: Main Hotlap Rank
+    description: A varied selection of 18 charts, pairing each standard car with a selected track configuration.
+    badge:
+      label: MHR
+      qualification:
+        type: ranked
+        limit: 3
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      - track: FE1
+        vehicle: XFG
+      - track: SO2
+        vehicle: XRG
+      - track: BL1
+        vehicle: XRT
+      - track: SO4R
+        vehicle: RB4
+      - track: FE2
+        vehicle: FXO
+      - track: KY1
+        vehicle: LX4
+      - track: FE4R
+        vehicle: LX6
+      - track: FE3
+        vehicle: MRT
+      - track: AS1
+        vehicle: UF1
+      - track: KY2
+        vehicle: RAC
+      - track: AS3
+        vehicle: FZ5
+      - track: WE1R
+        vehicle: FOX
+      - track: SO5
+        vehicle: XFR
+      - track: KY2
+        vehicle: UFR
+      - track: WE1
+        vehicle: FO8
+      - track: AS4
+        vehicle: FXR
+      - track: AS5
+        vehicle: XRR
+      - track: KY3
+        vehicle: FZR
+  - id: nutter
+    title: Nutter Rank
+    description: "The exhaustive rank: every standard car and track configuration selected for this era."
+    badge:
+      label: NUTTER
+      completion:
+        label: GABOR
+      qualification:
+        type: ranked
+        limit: 3
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - AS1
+        - AS1R
+        - AS2
+        - AS2R
+        - AS3
+        - AS3R
+        - AS4
+        - AS4R
+        - AS5
+        - AS5R
+        - AS6
+        - AS6R
+        - AS7
+        - AS7R
+        - BL1
+        - BL1R
+        - BL2
+        - BL2R
+        - FE1
+        - FE1R
+        - FE2
+        - FE2R
+        - FE3
+        - FE3R
+        - FE4
+        - FE4R
+        - KY1
+        - KY1R
+        - KY2
+        - KY2R
+        - KY3
+        - KY3R
+        - SO1
+        - SO1R
+        - SO2
+        - SO2R
+        - SO3
+        - SO3R
+        - SO4
+        - SO4R
+        - SO5
+        - SO5R
+        - SO6
+        - SO6R
+        - WE1
+        - WE1R
+        - BL3
+        - BL3R
+        - FE5
+        - FE5R
+        - FE6
+        - FE6R
+      vehicles:
+        - XFG
+        - XRG
+        - XRT
+        - RB4
+        - FXO
+        - LX4
+        - LX6
+        - MRT
+        - UF1
+        - RAC
+        - FZ5
+        - FOX
+        - XFR
+        - UFR
+        - FO8
+        - FXR
+        - XRR
+        - FZR
+        - BF1
+      exclude:
+        - tracks: [BL2]
+          vehicles: [MRT]
+        - tracks: [BL3, BL3R, FE5, FE5R, FE6, FE6R]
+          vehicles: [MRT, FOX, XFR, UFR, FO8, FXR, XRR, FZR, BF1]
+  - id: car-uf1
+    title: UF 1000 Rank
+    description: A selection of 18 track configurations driven in the UF 1000.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [UF1]
+  - id: car-xfg
+    title: XF GTI Rank
+    description: A selection of 18 track configurations driven in the XF GTI.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [XFG]
+  - id: car-xrg
+    title: XR GT Rank
+    description: A selection of 18 track configurations driven in the XR GT.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [XRG]
+  - id: car-lx4
+    title: LX4 Rank
+    description: A selection of 18 track configurations driven in the LX4.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [LX4]
+  - id: car-lx6
+    title: LX6 Rank
+    description: A selection of 18 track configurations driven in the LX6.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [LX6]
+  - id: car-rb4
+    title: RB4 GT Rank
+    description: A selection of 18 track configurations driven in the RB4 GT.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [RB4]
+  - id: car-fxo
+    title: FXO Turbo Rank
+    description: A selection of 18 track configurations driven in the FXO Turbo.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [FXO]
+  - id: car-xrt
+    title: XR GT Turbo Rank
+    description: A selection of 18 track configurations driven in the XR GT Turbo.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [XRT]
+  - id: car-rac
+    title: RaceAbout Rank
+    description: A selection of 18 track configurations driven in the RaceAbout.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [RAC]
+  - id: car-fz5
+    title: FZ50 Rank
+    description: A selection of 18 track configurations driven in the FZ50.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [FZ5]
+  - id: car-ufr
+    title: UF GTR Rank
+    description: A selection of 18 track configurations driven in the UF GTR.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [UFR]
+  - id: car-xfr
+    title: XF GTR Rank
+    description: A selection of 18 track configurations driven in the XF GTR.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [XFR]
+  - id: car-fxr
+    title: FXO GTR Rank
+    description: A selection of 18 track configurations driven in the FXO GTR.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [FXR]
+  - id: car-xrr
+    title: XR GTR Rank
+    description: A selection of 18 track configurations driven in the XR GTR.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [XRR]
+  - id: car-fzr
+    title: FZ50 GTR Rank
+    description: A selection of 18 track configurations driven in the FZ50 GTR.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [FZR]
+  - id: car-mrt
+    title: MRT5 Rank
+    description: A selection of 18 track configurations driven in the MRT5.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [MRT]
+  - id: car-fox
+    title: Formula XR Rank
+    description: A selection of 18 track configurations driven in the Formula XR.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [FOX]
+  - id: car-fo8
+    title: Formula V8 Rank
+    description: A selection of 18 track configurations driven in the Formula V8.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [FO8]
+  - id: car-bf1
+    title: BMW Sauber F1.06 Rank
+    description: A selection of 18 track configurations driven in the BMW Sauber F1.06.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - BL1
+        - SO1
+        - SO2
+        - SO3
+        - SO4
+        - SO5
+        - FE1
+        - FE2
+        - FE3
+        - FE4
+        - KY1
+        - KY2
+        - KY3
+        - WE1
+        - AS2
+        - AS3
+        - AS4
+        - AS5
+      vehicles: [BF1]

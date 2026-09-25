@@ -1,0 +1,3 @@
+-- Catalogue policy is deliberately not seeded by SQL migrations.
+-- Canonical tracks and built-in vehicles are bootstrapped by the application
+-- after migrations; eras are installed explicitly with `lfsplanet era apply`.
