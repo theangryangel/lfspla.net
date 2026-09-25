@@ -1,5 +1,7 @@
 {
   "extends": ["config:recommended"],
+  "npmrc": "allow-remote=all",
+  "npmrcMerge": true,
   "cargo": {
     "rangeStrategy": "replace"
   },
