@@ -85,7 +85,7 @@ tower-sessions-sqlx-store = { git = "https://github.com/maxcountryman/tower-sess
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = { workspace = true }
-utoipa = { version = "5", features = ["axum_extras"] }
+utoipa = { version = "6", features = ["axum_extras"] }
 utoipa-axum = "0.2"
 utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
 validator = { version = "0.21", features = ["derive"] }
