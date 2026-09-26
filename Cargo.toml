@@ -48,7 +48,7 @@ url = "2"
 anyhow = { workspace = true }
 axum = { version = "0.8", features = ["multipart"] }
 axum-response-cache = "0.5"
-celes = "2.8.2"
+celes = "3.0.0"
 clap = { workspace = true, features = ["derive"] }
 csv = "1"
 futures = "0.3"
