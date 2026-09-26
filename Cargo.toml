@@ -62,7 +62,7 @@ lfsplanet_lfs = { path = "crates/lfsplanet_lfs" }
 lfsplanet_lfs_api = { path = "crates/lfsplanet_lfs_api" }
 lfsplanet_spr = { path = "crates/lfsplanet_spr" }
 oauth2 = { workspace = true }
-object_store = "0.12"
+object_store = "0.14"
 rand = "0.10"
 reqwest = { workspace = true, features = ["json", "rustls-tls", "stream"] }
 sea-orm = { workspace = true, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-json", "with-time"] }
