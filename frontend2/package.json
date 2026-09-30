@@ -31,7 +31,7 @@
     "@types/node": "26.4.1",
     "prettier": "3.9.9",
     "prettier-plugin-svelte": "4.1.1",
-    "shadcn-svelte": "1.6.1",
+    "shadcn-svelte": "1.7.0",
     "svelte": "5.57.0",
     "svelte-check": "4.7.6",
     "tailwindcss": "4.3.3",
