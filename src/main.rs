@@ -2,7 +2,11 @@
 //!
 //! Linux only: LFS installation and validation use Wine and Bubblewrap.
 #[cfg(not(target_os = "linux"))]
-compile_error!("lfsplanet targets Linux only: replay validation requires Bubblewrap.");
+#[deprecated(note = "lfsplanet targets Linux only: replay validation requires Bubblewrap.")]
+const UNSUPPORTED_PLATFORM_WARNING: () = ();
+
+#[cfg(not(target_os = "linux"))]
+const _: () = UNSUPPORTED_PLATFORM_WARNING;
 
 mod api;
 mod auth;
