@@ -18,6 +18,7 @@ export const load: LayoutLoad = async ({ params, url, fetch, parent }) => {
   if (!era) error(404, "Era not found");
   return {
     era,
+    hotlapActions: [] as NonNullable<App.PageData["hotlapActions"]>,
     breadcrumbs: [
       ...breadcrumbs,
       { label: "Hotlaps" },

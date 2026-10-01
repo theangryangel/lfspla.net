@@ -9,9 +9,16 @@ export const load: LayoutLoad = async ({ depends, params, fetch, parent }) => {
     fetch,
     `/api/v1/eras/${encodeURIComponent(params.era)}/rankings/${encodeURIComponent(params.rank)}`,
   );
-  const { breadcrumbs } = await parent();
+  const { breadcrumbs, hotlapActions = [] } = await parent();
   return {
     ranking,
+    hotlapActions: [
+      ...hotlapActions,
+      {
+        label: "Rank Info",
+        href: `${hotlapPath(params.era)}/rankings/${ranking.id}/combinations`,
+      },
+    ],
     breadcrumbs: [
       ...breadcrumbs,
       {

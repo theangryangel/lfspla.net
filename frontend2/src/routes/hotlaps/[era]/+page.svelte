@@ -9,16 +9,6 @@
 	let { data }: PageProps = $props();
 </script>
 
-<p class="text-sm text-muted-foreground">
-	{#if data.era.open}
-		This era is open for hotlap submissions and accepts replays recorded with
-		LFS {data.era.version_requirement}.
-	{:else}
-		This historical era accepts replays recorded with LFS
-		{data.era.version_requirement}.
-	{/if}
-</p>
-
 <div
 	class="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
 >

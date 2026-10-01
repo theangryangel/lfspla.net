@@ -4,7 +4,10 @@ declare global {
   namespace App {
     // interface Error {}
     // interface Locals {}
-    // interface PageData {}
+    interface PageData {
+      /** Extra links after Upload hotlap; child loads can extend the parent's list. */
+      hotlapActions?: { label: string; href: string }[];
+    }
     // interface PageState {}
     // interface Platform {}
   }

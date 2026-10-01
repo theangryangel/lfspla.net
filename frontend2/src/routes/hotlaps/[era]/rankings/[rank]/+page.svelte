@@ -1,6 +1,4 @@
 <script lang="ts">
-	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import PlayerBadge from '$lib/components/app/PlayerBadge.svelte';
 	import CompareButton from '$lib/components/app/CompareButton.svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
@@ -31,15 +29,6 @@
 </script>
 
 <div class="space-y-6">
-	<div class="flex justify-end">
-		<Button
-			variant="outline"
-			href={`/hotlaps/${data.era.id}/rankings/${data.ranking.id}/combinations`}
-		>
-			<CircleHelpIcon />
-			Rank Info
-		</Button>
-	</div>
 	<div class="grid items-start gap-6 xl:grid-cols-2">
 		{#each ['Drivers', 'Nations'] as standings}
 			{@const nations = standings === 'Nations'}

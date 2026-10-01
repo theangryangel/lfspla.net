@@ -8,6 +8,8 @@
 	import { navigationTextClass } from '$lib/components/app/navigation.js';
 	import HotlapUpload from '$lib/components/app/HotlapUpload.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Popover from '$lib/components/ui/popover/index.js';
+	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 	import { hotlapPath } from '$lib/era.js';
 	import type { LayoutProps } from './$types';
 
@@ -76,7 +78,41 @@
 		</div>
 		<PageNavigation label="Era" items={navigation}>
 			{#snippet action()}
-				<HotlapUpload era={data.era} />
+				<div class="flex items-center gap-2">
+					<HotlapUpload era={data.era} />
+					{#each page.data.hotlapActions ?? [] as action (action.href)}
+						{#if page.url.pathname !== action.href}
+							<Button variant="outline" href={action.href}>
+								<CircleHelpIcon />
+								{action.label}
+							</Button>
+						{/if}
+					{/each}
+					<Popover.Root>
+						<Popover.Trigger>
+							{#snippet child({ props })}
+								<Button {...props} variant="outline">
+									<CircleHelpIcon />
+									Era Info
+								</Button>
+							{/snippet}
+						</Popover.Trigger>
+						<Popover.Content align="end" class="w-80 max-w-[calc(100vw-2rem)]">
+							<Popover.Header>
+								<Popover.Title>{data.era.title}</Popover.Title>
+								<Popover.Description>
+									{#if data.era.open}
+										This era is open for hotlap submissions and accepts replays
+										recorded with LFS {data.era.version_requirement}.
+									{:else}
+										This historical era accepts replays recorded with LFS
+										{data.era.version_requirement}.
+									{/if}
+								</Popover.Description>
+							</Popover.Header>
+						</Popover.Content>
+					</Popover.Root>
+				</div>
 			{/snippet}
 		</PageNavigation>
 	</div>
