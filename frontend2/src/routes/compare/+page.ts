@@ -9,6 +9,7 @@ export const load: PageLoad = async ({ depends, fetch, url, parent }) => {
   const era = url.searchParams.get("era") ?? currentEraId ?? "";
   const track = url.searchParams.get("track")?.trim() ?? "";
   const vehicle = url.searchParams.get("vehicle")?.trim() ?? "";
+  const sharedOnly = url.searchParams.get("shared") !== "0";
   let comparison: PlayerComparisonResponse | null = null;
   let problem = "";
   if (left && right && era) {
@@ -28,5 +29,14 @@ export const load: PageLoad = async ({ depends, fetch, url, parent }) => {
       }
     }
   }
-  return { left, right, era, track, vehicle, comparison, problem };
+  return {
+    left,
+    right,
+    era,
+    track,
+    vehicle,
+    sharedOnly,
+    comparison,
+    problem,
+  };
 };

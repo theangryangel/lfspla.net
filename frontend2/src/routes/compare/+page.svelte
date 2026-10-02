@@ -46,6 +46,7 @@
 		);
 	});
 	const shared = $derived(rows.filter((row) => row.left && row.right));
+	const visibleRows = $derived(data.sharedOnly ? shared : rows);
 	const leftWins = $derived(
 		shared.filter((row) => row.left!.lap_time_ms < row.right!.lap_time_ms)
 			.length,
@@ -78,7 +79,7 @@
 				leftWins -
 				rightWins} ties
 		</p>
-		{#if rows.length}
+		{#if visibleRows.length}
 			<TableFrame>
 				<Table.Root>
 					<Table.Caption class="p-4"
@@ -105,7 +106,7 @@
 						</Table.Row></Table.Header
 					>
 					<Table.Body>
-						{#each rows as row (`${row.era}/${row.track}/${row.vehicle}`)}
+						{#each visibleRows as row (`${row.era}/${row.track}/${row.vehicle}`)}
 							<Table.Row>
 								<Table.Cell class="pl-4"
 									><a
@@ -145,8 +146,9 @@
 			</TableFrame>
 		{:else}<Empty title="No matching laps"
 				><p>
-					Neither driver has a personal best for these filters. Try another era
-					or clear the track and vehicle.
+					{data.sharedOnly
+						? 'The drivers have no laps on the same chart for these filters. Untick show shared charts only, try another era or clear the track and vehicle.'
+						: 'Neither driver has a personal best for these filters. Try another era or clear the track and vehicle.'}
 				</p></Empty
 			>{/if}
 	{:else}
