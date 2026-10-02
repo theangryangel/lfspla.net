@@ -1,5 +1,6 @@
 //! LFS integration.
 
+#[cfg(target_os = "linux")]
 pub(crate) mod installations;
 
 use crate::settings::LfsSettings;

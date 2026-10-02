@@ -68,7 +68,6 @@ lfsplanet worker
 The worker selects pending hotlaps with `FOR UPDATE SKIP LOCKED`, holding the
 transaction until validation and its result are saved. Each worker needs a
 database connection. Shutdown on SIGINT or SIGTERM lets the current attempt finish.
-`hotlap watch` remains an alias for `worker`.
 
 Infrastructure failures retry after 30 seconds, up to five completed attempts.
 Exhausted hotlaps remain pending with `error_detail` populated, and still count

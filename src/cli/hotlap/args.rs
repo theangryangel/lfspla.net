@@ -13,8 +13,6 @@ pub(crate) enum HotlapCommand {
         #[arg(value_name = "SPR")]
         replay: PathBuf,
     },
-    /// Continuously validate queued hotlaps using LFS HLVC until interrupted.
-    Watch,
     /// Run one local SPR through HLVC and print its diagnostic output.
     Validate {
         /// Named LFS installation to use.
@@ -41,7 +39,7 @@ pub(crate) enum HotlapCommand {
 
 /// Mutually exclusive era selection for badge rebuilding.
 ///
-/// Badges are maintained by `hotlap watch` as replays are published; this
+/// Badges are maintained by the background worker as replays are published; this
 /// selects what a manual repair run covers.
 #[derive(Clone, Debug, Eq, PartialEq, clap::Args)]
 #[group(required = true, multiple = false)]

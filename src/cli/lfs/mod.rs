@@ -2,17 +2,24 @@
 
 mod args;
 
+#[cfg(target_os = "linux")]
 use std::{
     process::{Output, Stdio},
     time::Duration,
 };
 
+#[cfg(target_os = "linux")]
 use anyhow::{Context, ensure};
+#[cfg(target_os = "linux")]
 use tokio::process::Command;
 
+#[cfg(target_os = "linux")]
 mod install;
+#[cfg(target_os = "linux")]
 mod installation_path;
+#[cfg(target_os = "linux")]
 mod trim;
+#[cfg(target_os = "linux")]
 mod update;
 
 pub(crate) use args::LfsCommand;
@@ -20,6 +27,7 @@ pub(crate) use args::LfsCommand;
 use crate::cli::Args;
 
 /// Runs one LFS installation command.
+#[cfg(target_os = "linux")]
 pub(crate) async fn run(args: &Args, action: &LfsCommand) -> anyhow::Result<()> {
     match action {
         LfsCommand::Path { installation_id } => installation_path::run(args, installation_id),
@@ -53,6 +61,17 @@ pub(crate) async fn run(args: &Args, action: &LfsCommand) -> anyhow::Result<()> 
     }
 }
 
+#[cfg(not(target_os = "linux"))]
+pub(crate) async fn run(_args: &Args, _action: &LfsCommand) -> anyhow::Result<()> {
+    tracing::error!(
+        "LFS installation management is unsupported on this platform; it requires Linux and Bubblewrap"
+    );
+    anyhow::bail!(
+        "LFS installation management is unsupported on this platform; it requires Linux and Bubblewrap"
+    )
+}
+
+#[cfg(target_os = "linux")]
 async fn checked_output(
     mut command: Command,
     timeout: Duration,
@@ -86,12 +105,14 @@ async fn checked_output(
     Ok(output)
 }
 
+#[cfg(target_os = "linux")]
 fn combined_output(output: &Output) -> String {
     let mut diagnostic = String::from_utf8_lossy(&output.stdout).into_owned();
     diagnostic.push_str(&String::from_utf8_lossy(&output.stderr));
     diagnostic
 }
 
+#[cfg(target_os = "linux")]
 fn redact(text: &str, secret: &str) -> String {
     if secret.is_empty() {
         text.to_owned()

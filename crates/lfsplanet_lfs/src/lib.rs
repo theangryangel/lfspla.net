@@ -1,14 +1,5 @@
 //! The supported ways to run LFS under Wine and Bubblewrap.
 
-#[cfg(not(target_os = "linux"))]
-#[deprecated(
-    note = "lfsplanet_lfs assumes Linux and Bubblewrap; local development is fine without them if you do not use the worker"
-)]
-const UNSUPPORTED_PLATFORM_WARNING: () = ();
-
-#[cfg(not(target_os = "linux"))]
-const _: () = UNSUPPORTED_PLATFORM_WARNING;
-
 use std::{
     ffi::{OsStr, OsString},
     fs,
