@@ -1,5 +1,7 @@
 //! Sandboxed LFS hot-lap validation.
 
+#![cfg(target_os = "linux")]
+
 mod result;
 mod sandbox;
 

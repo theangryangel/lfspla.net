@@ -64,7 +64,6 @@ insim_core = { workspace = true }
 itertools = "0.15"
 lfsplanet_game_version_req = { workspace = true, features = ["sea-orm"] }
 lfsplanet_jobs = { path = "crates/lfsplanet_jobs" }
-lfsplanet_lfs = { path = "crates/lfsplanet_lfs" }
 lfsplanet_lfs_api = { path = "crates/lfsplanet_lfs_api" }
 lfsplanet_spr = { path = "crates/lfsplanet_spr" }
 oauth2 = { workspace = true }
@@ -95,6 +94,9 @@ utoipa = { version = "6", features = ["axum_extras"] }
 utoipa-axum = "0.3"
 utoipa-swagger-ui = { version = "10", features = ["axum", "vendored"] }
 validator = { version = "0.21", features = ["derive"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+lfsplanet_lfs = { path = "crates/lfsplanet_lfs" }
 
 [dev-dependencies]
 http-body-util = "0.1"

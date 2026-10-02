@@ -1,8 +1,11 @@
 //! Runs the application's background record processors.
 
+#[cfg(target_os = "linux")]
 use crate::{cli::Args, jobs::hlvc::HotlapValidation, settings::Settings, startup, storage};
+#[cfg(target_os = "linux")]
 use lfsplanet_jobs::{Runner, WorkerConfig};
 
+#[cfg(target_os = "linux")]
 pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
     let database = startup::connect(&settings.database, 4).await?;
@@ -41,4 +44,14 @@ pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     signal_result?;
     tracing::info!("background worker stopped");
     Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+pub(crate) async fn run(_args: &crate::cli::Args) -> anyhow::Result<()> {
+    tracing::error!(
+        "worker is unsupported on this platform; replay validation requires Linux and Bubblewrap"
+    );
+    anyhow::bail!(
+        "worker is unsupported on this platform; replay validation requires Linux and Bubblewrap"
+    )
 }
