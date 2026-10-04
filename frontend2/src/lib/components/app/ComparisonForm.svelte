@@ -23,6 +23,7 @@
 			era: string;
 			track: string;
 			vehicle: string;
+			sharedOnly: boolean;
 		};
 	} = $props();
 	let left = $derived(initial.left);
@@ -30,6 +31,7 @@
 	let era = $derived(initial.era);
 	let track = $derived(initial.track);
 	let vehicle = $derived(initial.vehicle);
+	let sharedOnly = $derived(initial.sharedOnly);
 	let tracks = $state<TrackSummary[]>([]);
 	let vehicles = $state<VehicleSummary[]>([]);
 	let vehicleLabels = $state<Record<string, string>>({});
@@ -138,6 +140,7 @@
 						era,
 						track,
 						vehicle,
+						shared: sharedOnly ? '' : '0',
 					}),
 			);
 		} catch {
@@ -168,6 +171,12 @@
 					bind:value={right}
 				/></label
 			>
+			<div class="grid gap-2">
+				<label class="flex w-fit items-center gap-2 text-sm"
+					><input type="checkbox" bind:checked={sharedOnly} />Show shared charts
+					only</label
+				>
+			</div>
 		</div>
 		<div class="flex flex-wrap items-end gap-4 border-t pt-4">
 			<div class="grid gap-2">
