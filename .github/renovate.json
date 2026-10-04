@@ -1,4 +1,5 @@
 {
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "npmrc": "allow-remote=all",
   "npmrcMerge": true,
@@ -9,6 +10,49 @@
     "artifactError": "always"
   },
   "packageRules": [
+    {
+      "description": "Batch routine frontend updates weekly; keep merging a manual decision.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["frontend2/package.json"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "schedule": ["* * * * 1"],
+      "automerge": false
+    },
+    {
+      "description": "Update the Svelte compiler, Kit, adapter, and build tooling together within their existing majors.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["frontend2/package.json"],
+      "matchPackageNames": ["svelte", "@sveltejs/*", "svelte-check", "vite"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "SvelteKit tooling",
+      "groupSlug": "sveltekit-tooling"
+    },
+    {
+      "description": "Review routine Tailwind and its Vite integration updates together.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["frontend2/package.json"],
+      "matchPackageNames": ["tailwindcss", "@tailwindcss/*"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Tailwind CSS",
+      "groupSlug": "tailwindcss"
+    },
+    {
+      "description": "Review routine Prettier and Svelte formatting plugin updates together.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["frontend2/package.json"],
+      "matchPackageNames": ["prettier", "prettier-plugin-svelte"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Prettier",
+      "groupSlug": "prettier"
+    },
+    {
+      "description": "Keep frontend majors visible in the Dashboard without creating PRs until requested; coordinate required companion upgrades during migration.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["frontend2/package.json"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+      "automerge": false
+    },
     {
       "description": "insim, insim_core are pulled from the insim.rs main branch as git dependencies; renovate must not manage them.",
       "matchManagers": ["cargo"],
