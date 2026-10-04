@@ -64,7 +64,6 @@ for path, owner, mode in (
     (config_dir, "root", "0750"),
     (f"{config_dir}/eras", "root", "0750"),
     (state_dir, app_user, "0750"),
-    (f"{state_dir}/downloads", app_user, "0750"),
     (f"{state_dir}/games", app_user, "0750"),
     (f"{state_dir}/wine", app_user, "0750"),
     (f"{state_dir}/spr", app_user, "0750"),

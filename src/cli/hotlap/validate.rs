@@ -4,7 +4,7 @@ use std::path::Path;
 
 use anyhow::Context;
 
-use crate::{cli::Args, hlvc::diagnose, settings::Settings};
+use crate::{cli::Args, lfs::installations::resolve_installation, settings::Settings};
 
 /// Validates one local replay without storing or publishing anything.
 pub(super) async fn run(
@@ -12,33 +12,36 @@ pub(super) async fn run(
     installation_id: &str,
     replay_path: &Path,
 ) -> anyhow::Result<()> {
+    lfsplanet_lfs::ensure_supported()?;
     let settings = Settings::load(&args.config)?;
     let replay = tokio::fs::read(replay_path)
         .await
         .with_context(|| format!("failed to read replay {}", replay_path.display()))?;
-    let diagnostic = diagnose(
-        &settings.lfs_runtime,
-        &settings.worker.hlvc,
-        installation_id,
+    let installation =
+        resolve_installation(settings.lfs.installation_root.path(), installation_id)?;
+    let diagnostic = lfsplanet_lfs::validate(
+        &settings.lfs.runtime,
+        &installation,
         &replay,
+        settings.worker.hlvc.timeout.duration(),
     )
     .await?;
 
-    println!("Bubblewrap status: {}", diagnostic.output.status);
+    println!("Runner status: {}", diagnostic.output.status);
     println!(
-        "--- Bubblewrap stdout ---\n{}",
+        "--- Runner stdout ---\n{}",
         String::from_utf8_lossy(&diagnostic.output.stdout)
     );
     eprintln!(
-        "--- Wine and Bubblewrap stderr ---\n{}",
+        "--- Runtime stderr ---\n{}",
         String::from_utf8_lossy(&diagnostic.output.stderr)
     );
 
     let result = diagnostic
         .result()
-        .context("could not extract a complete HLVC status from Bubblewrap output")?;
-    println!("Bubblewrap exit code: {}", result.bubblewrap_exit_code);
-    println!("Wine exit code: {}", result.wine_exit_code);
+        .context("could not obtain a complete HLVC result")?;
+    println!("Runner exit code: {}", result.process_exit_code);
+    println!("Runtime exit code: {}", result.runtime_exit_code);
     println!(
         "LFS HLVC result: {} ({})",
         result.lfs.code(),
