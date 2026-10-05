@@ -9,14 +9,18 @@ mod state;
 
 pub(crate) mod extractors;
 
-pub(crate) use crate::models::Ordering;
-pub use error::{ApiError, ErrorResponse};
-pub(crate) use pagination::{ListResponse, PaginatedResponse, PaginationQuery};
+pub(crate) use crate::ordering::Ordering;
+pub use error::ApiError;
+pub use error::ErrorResponse;
+pub(crate) use pagination::ListResponse;
+pub(crate) use pagination::PaginatedResponse;
+pub(crate) use pagination::PaginationQuery;
 pub use state::ApiState;
 
 /// Default number of results returned by paginated API endpoints.
 pub(crate) const PER_PAGE: u32 = 50;
 
+use crate::{cli::Args, db, settings::Settings, storage};
 use anyhow::Context;
 use axum::{
     Router,
@@ -24,6 +28,7 @@ use axum::{
     http::{HeaderValue, StatusCode, header},
     routing::get,
 };
+use lfsplanet_lfs_api::OAuthProvider;
 use sea_orm::DatabaseConnection;
 use time::Duration;
 use tower_http::{
@@ -40,17 +45,16 @@ use tower_sessions::{
     cookie::{Key, SameSite},
 };
 use tower_sessions_sqlx_store::PostgresStore;
-use utoipa::openapi::ContactBuilder;
-use utoipa::openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme};
+use utoipa::openapi::{
+    ContactBuilder,
+    security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme},
+};
 use utoipa_swagger_ui::SwaggerUi;
-
-use crate::{cli::Args, lfs::api_client, settings::Settings, startup, storage};
-use lfsplanet_lfs_api::OAuthProvider;
 
 /// Runs the web application until a shutdown signal is received.
 pub async fn run(args: &Args) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
-    let database = startup::connect(&settings.database, 10).await?;
+    let database = db::connect(&settings.database, 10).await?;
 
     let app = application(database, &settings)?;
     let listener = tokio::net::TcpListener::bind(settings.web.listen)
@@ -122,7 +126,9 @@ pub fn router(max_spr_upload_bytes: usize) -> Router<ApiState> {
 /// Wires the public routes to runtime dependencies and middleware.
 pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow::Result<Router> {
     let object_store = storage::build(&settings.storage)?;
-    let oauth = api_client(&settings.lfs)?
+    let oauth = settings
+        .lfs
+        .to_api_client()?
         .map(|client| OAuthProvider::new(client, settings.web.oauth_callback_url().to_string()))
         .transpose()?;
     let state = ApiState {

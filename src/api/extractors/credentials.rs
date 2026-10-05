@@ -3,25 +3,22 @@
 //! Cookie-authenticated writes require a CSRF token. Each extractor checks
 //! this from the request method.
 
+use crate::{
+    api::{ApiError, ApiState},
+    models::{
+        Player,
+        player::{Column as PlayerColumn, Entity as PlayerEntity},
+    },
+};
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
     http::{HeaderMap, StatusCode, header, request::Parts},
     response::{IntoResponse, Response},
 };
 use oauth2::CsrfToken;
-use sea_orm::DatabaseConnection;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use subtle::ConstantTimeEq;
 use tower_sessions::Session;
-
-use crate::{
-    api::{ApiError, ApiState},
-    models::{
-        personal_access_tokens,
-        players::{PlayerColumn, PlayerEntity, PlayerModel},
-    },
-};
-
 const CSRF_TOKEN_KEY: &str = "csrf_token";
 const PLAYER_ID_KEY: &str = "player_id";
 
@@ -43,7 +40,7 @@ macro_rules! extractor {
 }
 
 /// The player behind a session cookie or a personal access token.
-pub(crate) struct AuthenticatedPlayer(pub(crate) PlayerModel);
+pub(crate) struct AuthenticatedPlayer(pub(crate) Player);
 
 impl AuthenticatedPlayer {
     async fn extract(parts: &mut Parts, state: &ApiState) -> Result<Self, ApiError> {
@@ -87,7 +84,7 @@ impl OptionalFromRequestParts<ApiState> for AuthenticatedPlayer {
 }
 
 /// Requires browser authentication. A leaked API token cannot create more tokens.
-pub(crate) struct BrowserAuthenticatedPlayer(pub(crate) PlayerModel);
+pub(crate) struct BrowserAuthenticatedPlayer(pub(crate) Player);
 
 impl BrowserAuthenticatedPlayer {
     async fn extract(parts: &mut Parts, state: &ApiState) -> Result<Self, ApiError> {
@@ -136,7 +133,7 @@ enum Credential {
 
 /// The authenticated player and credential type.
 struct Authenticated {
-    player: PlayerModel,
+    player: Player,
     credential: Credential,
 }
 
@@ -154,7 +151,7 @@ async fn resolve(
             credential: Credential::BrowserSession,
         });
     };
-    let player = personal_access_tokens::authenticate(database, token)
+    let player = crate::models::PersonalAccessToken::authenticate(database, token)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(invalid_access_token)?;
@@ -191,7 +188,7 @@ async fn session(parts: &mut Parts, state: &ApiState) -> Result<Session, ApiErro
 pub(crate) async fn browser_player(
     session: &Session,
     database: &DatabaseConnection,
-) -> Result<Option<PlayerModel>, ApiError> {
+) -> Result<Option<Player>, ApiError> {
     let Some(player_id) = session
         .get::<i64>(PLAYER_ID_KEY)
         .await
@@ -313,7 +310,8 @@ mod tests {
     use super::*;
     use std::sync::Arc;
 
-    use tower_sessions::{MemoryStore, Session};
+    use tower_sessions::MemoryStore;
+    use tower_sessions::Session;
 
     #[test]
     fn csrf_requires_matching_non_empty_tokens() {

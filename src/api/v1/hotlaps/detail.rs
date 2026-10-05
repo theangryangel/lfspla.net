@@ -1,5 +1,18 @@
 //! Reading one identified hotlap.
 
+use crate::era_slug::EraSlug;
+
+use crate::milliseconds::Milliseconds;
+
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer, v1::PlayerSummary},
+    models::{
+        Era, Hotlap,
+        era::Entity as EraEntity,
+        hotlap::{self, DriverSide, HotlapFilter, HotlapState, SteeringInput},
+        player,
+    },
+};
 use axum::{
     Json,
     extract::{Path, State},
@@ -8,31 +21,20 @@ use sea_orm::EntityTrait;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer, v1::PlayerSummary},
-    models::{
-        eras::{EraEntity, EraModel},
-        hotlaps::{self, DriverSide, HotlapFilter, HotlapModel, HotlapState, SteeringInput},
-        players,
-    },
-};
-
 /// Hotlap details. Owners can see all states and processing fields.
 /// Other callers see only valid laps, with processing fields set to null.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct HotlapResponse {
     id: i64,
-    era_id: String,
+    era_id: EraSlug,
     player: PlayerSummary,
     track: String,
-    /// Absent until the hotlap's vehicle has been resolved.
-    #[schema(required)]
-    vehicle: Option<String>,
-    lap_time_ms: i64,
-    split_1_ms: i64,
-    split_2_ms: i64,
-    split_3_ms: i64,
-    split_4_ms: i64,
+    vehicle: String,
+    lap_time_ms: Milliseconds,
+    split_1_ms: Milliseconds,
+    split_2_ms: Milliseconds,
+    split_3_ms: Milliseconds,
+    split_4_ms: Milliseconds,
     steering: SteeringInput,
     brake_help_enabled: bool,
     automatic_gears: bool,
@@ -94,10 +96,10 @@ pub(crate) async fn detail(
     // The lap and its owner arrive together: the hotlap entity declares the
     // relation, so this is one join rather than a second round trip.
     let viewers_hotlap = match viewer_id {
-        Some(player_id) => hotlaps::HotlapEntity::find_by_id(hotlap_id)
+        Some(player_id) => hotlap::Entity::find_by_id(hotlap_id)
             .uploads()
             .owned_by(player_id)
-            .find_also_related(players::PlayerEntity)
+            .find_also_related(player::Entity)
             .find_also_related(EraEntity)
             .one(&state.database)
             .await
@@ -107,9 +109,9 @@ pub(crate) async fn detail(
     let owner = viewers_hotlap.is_some();
     let (hotlap, player, era) = match viewers_hotlap {
         Some(found) => found,
-        None => hotlaps::HotlapEntity::find_by_id(hotlap_id)
+        None => hotlap::Entity::find_by_id(hotlap_id)
             .valid()
-            .find_also_related(players::PlayerEntity)
+            .find_also_related(player::Entity)
             .find_also_related(EraEntity)
             .one(&state.database)
             .await
@@ -138,9 +140,9 @@ fn hotlap_not_found() -> ApiError {
 }
 
 fn response(
-    hotlap: HotlapModel,
-    player: players::PlayerModel,
-    era: &EraModel,
+    hotlap: Hotlap,
+    player: crate::models::Player,
+    era: &Era,
     owner: bool,
 ) -> HotlapResponse {
     let hotlap_id = hotlap.id;
@@ -150,7 +152,7 @@ fn response(
         era_id: era.slug.clone(),
         player: player.into(),
         track: hotlap.track.to_string(),
-        vehicle: hotlap.vehicle.map(|vehicle| vehicle.to_string()),
+        vehicle: hotlap.vehicle.to_string(),
         lap_time_ms: hotlap.lap_time_ms,
         split_1_ms: hotlap.split_1_ms,
         split_2_ms: hotlap.split_2_ms,

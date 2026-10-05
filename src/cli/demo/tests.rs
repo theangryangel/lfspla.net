@@ -1,7 +1,6 @@
 use super::{DemoArgs, persist};
-use crate::models::{eras, hotlaps::HotlapEntity};
+use crate::models::hotlap::Entity as HotlapEntity;
 use sea_orm::{EntityTrait, SqlxPostgresConnector};
-
 #[sqlx::test]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> anyhow::Result<()> {
@@ -16,7 +15,9 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         .execute(&pool).await?;
 
     let inserted = persist::populate(&database, &options).await?;
-    let era = eras::find_by_slug("demo").one(&database).await?.unwrap();
+    let era = crate::models::Era::find_by_slug(&database, &"demo".parse().unwrap())
+        .await?
+        .unwrap();
     assert!(!era.open);
     let laps = HotlapEntity::find().all(&database).await?;
     assert_eq!(laps.len(), inserted);
@@ -31,7 +32,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     assert_eq!(invalid, 0);
 
     let combinations: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM ranking_chart WHERE era_id = $1")
+        sqlx::query_scalar("SELECT count(*) FROM ranking_chart_membership WHERE era_id = $1")
             .bind(era.id)
             .fetch_one(&pool)
             .await?;
@@ -42,11 +43,11 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
             .await?;
     assert_eq!(covered, (combinations * 90 + 99) / 100);
     let mod_charts: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM ranking_chart chart JOIN vehicle ON vehicle.id = chart.vehicle_id WHERE chart.era_id = $1 AND vehicle.kind = 'mod'",
+        "SELECT count(*) FROM chart JOIN vehicle ON vehicle.id = chart.vehicle_id WHERE chart.era_id = $1 AND vehicle.kind = 'mod'",
     ).bind(era.id).fetch_one(&pool).await?;
     assert_eq!(mod_charts, 0);
     let personal_bests: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM hotlap_personal_best WHERE era_id = $1 AND position > 0",
+        "SELECT count(*) FROM hotlap_personal_best WHERE chart_id IN (SELECT id FROM chart WHERE era_id = $1) AND position > 0",
     )
     .bind(era.id)
     .fetch_one(&pool)
@@ -70,7 +71,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
             .await?;
     assert_eq!(total_players, 100);
     let original_positions: Vec<(i64, i64)> =
-        sqlx::query_as("SELECT hotlap_id, position FROM hotlap_personal_best WHERE era_id = $1")
+        sqlx::query_as("SELECT hotlap_id, position FROM hotlap_personal_best WHERE chart_id IN (SELECT id FROM chart WHERE era_id = $1)")
             .bind(era.id)
             .fetch_all(&pool)
             .await?;
@@ -94,14 +95,14 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         .await?;
     assert!(accumulated_players > total_players);
     let ranked: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM hotlap_personal_best WHERE era_id = $1 AND position > 0",
+        "SELECT count(*) FROM hotlap_personal_best WHERE chart_id IN (SELECT id FROM chart WHERE era_id = $1) AND position > 0",
     )
     .bind(era.id)
     .fetch_one(&pool)
     .await?;
     assert_eq!(usize::try_from(ranked)?, accumulated.len());
     let updated_positions: std::collections::HashMap<i64, i64> = sqlx::query_as::<_, (i64, i64)>(
-        "SELECT hotlap_id, position FROM hotlap_personal_best WHERE era_id = $1",
+        "SELECT hotlap_id, position FROM hotlap_personal_best WHERE chart_id IN (SELECT id FROM chart WHERE era_id = $1)",
     )
     .bind(era.id)
     .fetch_all(&pool)
@@ -118,16 +119,70 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         "SELECT count(*) FROM (
             SELECT hotlap.lap_time_ms,
                 lag(hotlap.lap_time_ms) OVER (
-                    PARTITION BY pb.track, pb.vehicle ORDER BY pb.position
+                    PARTITION BY pb.chart_id ORDER BY pb.position
                 ) AS previous_time
             FROM hotlap_personal_best pb JOIN hotlap ON hotlap.id = pb.hotlap_id
-            WHERE pb.era_id = $1
+            WHERE hotlap.era_id = $1
          ) ordered WHERE lap_time_ms < previous_time",
     )
     .bind(era.id)
     .fetch_one(&pool)
     .await?;
     assert_eq!(out_of_order, 0, "chart positions must follow lap times");
+    // Exercise the chart-based joins behind ranking and player API views.
+    let ranking = crate::models::ranking::RankingWithCharts::find(&database, era.id, "all")
+        .await?
+        .unwrap();
+    assert_eq!(ranking.charts.len() as i64, combinations);
+    let nations = ranking.definition.nations(&database).await?;
+    assert!(!nations.is_empty());
+    for nation in nations {
+        let contributions = ranking
+            .definition
+            .list_nation_contributions(&database, nation.country_code.as_str())
+            .await?;
+        assert_eq!(
+            contributions.iter().map(|row| row.points).sum::<i64>(),
+            nation.points
+        );
+    }
+    let player = crate::models::player::Entity::find_by_id(laps[0].player_id)
+        .one(&database)
+        .await?
+        .unwrap();
+    let results = player
+        .list_chart_results(&database, Some(era.id), None, None)
+        .await?;
+    assert!(!results.is_empty());
+    assert_eq!(
+        ranking
+            .definition
+            .list_personal_chart_bests(&database, &player)
+            .await?
+            .len(),
+        results.len()
+    );
+    assert_eq!(
+        player.list_era_stats(&database).await?[0].personal_bests as usize,
+        results.len()
+    );
+    assert!(!era.list_podium_counts(&database).await?.is_empty());
+    let activity = crate::models::hotlap::HotlapActivity::load(
+        &database,
+        HotlapEntity::find(),
+        crate::models::hotlap::HotlapListColumn::Submitted,
+        crate::ordering::Ordering::Desc,
+        0,
+        10,
+    )
+    .await?;
+    assert_eq!(activity.total as usize, accumulated.len());
+    assert!(
+        activity
+            .entries
+            .iter()
+            .all(|entry| entry.position.is_some() && entry.contributes_to.len() == 1)
+    );
     Ok(())
 }
 
@@ -141,8 +196,7 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
     .execute(&pool)
     .await?;
     let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-    let before = eras::find_by_slug("2026-09-30")
-        .one(&database)
+    let before = crate::models::Era::find_by_slug(&database, &"2026-09-30".parse().unwrap())
         .await?
         .unwrap();
     persist::populate(
@@ -155,8 +209,7 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
         },
     )
     .await?;
-    let after = eras::find_by_slug("2026-09-30")
-        .one(&database)
+    let after = crate::models::Era::find_by_slug(&database, &"2026-09-30".parse().unwrap())
         .await?
         .unwrap();
     assert_eq!(before, after);

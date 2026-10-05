@@ -1,3 +1,4 @@
+use crate::milliseconds::Milliseconds;
 use fake::{
     Dummy, Fake, Faker,
     faker::{internet::en::Username, name::en::Name},
@@ -63,12 +64,12 @@ pub(super) fn entries(
 pub(super) fn lap(
     rng: &mut impl RngExt,
     profile: &Profile,
-    baseline: i64,
+    baseline: Milliseconds,
     now: OffsetDateTime,
-) -> (i64, OffsetDateTime) {
-    let milliseconds = baseline * (profile.pace + rng.random_range(0..100)) / 1000;
+) -> (Milliseconds, OffsetDateTime) {
+    let milliseconds = baseline.as_millis() * (profile.pace + rng.random_range(0..100)) / 1000;
     (
-        milliseconds,
+        Milliseconds::from_millis(milliseconds),
         now - Duration::seconds(rng.random_range(0..31_536_000)),
     )
 }

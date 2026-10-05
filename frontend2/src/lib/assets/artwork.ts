@@ -16,6 +16,12 @@ const urls = import.meta.glob("$assets/tracks/*.{png,jpg,webp,avif}", {
   import: "default",
 }) as Record<string, string>;
 
+const vehicleUrls = import.meta.glob("$assets/builtin-vehicles/*.png", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as Record<string, string>;
+
 /** Which catalogue a piece of artwork belongs to. */
 export type ArtworkKind = "track" | "vehicle";
 
@@ -30,16 +36,21 @@ const artwork: Record<ArtworkKind, Record<string, Artwork>> = {
 /**
  * Indexes files by catalogue and code.
  */
-function index(files: Record<string, string>, wrap: (file: string) => Artwork) {
+function index(
+  kind: ArtworkKind,
+  files: Record<string, string>,
+  wrap: (file: string) => Artwork,
+) {
   for (const [path, file] of Object.entries(files)) {
     const name = path.split("/").at(-1);
     if (!name) continue;
-    artwork.track[name.replace(/\.[^.]+$/, "").toUpperCase()] = wrap(file);
+    artwork[kind][name.replace(/\.[^.]+$/, "").toUpperCase()] = wrap(file);
   }
 }
 
-index(markup, (file) => ({ markup: file }));
-index(urls, (file) => ({ url: file }));
+index("track", markup, (file) => ({ markup: file }));
+index("track", urls, (file) => ({ url: file }));
+index("vehicle", vehicleUrls, (file) => ({ url: file }));
 
 /** The artwork for one code, or `undefined` when there is none. */
 export function artworkFor(

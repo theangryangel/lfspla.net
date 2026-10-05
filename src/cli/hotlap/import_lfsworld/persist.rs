@@ -1,15 +1,12 @@
 //! Transactional persistence for preflighted historical hotlaps.
 
-use std::collections::{HashMap, HashSet};
-
+use super::ImportData;
 use anyhow::Context;
 use sea_orm::{
     ActiveEnum, DatabaseConnection,
     sqlx::{self, Postgres, QueryBuilder},
 };
-
-use super::ImportData;
-
+use std::collections::{HashMap, HashSet};
 const SOURCE: &str = "lfsworld_v1";
 
 #[allow(clippy::too_many_lines)]
@@ -20,18 +17,21 @@ pub(super) async fn persist(
     let pool = database.get_postgres_connection_pool();
     let mut transaction = pool.begin().await?;
     sqlx::query("SELECT pg_advisory_xact_lock($1)")
-        .bind(crate::models::eras::CATALOGUE_LOCK)
+        .bind(crate::db::CATALOGUE_LOCK)
         .execute(&mut *transaction)
         .await?;
-    let eligible: HashSet<(i64, String, String)> =
-        sqlx::query_as("SELECT DISTINCT era_id, track_id, vehicle_id FROM ranking_chart")
-            .fetch_all(&mut *transaction)
-            .await?
-            .into_iter()
-            .collect();
+    let charts: HashMap<(i64, String, String), i64> =
+        sqlx::query_as::<_, (i64, i64, String, String)>(
+            "SELECT id, era_id, track_id, vehicle_id FROM chart",
+        )
+        .fetch_all(&mut *transaction)
+        .await?
+        .into_iter()
+        .map(|(id, era, track, vehicle)| ((era, track, vehicle), id))
+        .collect();
     for hotlap in &data.hotlaps {
         anyhow::ensure!(
-            eligible.contains(&(hotlap.era_id, hotlap.track.clone(), hotlap.vehicle.clone())),
+            charts.contains_key(&(hotlap.era_id, hotlap.track.clone(), hotlap.vehicle.clone())),
             "combination {}/{} is no longer eligible for era {}",
             hotlap.track,
             hotlap.vehicle,
@@ -84,12 +84,34 @@ pub(super) async fn persist(
         player_ids.insert(username.as_str(), result.0);
     }
 
+    // Imported laps may be reassigned to another era/chart. Remove their old
+    // projections before updating the FK; the affected eras are rebuilt below.
+    let fingerprints = data
+        .hotlaps
+        .iter()
+        .map(|lap| lap.fingerprint.clone())
+        .collect::<Vec<_>>();
+    let old_eras: Vec<i64> = sqlx::query_scalar(
+        "SELECT DISTINCT era_id FROM hotlap WHERE source = $1 AND fingerprint = ANY($2)",
+    )
+    .bind(SOURCE)
+    .bind(&fingerprints)
+    .fetch_all(&mut *transaction)
+    .await?;
+    sqlx::query(
+        "DELETE FROM hotlap_personal_best pb USING hotlap h
+         WHERE pb.hotlap_id = h.id AND h.source = $1 AND h.fingerprint = ANY($2)",
+    )
+    .bind(SOURCE)
+    .bind(&fingerprints)
+    .execute(&mut *transaction)
+    .await?;
     let mut inserted = 0;
     for chunk in data.hotlaps.chunks(1_000) {
         let mut query = QueryBuilder::<Postgres>::new(
             r"
             INSERT INTO hotlap (
-                player_id, era_id, track, vehicle, raw_vehicle_name,
+                player_id, era_id, chart_id, track, vehicle, raw_vehicle_name,
                 lap_time_ms, split_1_ms, split_2_ms, split_3_ms, split_4_ms,
                 original_filename, spr_object_key,
                 source, fingerprint, steering, abs_enabled, player_flags,
@@ -101,6 +123,7 @@ pub(super) async fn persist(
             values
                 .push_bind(player_ids[hotlap.lfs_username.as_str()])
                 .push_bind(hotlap.era_id)
+                .push_bind(charts[&(hotlap.era_id, hotlap.track.clone(), hotlap.vehicle.clone())])
                 .push_bind(&hotlap.track)
                 .push_bind(&hotlap.vehicle)
                 .push_bind(&hotlap.vehicle)
@@ -124,6 +147,7 @@ pub(super) async fn persist(
             r"
             ON CONFLICT (source, fingerprint) DO UPDATE
             SET era_id = EXCLUDED.era_id,
+                chart_id = EXCLUDED.chart_id,
                 steering = EXCLUDED.steering,
                 abs_enabled = EXCLUDED.abs_enabled,
                 player_flags = EXCLUDED.player_flags
@@ -146,29 +170,24 @@ pub(super) async fn persist(
         .hotlaps
         .iter()
         .map(|hotlap| hotlap.era_id)
+        .chain(old_eras)
         .collect::<HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
-    sqlx::query("DELETE FROM hotlap_personal_best WHERE era_id = ANY($1)")
+    sqlx::query("DELETE FROM hotlap_personal_best WHERE chart_id IN (SELECT id FROM chart WHERE era_id = ANY($1))")
         .bind(&era_ids)
         .execute(&mut *transaction)
         .await?;
     sqlx::query(
         r"
-INSERT INTO hotlap_personal_best (era_id, player_id, track, vehicle, hotlap_id)
-SELECT DISTINCT ON (hotlap.era_id, hotlap.player_id, hotlap.track, hotlap.vehicle)
-    hotlap.era_id, hotlap.player_id, hotlap.track, hotlap.vehicle, hotlap.id
+INSERT INTO hotlap_personal_best (chart_id, player_id, hotlap_id)
+SELECT DISTINCT ON (hotlap.chart_id, hotlap.player_id)
+    hotlap.chart_id, hotlap.player_id, hotlap.id
 FROM hotlap
 WHERE hotlap.era_id = ANY($1)
   AND hotlap.state = 'valid'
-  AND EXISTS (
-      SELECT 1 FROM ranking_chart
-      WHERE ranking_chart.era_id = hotlap.era_id
-        AND ranking_chart.track_id = hotlap.track
-        AND ranking_chart.vehicle_id = hotlap.vehicle
-  )
 ORDER BY
-    hotlap.era_id, hotlap.player_id, hotlap.track, hotlap.vehicle,
+    hotlap.chart_id, hotlap.player_id,
     hotlap.lap_time_ms, hotlap.created_at, hotlap.id
 ",
     )
@@ -177,10 +196,9 @@ ORDER BY
     .await?;
 
     for era_id in &era_ids {
-        sqlx::query(crate::models::eras::RERANK_SQL)
+        sqlx::query(crate::models::chart::RERANK_SQL)
             .bind(era_id)
-            .bind(None::<&str>)
-            .bind(None::<&str>)
+            .bind(None::<i64>)
             .execute(&mut *transaction)
             .await?;
         sqlx::query("INSERT INTO era_badge_refresh (era_id) VALUES ($1) ON CONFLICT DO NOTHING")
@@ -190,4 +208,109 @@ ORDER BY
     }
     transaction.commit().await?;
     Ok(inserted)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::{ImportedHotlap, ImportedPlayer};
+    use super::*;
+    use crate::{
+        milliseconds::Milliseconds,
+        models::{Era, era::definition},
+    };
+    use sea_orm::SqlxPostgresConnector;
+
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn imports_resolve_shared_chart_and_rebuild_both_eras_when_reclassified(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+        crate::models::Track::sync(&database).await?;
+        crate::models::Vehicle::sync_builtin(&database).await?;
+        let desired = definition::test_definitions();
+        crate::services::apply_eras::apply(&database, &desired, |_| Ok(())).await?;
+        let first = Era::find_by_slug(&database, &desired[0].id).await?.unwrap();
+        let second = Era::find_by_slug(&database, &desired[1].id).await?.unwrap();
+        let pair = desired[0].rankings[0].combinations.pairs().next().unwrap();
+        let date = time::OffsetDateTime::now_utc();
+        let mut data = ImportData {
+            players: [(
+                "import-chart-test".to_owned(),
+                ImportedPlayer {
+                    lfsworld_id: 123,
+                    country_code: Some("GB".into()),
+                    flag_code: None,
+                    created_at: date,
+                },
+            )]
+            .into_iter()
+            .collect(),
+            hotlaps: vec![ImportedHotlap {
+                fingerprint: "2006-01-01:1".into(),
+                lfs_username: "import-chart-test".into(),
+                era_slug: first.slug.clone(),
+                era_id: first.id,
+                track: pair.track.to_string(),
+                vehicle: pair.vehicle.to_string(),
+                lap_time_ms: Milliseconds::from_millis(60000),
+                split_times_ms: [Milliseconds::ZERO; 4],
+                original_filename: "import.spr".into(),
+                steering: crate::models::hotlap::SteeringInput::Wheel,
+                abs_enabled: None,
+                player_flags: 0,
+                created_at: date,
+                game_version: "0.5P".into(),
+            }],
+        };
+        assert_eq!(persist(&database, &data).await?, 1);
+        assert_eq!(persist(&database, &data).await?, 0);
+        let chart = crate::models::Chart::find_combination(
+            &database,
+            first.id,
+            &pair.track.to_string(),
+            &pair.vehicle.to_string(),
+        )
+        .await?
+        .unwrap();
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT chart_id FROM hotlap_personal_best")
+                .fetch_one(&pool)
+                .await?,
+            chart.id
+        );
+        // Test definitions select the same pair in their first two eras.
+        data.hotlaps[0].era_id = second.id;
+        data.hotlaps[0].era_slug = second.slug;
+        assert_eq!(persist(&database, &data).await?, 1);
+        let (lap_chart, best_chart, era): (i64, i64, i64) = sqlx::query_as(
+            "SELECT hotlap.chart_id, pb.chart_id, hotlap.era_id FROM hotlap
+             JOIN hotlap_personal_best pb ON pb.hotlap_id = hotlap.id",
+        )
+        .fetch_one(&pool)
+        .await?;
+        assert_eq!(lap_chart, best_chart);
+        assert_ne!(lap_chart, chart.id);
+        assert_eq!(era, second.id);
+        // Era repair must remap chart_id and the classification in one update,
+        // removing and rebuilding the old PB before changing its FK.
+        let repaired = crate::services::repair_eras::repair(&database).await?;
+        assert_eq!(repaired.hotlaps_updated, 1);
+        let (lap_chart, best_chart, era): (i64, i64, i64) = sqlx::query_as(
+            "SELECT hotlap.chart_id, pb.chart_id, hotlap.era_id FROM hotlap
+             JOIN hotlap_personal_best pb ON pb.hotlap_id = hotlap.id",
+        )
+        .fetch_one(&pool)
+        .await?;
+        assert_eq!(lap_chart, chart.id);
+        assert_eq!(best_chart, chart.id);
+        assert_eq!(era, first.id);
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM hotlap_personal_best")
+                .fetch_one(&pool)
+                .await?,
+            1
+        );
+        Ok(())
+    }
 }

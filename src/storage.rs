@@ -10,11 +10,11 @@ use anyhow::Context;
 use futures::TryStreamExt;
 use object_store::{
     ObjectMeta, ObjectStore, ObjectStoreExt, PutPayload, local::LocalFileSystem,
-    path::Path as ObjectPath,
+    path::Path as ObjectPath, prefix::PrefixStore,
 };
 use sea_orm::{DatabaseConnection, DbErr};
 
-use crate::settings::StorageSettings;
+use crate::settings::{StorageLocation, StorageSettings};
 
 /// Limits memory and SQL parameter counts while walking an object namespace.
 const GC_BATCH_SIZE: usize = 1_000;
@@ -146,12 +146,26 @@ fn is_older_than(object: &ObjectMeta, cutoff: u64) -> bool {
 
 /// Builds the configured replay object store.
 pub fn build(settings: &StorageSettings) -> anyhow::Result<Arc<dyn ObjectStore>> {
-    let root = settings.object_store_root.path();
-    std::fs::create_dir_all(root)
-        .with_context(|| format!("failed to create object-store root {}", root.display()))?;
-    let store = LocalFileSystem::new_with_prefix(root)
-        .with_context(|| format!("failed to open object-store root {}", root.display()))?;
-    Ok(Arc::new(store))
+    match &settings.object_store_root {
+        StorageLocation::Local(root) => {
+            std::fs::create_dir_all(root).with_context(|| {
+                format!("failed to create object-store root {}", root.display())
+            })?;
+            let store = LocalFileSystem::new_with_prefix(root)
+                .with_context(|| format!("failed to open object-store root {}", root.display()))?;
+            Ok(Arc::new(store))
+        }
+        StorageLocation::Remote(url) => {
+            let (store, prefix) = object_store::parse_url_opts(
+                url,
+                std::env::vars_os().filter_map(|(key, value)| {
+                    Some((key.into_string().ok()?, value.into_string().ok()?))
+                }),
+            )
+            .context("failed to build configured object store; enable its backend feature and supply its environment configuration")?;
+            Ok(Arc::new(PrefixStore::new(store, prefix)))
+        }
+    }
 }
 
 #[cfg(test)]

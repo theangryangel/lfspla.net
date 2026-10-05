@@ -1,19 +1,22 @@
 //! Trim command presentation and deletion confirmation.
 
-use crate::{cli::Args, lfs::installations::resolve_installation, settings::Settings};
+use crate::installation_id::InstallationId;
+use crate::{
+    services::manage_lfs::{self, resolve_installation},
+    settings::Settings,
+};
 use anyhow::ensure;
 use lfsplanet_lfs::TrimPlan;
 use size::Size;
 use std::path::Path;
 
 pub(super) fn run(
-    args: &Args,
-    installation_id: &str,
+    settings: &Settings,
+    installation_id: &InstallationId,
     dds: bool,
     lgh: bool,
     yes: bool,
 ) -> anyhow::Result<()> {
-    let settings = Settings::load(&args.config)?;
     let installation_dir =
         resolve_installation(settings.lfs.installation_root.path(), installation_id)?;
     trim(&installation_dir, installation_id, dds, lgh, yes)
@@ -21,21 +24,21 @@ pub(super) fn run(
 
 fn trim(
     installation_dir: &Path,
-    installation_id: &str,
+    installation_id: &InstallationId,
     dds: bool,
     lgh: bool,
     yes: bool,
 ) -> anyhow::Result<()> {
-    let plan = TrimPlan::new(installation_dir, dds, lgh)?;
-    warn(installation_dir, &plan);
-    ensure!(
-        yes,
-        "trimming permanently deletes LFS data; rerun with --yes to confirm"
-    );
-
-    let summary = lfsplanet_lfs::trim(plan)?;
+    let summary = manage_lfs::trim(installation_dir, dds, lgh, |plan| {
+        warn(installation_dir, plan);
+        ensure!(
+            yes,
+            "trimming permanently deletes LFS data; rerun with --yes to confirm"
+        );
+        Ok(())
+    })?;
     tracing::info!(
-        installation_id,
+        %installation_id,
         path = %installation_dir.display(),
         files = summary.files,
         bytes = summary.bytes,
@@ -82,7 +85,7 @@ mod tests {
     #[test]
     fn refuses_without_confirmation_and_changes_nothing() {
         let root = installation();
-        let error = trim(root.path(), "test", true, true, false).unwrap_err();
+        let error = trim(root.path(), &"test".parse().unwrap(), true, true, false).unwrap_err();
         assert!(error.to_string().contains("--yes"));
         assert!(root.path().join("data/dds/texture.dds").exists());
         assert!(root.path().join("data/wld/AS.lgh").exists());

@@ -1,20 +1,15 @@
 //! Resolution of the player named by an API route.
 
+use crate::api::{ApiError, ApiState};
 use axum::{
     extract::{FromRequestParts, Path},
     http::request::Parts,
     response::{IntoResponse, Response},
 };
-use sea_orm::EntityTrait;
 use serde::Deserialize;
 
-use crate::{
-    api::{ApiError, ApiState},
-    models::players::{self, PlayerFilter},
-};
-
 /// A player resolved from the route's `{lfs_username}` path parameter.
-pub(crate) struct Player(pub(crate) players::PlayerModel);
+pub(crate) struct Player(pub(crate) crate::models::Player);
 
 #[derive(Deserialize)]
 struct PlayerParameter {
@@ -32,9 +27,7 @@ impl FromRequestParts<ApiState> for Player {
             .await
             .map_err(IntoResponse::into_response)?;
 
-        players::PlayerEntity::find()
-            .with_username(&lfs_username)
-            .one(&state.database)
+        crate::models::Player::find_by_username(&state.database, &lfs_username)
             .await
             .map_err(ApiError::database)
             .and_then(|player| {

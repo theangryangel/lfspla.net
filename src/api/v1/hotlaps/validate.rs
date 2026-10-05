@@ -1,21 +1,15 @@
 //! Immediate hotlap validation for test environments.
 
+use super::response::ManagedHotlapResponse;
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
+    models::{badge::rebuild_published_badges, hotlap::TestValidationError},
+};
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
 };
-use sea_orm::EntityTrait;
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
-    models::{
-        eras::{EraEntity, rebuild_published_badges},
-        hotlaps::{self, HotlapFilter, lifecycle},
-    },
-};
-
-use super::response::ManagedHotlapResponse;
 
 #[utoipa::path(
     post,
@@ -49,50 +43,94 @@ pub(crate) async fn validate_for_testing(
         ));
     }
 
-    let hotlap = hotlaps::HotlapEntity::find_by_id(hotlap_id)
-        .uploads()
-        .owned_by(player.id)
-        .one(&state.database)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Hotlap"))?;
-    if hotlap.vehicle.is_none() {
-        return Err(ApiError::new(
-            StatusCode::CONFLICT,
-            "vehicle_unresolved",
-            "The hotlap's vehicle has not been resolved",
-        ));
-    }
-    let era = EraEntity::find_by_id(hotlap.era_id)
-        .one(&state.database)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(|| {
-            ApiError::database(sea_orm::DbErr::Type(format!(
-                "hotlap {hotlap_id} names era {} which no longer exists",
-                hotlap.era_id
-            )))
-        })?;
-    let eligible = match hotlap.vehicle.as_ref() {
-        Some(vehicle) => era
-            .admits_combination(&state.database, &hotlap.track.0, &vehicle.0)
+    let (hotlap, era) =
+        crate::models::Hotlap::validate_owned_for_testing(&state.database, hotlap_id, player.id)
             .await
-            .map_err(ApiError::database)?,
-        None => false,
-    };
-    if !eligible {
-        return Err(ApiError::new(
-            StatusCode::CONFLICT,
-            "combination_not_eligible",
-            "The hotlap's combination is not eligible for this era",
-        ));
-    }
-    let hotlap = lifecycle::validate_owned_for_testing(&state.database, hotlap_id, player.id)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Hotlap"))?;
+            .map_err(|error| match error {
+                TestValidationError::UnsupportedCombination => ApiError::new(
+                    StatusCode::CONFLICT,
+                    "combination_not_eligible",
+                    "The hotlap's combination is not eligible for this era",
+                ),
+                TestValidationError::Database(error) => ApiError::database(error),
+            })?
+            .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Hotlap"))?;
     // Rebuild badges after publishing, as the background validator does.
     rebuild_published_badges(&state.database, hotlap.era_id).await;
 
     Ok(Json(ManagedHotlapResponse::new(hotlap, &era)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_orm::EntityTrait;
+
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn transactional_validation_retains_conflict_and_owner_scope(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        sqlx::raw_sql(include_str!(
+            "../../../services/validate_hotlap/fixtures.sql"
+        ))
+        .execute(&pool)
+        .await?;
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+        let player = crate::models::player::Entity::find()
+            .one(&database)
+            .await?
+            .unwrap();
+        let hotlap = crate::models::hotlap::Entity::find()
+            .one(&database)
+            .await?
+            .unwrap();
+        let state = ApiState {
+            database,
+            oauth: None,
+            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+            hotlaps: crate::settings::HotlapSettings {
+                allow_test_validation: true,
+                ..Default::default()
+            },
+        };
+        sqlx::query("UPDATE vehicle SET available = false WHERE id = 'XFG'")
+            .execute(&pool)
+            .await?;
+        let error = validate_for_testing(
+            Path(hotlap.id),
+            State(state.clone()),
+            AuthenticatedPlayer(player.clone()),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.status, StatusCode::CONFLICT);
+        assert_eq!(error.code, "combination_not_eligible");
+        let status: String = sqlx::query_scalar("SELECT state FROM hotlap")
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(status, "pending");
+        let mut other = player.clone();
+        other.id += 1;
+        let error = validate_for_testing(
+            Path(hotlap.id),
+            State(state.clone()),
+            AuthenticatedPlayer(other),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.status, StatusCode::NOT_FOUND);
+        sqlx::query("UPDATE vehicle SET available = true WHERE id = 'XFG'")
+            .execute(&pool)
+            .await?;
+        let _ = validate_for_testing(Path(hotlap.id), State(state), AuthenticatedPlayer(player))
+            .await?;
+        assert_eq!(
+            sqlx::query_scalar::<_, String>("SELECT state FROM hotlap")
+                .fetch_one(&pool)
+                .await?,
+            "valid"
+        );
+        Ok(())
+    }
 }

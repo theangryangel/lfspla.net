@@ -1,5 +1,12 @@
 //! Track metadata endpoints scoped to an era.
 
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
+    models::{
+        Track as TrackRecord,
+        track::{TrackLocation, TrackOrder},
+    },
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -8,14 +15,6 @@ use insim_core::vehicle::Vehicle;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
-    models::{
-        hotlaps::HotlapRankable,
-        tracks::{TrackLocation, TrackModel, TrackOrder},
-    },
-};
 
 /// Canonical LFS track configuration metadata.
 #[derive(Debug, Serialize, ToSchema)]
@@ -68,16 +67,21 @@ pub(crate) async fn list_for_era(
     Query(query): Query<TrackSearchQuery>,
 ) -> Result<Json<ListResponse<TrackSummary>>, ApiError> {
     // Vehicle parsing is infallible - anything unrecognised becomes `Unknown` -
-    // so rankability is what separates a real code from a typo here.
+    // reject that sentinel before filtering the catalogue.
     let vehicle = query
         .vehicle
         .as_deref()
         .filter(|code| !code.is_empty())
         .map(|code| {
-            code.to_ascii_uppercase()
+            let vehicle = code
+                .to_ascii_uppercase()
                 .parse::<Vehicle>()
-                .expect("insim_core vehicle parsing is infallible")
-                .ensure_hotlap_rankable()
+                .expect("insim_core vehicle parsing is infallible");
+            if vehicle == Vehicle::Unknown {
+                Err(())
+            } else {
+                Ok(vehicle)
+            }
         })
         .transpose()
         .map_err(|_| {
@@ -101,10 +105,10 @@ pub(crate) async fn list_for_era(
     )))
 }
 
-impl From<TrackModel> for TrackSummary {
-    fn from(track: TrackModel) -> Self {
+impl From<TrackRecord> for TrackSummary {
+    fn from(track: TrackRecord) -> Self {
         Self {
-            code: track.id,
+            code: track.id.to_string(),
             name: track.name,
             location: track.location.into(),
             reverse: track.reverse,

@@ -1,6 +1,17 @@
 //! The actual pairs offered by an era, including pairs with no uploaded laps.
-use std::collections::HashMap;
-
+use super::{tracks::TrackSummary, vehicles::VehicleSummary};
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
+        extractors as extract,
+    },
+    models::{
+        Chart,
+        chart::Column as ChartColumn,
+        track::{Column as TrackColumn, Entity as TrackEntity},
+        vehicle::{Column as VehicleColumn, Entity as VehicleEntity},
+    },
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -11,23 +22,9 @@ use sea_orm::{
     TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use super::{tracks::TrackSummary, vehicles::VehicleSummary};
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
-        extractors as extract,
-    },
-    models::{
-        hotlaps::HotlapRankable,
-        rankings::{RankingChartColumn, RankingChartModel},
-        tracks::{TrackColumn, TrackEntity},
-        vehicles::{VehicleColumn, VehicleEntity},
-    },
-};
-
 #[derive(Debug, Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub(crate) struct CombinationQuery {
@@ -77,10 +74,10 @@ pub(crate) async fn list(
         .map_err(ApiError::database)?;
     let mut select = era.combinations();
     if let Some(track) = query.track {
-        select = select.filter(RankingChartColumn::TrackId.eq(track.to_ascii_uppercase()));
+        select = select.filter(ChartColumn::TrackId.eq(track.to_ascii_uppercase()));
     }
     if let Some(vehicle) = query.vehicle {
-        select = select.filter(RankingChartColumn::VehicleId.eq(vehicle.to_ascii_uppercase()));
+        select = select.filter(ChartColumn::VehicleId.eq(vehicle.to_ascii_uppercase()));
     }
     let total = select
         .clone()
@@ -152,22 +149,21 @@ pub(crate) async fn validate(
     State(state): State<ApiState>,
     Query(query): Query<CombinationCheckQuery>,
 ) -> Result<Json<CombinationCheck>, ApiError> {
-    // Invalid codes return a rejection reason so clients can check form input.
-    // Missing parameters return 400.
-    let (track, vehicle) = match rankable_pair(&query.track, &query.vehicle) {
-        Ok(pair) => pair,
-        Err(reason) => return Ok(Json(rejected(reason))),
-    };
-
-    let pair = era
-        .combinations()
-        .filter(RankingChartColumn::TrackId.eq(track.to_string()))
-        .filter(RankingChartColumn::VehicleId.eq(vehicle.to_string()))
-        .one(&state.database)
-        .await
-        .map_err(ApiError::database)?;
+    let pair = crate::models::Chart::find_combination(
+        &state.database,
+        era.id,
+        &query.track.to_ascii_uppercase(),
+        &query.vehicle.to_ascii_uppercase(),
+    )
+    .await
+    .map_err(ApiError::database)?;
     let Some(pair) = pair else {
-        return Ok(Json(rejected(CombinationRejection::NotOffered)));
+        // Parse only a miss to retain the public rejection reasons.
+        let reason = match rankable_pair(&query.track, &query.vehicle) {
+            Ok(_) => CombinationRejection::NotOffered,
+            Err(reason) => reason,
+        };
+        return Ok(Json(rejected(reason)));
     };
     // `hydrate` returns an error if track or vehicle metadata is missing.
     let combination = hydrate(&state.database, vec![pair])
@@ -188,18 +184,19 @@ pub(crate) async fn validate(
 /// The canonical pair two codes name, or why they name no rankable pair.
 fn rankable_pair(track: &str, vehicle: &str) -> Result<(Track, Vehicle), CombinationRejection> {
     let track = match track.to_ascii_uppercase().parse::<Track>() {
-        Ok(track) if track.is_hotlap_rankable() => track,
+        Ok(track) if !track.is_open() => track,
         Ok(_) => return Err(CombinationRejection::OpenConfiguration),
         Err(_) => return Err(CombinationRejection::UnknownTrack),
     };
     // Vehicle parsing is infallible - anything unrecognised becomes `Unknown` -
-    // so rankability is what separates a real code from a typo here.
+    // reject that sentinel before looking up the combination.
     let vehicle = vehicle
         .to_ascii_uppercase()
         .parse::<Vehicle>()
-        .expect("insim_core vehicle parsing is infallible")
-        .ensure_hotlap_rankable()
-        .map_err(|_| CombinationRejection::UnknownVehicle)?;
+        .expect("insim_core vehicle parsing is infallible");
+    if vehicle == Vehicle::Unknown {
+        return Err(CombinationRejection::UnknownVehicle);
+    }
     Ok((track, vehicle))
 }
 
@@ -214,19 +211,19 @@ fn rejected(reason: CombinationRejection) -> CombinationCheck {
 /// Loads track and vehicle metadata in two queries for the whole page.
 async fn hydrate(
     database: &impl sea_orm::ConnectionTrait,
-    pairs: Vec<RankingChartModel>,
+    pairs: Vec<Chart>,
 ) -> Result<Vec<CombinationSummary>, ApiError> {
     let (tracks, vehicles) = tokio::try_join!(
         TrackEntity::find()
-            .filter(TrackColumn::Id.is_in(pairs.iter().map(|p| p.track_id.clone())))
+            .filter(TrackColumn::Id.is_in(pairs.iter().map(|p| p.track_id)))
             .all(database),
         VehicleEntity::find()
-            .filter(VehicleColumn::Id.is_in(pairs.iter().map(|p| p.vehicle_id.clone())))
+            .filter(VehicleColumn::Id.is_in(pairs.iter().map(|p| p.vehicle_id)))
             .all(database),
     )
     .map_err(ApiError::database)?;
-    let tracks: HashMap<_, _> = tracks.into_iter().map(|t| (t.id.clone(), t)).collect();
-    let vehicles: HashMap<_, _> = vehicles.into_iter().map(|v| (v.id.clone(), v)).collect();
+    let tracks: HashMap<_, _> = tracks.into_iter().map(|t| (t.id, t)).collect();
+    let vehicles: HashMap<_, _> = vehicles.into_iter().map(|v| (v.id, v)).collect();
     pairs
         .into_iter()
         .map(|p| {
@@ -274,5 +271,47 @@ mod tests {
             rankable_pair("BL1", "NOPE").unwrap_err(),
             CombinationRejection::UnknownVehicle
         );
+    }
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn chart_lookup_keeps_combination_rejection_reasons(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        sqlx::raw_sql(include_str!(
+            "../../../services/validate_hotlap/fixtures.sql"
+        ))
+        .execute(&pool)
+        .await?;
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
+        let era = crate::models::Era::find_by_slug(&database, &"2026-09-23".parse().unwrap())
+            .await?
+            .unwrap();
+        let state = ApiState {
+            database,
+            oauth: None,
+            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+            hotlaps: Default::default(),
+        };
+        for (track, vehicle, reason) in [
+            ("bl1", "xfg", None),
+            ("NOPE", "XFG", Some(CombinationRejection::UnknownTrack)),
+            ("BL3X", "XFG", Some(CombinationRejection::OpenConfiguration)),
+            ("BL1", "NOPE", Some(CombinationRejection::UnknownVehicle)),
+            ("BL1", "XRG", Some(CombinationRejection::NotOffered)),
+        ] {
+            let Json(check) = validate(
+                extract::Era(era.clone()),
+                State(state.clone()),
+                Query(CombinationCheckQuery {
+                    track: track.into(),
+                    vehicle: vehicle.into(),
+                }),
+            )
+            .await?;
+            assert_eq!(check.valid, reason.is_none());
+            assert_eq!(check.reason, reason);
+            assert_eq!(check.combination.is_some(), reason.is_none());
+        }
+        Ok(())
     }
 }

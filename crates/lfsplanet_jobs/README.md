@@ -22,6 +22,6 @@ Shutdown stops new iterations and waits for active calls. Processors must bound
 external work so shutdown can finish. Dropping the runner aborts workers;
 processor implementations must handle cancellation safely.
 
-See `src/jobs/hlvc.rs` in the application for a record-backed implementation.
+See `src/services/validate_hotlap/mod.rs` in the application for a record-backed implementation.
 
 Run `cargo test -p lfsplanet_jobs` for the runner tests.

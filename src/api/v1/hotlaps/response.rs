@@ -1,13 +1,15 @@
 //! Response models shared by the routes that manage uploaded hotlaps.
 
-use serde::Serialize;
-use utoipa::ToSchema;
+use crate::era_slug::EraSlug;
+
+use crate::milliseconds::Milliseconds;
 
 use crate::models::{
-    eras::EraModel,
-    hotlaps::{DriverSide, HotlapModel, HotlapState, SteeringInput},
+    Era, Hotlap,
+    hotlap::{DriverSide, HotlapState, SteeringInput},
 };
-
+use serde::Serialize;
+use utoipa::ToSchema;
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub(crate) struct RankingContribution {
     pub(crate) id: String,
@@ -20,26 +22,25 @@ pub(crate) struct ManagedHotlapResponse {
     id: i64,
     player_id: i64,
     /// Public era slug, used in URLs.
-    era_id: String,
+    era_id: EraSlug,
     era_title: String,
     track: String,
-    #[schema(required)]
-    vehicle: Option<String>,
+    vehicle: String,
     raw_vehicle_name: String,
     #[schema(required)]
     mod_version: Option<i16>,
-    lap_time_ms: i64,
+    lap_time_ms: Milliseconds,
     /// Current chart position when loaded from the hotlap collection.
     #[schema(required)]
     position: Option<i64>,
     /// Gap to the current chart world record in milliseconds.
     #[schema(required)]
-    distance_to_world_record_ms: Option<i64>,
+    distance_to_world_record_ms: Option<Milliseconds>,
     contributes_to: Vec<RankingContribution>,
-    split_1_ms: i64,
-    split_2_ms: i64,
-    split_3_ms: i64,
-    split_4_ms: i64,
+    split_1_ms: Milliseconds,
+    split_2_ms: Milliseconds,
+    split_3_ms: Milliseconds,
+    split_4_ms: Milliseconds,
     #[schema(required)]
     original_filename: Option<String>,
     steering: SteeringInput,
@@ -67,7 +68,7 @@ pub(crate) struct ManagedHotlapResponse {
 }
 
 impl ManagedHotlapResponse {
-    pub(crate) fn new(hotlap: HotlapModel, era: &EraModel) -> Self {
+    pub(crate) fn new(hotlap: Hotlap, era: &Era) -> Self {
         let controls = hotlap.controls();
         Self {
             id: hotlap.id,
@@ -75,7 +76,7 @@ impl ManagedHotlapResponse {
             era_id: era.slug.clone(),
             era_title: era.title.clone(),
             track: hotlap.track.to_string(),
-            vehicle: hotlap.vehicle.map(|vehicle| vehicle.to_string()),
+            vehicle: hotlap.vehicle.to_string(),
             raw_vehicle_name: hotlap.raw_vehicle_name,
             mod_version: hotlap.mod_version,
             lap_time_ms: hotlap.lap_time_ms,
@@ -110,7 +111,7 @@ impl ManagedHotlapResponse {
     pub(crate) fn with_chart_data(
         mut self,
         position: i64,
-        distance_to_world_record_ms: i64,
+        distance_to_world_record_ms: Milliseconds,
     ) -> Self {
         self.position = Some(position);
         self.distance_to_world_record_ms = Some(distance_to_world_record_ms);
@@ -123,5 +124,14 @@ impl ManagedHotlapResponse {
     ) -> Self {
         self.contributes_to = contributions;
         self
+    }
+}
+
+impl From<crate::models::hotlap::RankingContribution> for RankingContribution {
+    fn from(value: crate::models::hotlap::RankingContribution) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+        }
     }
 }

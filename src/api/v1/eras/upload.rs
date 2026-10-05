@@ -3,8 +3,13 @@
 //! The replay version must match the era. Version ranges cannot overlap,
 //! so a replay can match at most one era.
 
-use std::{io::Cursor, time::Duration};
-
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, extractors as extract, extractors::AuthenticatedPlayer,
+        v1::hotlaps::response::ManagedHotlapResponse,
+    },
+    models::{Era, hotlap::InsertError},
+};
 use axum::{
     Json,
     body::Bytes,
@@ -13,30 +18,9 @@ use axum::{
     response::IntoResponse,
 };
 use insim_core::game_version::GameVersion;
-use object_store::{ObjectStoreExt, PutPayload};
-use sea_orm::{EntityTrait, QueryOrder};
 use serde_json::json;
-use sha2::{Digest, Sha256};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::{Validate, ValidationError};
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse,
-        extractors::{self as extract, AuthenticatedPlayer},
-        v1::hotlaps::response::ManagedHotlapResponse,
-    },
-    models::{
-        eras::{self, EraModel},
-        hotlaps::{
-            self, HotlapEntity,
-            lifecycle::{self, InsertError, NewHotlap},
-        },
-        vehicles,
-    },
-    storage::Storage,
-};
-
 // The request limit includes multipart boundaries and headers; the file itself
 // is checked separately against the configured file limit while it is extracted.
 const MULTIPART_OVERHEAD_BYTES: usize = 64 * 1024;
@@ -124,7 +108,7 @@ pub(crate) async fn upload(
     // This inexpensive pre-check avoids reading and parsing a multipart body
     // for the common full-queue case. `insert` repeats the check while holding
     // a player-row lock, which is the authoritative concurrency-safe check.
-    let outstanding = lifecycle::count_outstanding(&state.database, player.id)
+    let outstanding = crate::models::Hotlap::count_outstanding(&state.database, player.id)
         .await
         .map_err(ApiError::database)?;
     let max_queued = state.hotlaps.max_queued_per_player.get();
@@ -134,115 +118,17 @@ pub(crate) async fn upload(
 
     let upload = spr_field(multipart, state.hotlaps.max_spr_upload_bytes()).await?;
     upload.validate()?;
-    let header =
-        lfsplanet_spr::SprHeader::read(Cursor::new(upload.bytes.as_ref())).map_err(|error| {
-            tracing::debug!(?error, "uploaded SPR header could not be parsed");
-            ApiError::new(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "invalid_spr",
-                "The uploaded file does not have a valid SPR header",
-            )
-        })?;
-
-    if !era.accepts_replay_version(&header.lfs_version) {
-        return Err(wrong_era(&state, &era, &header.lfs_version).await);
-    }
-    if !era
-        .admits_track(&state.database, &header.track)
-        .await
-        .map_err(ApiError::database)?
-    {
-        return Err(ApiError::unsupported_track());
-    }
-    validate_replay_username(
-        state.hotlaps.enforce_replay_username,
-        &header.user_name,
-        &player.lfs_username,
-    )?;
-
-    let lap_time = replay_lap_time(&header)?;
-    let raw_vehicle_name = header.car_name.as_str().to_owned();
-    let (vehicle_name, mod_version) = header.car_name.into_parts();
-    let vehicle = if let Some(vehicle) =
-        vehicles::standard_by_name(&state.database, &raw_vehicle_name)
-            .await
-            .map_err(ApiError::database)?
-    {
-        Some(vehicle)
-    } else {
-        vehicles::mods::resolve(&state.database, vehicle_name, mod_version)
-            .await
-            .map_err(ApiError::database)?
-    };
-    let vehicle = vehicle.ok_or_else(ApiError::unsupported_combination)?;
-    if !era
-        .admits_combination(&state.database, &header.track, &vehicle)
-        .await
-        .map_err(ApiError::database)?
-    {
-        return Err(ApiError::unsupported_combination());
-    }
-
-    let digest = hex::encode(Sha256::digest(&upload.bytes));
-    let object_key = HotlapEntity::store(
+    let hotlap = crate::services::submit_hotlap::submit(
+        &state.database,
         state.object_store.as_ref(),
-        &replay_object_suffix(&digest),
-        PutPayload::from(upload.bytes),
+        &state.hotlaps,
+        &era,
+        &player,
+        &upload.filename,
+        upload.bytes,
     )
     .await
-    .map_err(ApiError::object_store)?;
-
-    let hotlap = lifecycle::insert(
-        &state.database,
-        NewHotlap {
-            player_id: player.id,
-            era_id: era.id,
-            track: header.track,
-            vehicle,
-            raw_vehicle_name: &raw_vehicle_name,
-            mod_version,
-            lap_time,
-            split_times: header.split_times,
-            original_filename: &upload.filename,
-            fingerprint: &digest,
-            spr_object_key: &object_key,
-            abs_enabled: hotlaps::resolve_abs(header.abs_enabled, &header.lfs_version),
-            player_flags: header.player_flags.bits(),
-            game_version: &header.lfs_version,
-        },
-        max_queued,
-    )
-    .await;
-    // Clean up definite refusals only. A database error can mean COMMIT
-    // succeeded but its response was lost; GC must resolve that uncertainty.
-    if hotlap.is_err()
-        && !matches!(&hotlap, Err(InsertError::Database(_)))
-        && let Err(error) = state
-            .object_store
-            .delete(&object_store::path::Path::from(object_key.as_str()))
-            .await
-    {
-        tracing::warn!(?error, %object_key, "failed to clean up refused replay upload");
-    }
-    let hotlap = hotlap.map_err(|error| match error {
-        InsertError::QueueFull { outstanding, limit } => {
-            ApiError::hotlap_queue_full(outstanding, limit)
-        }
-        InsertError::Duplicate => ApiError::new(
-            StatusCode::CONFLICT,
-            "duplicate_replay",
-            "This replay has already been submitted",
-        ),
-        InsertError::Database(error) => ApiError::database(error),
-        InsertError::UnsupportedCombination => ApiError::unsupported_combination(),
-        InsertError::EraClosed => era_closed(&era),
-        InsertError::WrongEra => ApiError::new(
-            StatusCode::UNPROCESSABLE_ENTITY,
-            "wrong_era",
-            "The era no longer accepts this replay version. Refresh the era catalogue and try again.",
-        ),
-        InsertError::UploadsBanned => ApiError::uploads_banned(),
-    })?;
+    .map_err(|error| submission_error(error, &era))?;
 
     let location = format!("/api/v1/hotlaps/{}", hotlap.id);
     Ok((
@@ -252,14 +138,7 @@ pub(crate) async fn upload(
     ))
 }
 
-fn replay_object_suffix(digest: &str) -> String {
-    // A deletion of an earlier submission must never delete a re-upload's bytes.
-    // The fingerprint still deduplicates submissions in PostgreSQL.
-    let identity = hex::encode(rand::random::<[u8; 32]>());
-    format!("{}/{digest}-{identity}.spr", &digest[..2])
-}
-
-fn era_closed(era: &EraModel) -> ApiError {
+fn era_closed(era: &Era) -> ApiError {
     ApiError::new(
         StatusCode::CONFLICT,
         "era_closed",
@@ -269,17 +148,7 @@ fn era_closed(era: &EraModel) -> ApiError {
 
 /// Reports a version mismatch. Includes the matching era, if found,
 /// so the client can retry there.
-async fn wrong_era(state: &ApiState, era: &EraModel, version: &GameVersion) -> ApiError {
-    let catalogue = eras::EraEntity::find()
-        .order_by_asc(eras::EraColumn::Id)
-        .all(&state.database)
-        .await;
-    let accepting = match catalogue {
-        Ok(catalogue) => catalogue
-            .into_iter()
-            .find(|candidate| candidate.accepts_replay_version(version)),
-        Err(error) => return ApiError::database(error),
-    };
+fn wrong_era(era: &Era, version: &GameVersion, accepting: Option<Box<Era>>) -> ApiError {
     match accepting {
         Some(other) => ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -302,6 +171,51 @@ async fn wrong_era(state: &ApiState, era: &EraModel, version: &GameVersion) -> A
                 era.title, era.version_requirement
             ),
         ),
+    }
+}
+
+fn submission_error(error: crate::services::submit_hotlap::SubmitError, era: &Era) -> ApiError {
+    use crate::services::submit_hotlap::SubmitError;
+    match error {
+        SubmitError::InvalidSpr => ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "invalid_spr",
+            "The uploaded file does not have a valid SPR header",
+        ),
+        SubmitError::WrongEra { version, accepting } => wrong_era(era, &version, accepting),
+        SubmitError::UnsupportedTrack => ApiError::unsupported_track(),
+        SubmitError::UnsupportedCombination => ApiError::unsupported_combination(),
+        SubmitError::ReplayUsernameMismatch => ApiError::new(
+            StatusCode::FORBIDDEN,
+            "replay_username_mismatch",
+            "The replay belongs to a different LFS account",
+        ),
+        SubmitError::MissingLapTime => ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "missing_lap_time",
+            "The SPR header does not contain a lap time",
+        ),
+        SubmitError::Database(error) => ApiError::database(error),
+        SubmitError::ObjectStore(error) => ApiError::object_store(error),
+        SubmitError::Admission(error) => match error {
+            InsertError::QueueFull { outstanding, limit } => {
+                ApiError::hotlap_queue_full(outstanding, limit)
+            }
+            InsertError::Duplicate => ApiError::new(
+                StatusCode::CONFLICT,
+                "duplicate_replay",
+                "This replay has already been submitted",
+            ),
+            InsertError::Database(error) => ApiError::database(error),
+            InsertError::UnsupportedCombination => ApiError::unsupported_combination(),
+            InsertError::EraClosed => era_closed(era),
+            InsertError::WrongEra => ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "wrong_era",
+                "The era no longer accepts this replay version. Refresh the era catalogue and try again.",
+            ),
+            InsertError::UploadsBanned => ApiError::uploads_banned(),
+        },
     }
 }
 
@@ -348,67 +262,9 @@ fn validate_spr_filename_shape(filename: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-fn replay_lap_time(header: &lfsplanet_spr::SprHeader) -> Result<Duration, ApiError> {
-    header
-        .split_count
-        .checked_sub(1)
-        .and_then(|index| header.split_times.get(index as usize))
-        .copied()
-        .ok_or_else(|| {
-            ApiError::new(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "missing_lap_time",
-                "The SPR header does not contain a lap time",
-            )
-        })
-}
-
-fn validate_replay_username(
-    enforce: bool,
-    replay_username: &str,
-    authenticated_username: &str,
-) -> Result<(), ApiError> {
-    if enforce && !replay_username.eq_ignore_ascii_case(authenticated_username) {
-        return Err(ApiError::new(
-            StatusCode::FORBIDDEN,
-            "replay_username_mismatch",
-            "The replay belongs to a different LFS account",
-        ));
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[tokio::test]
-    async fn deleting_an_earlier_upload_preserves_identical_reuploaded_bytes() {
-        use object_store::{memory::InMemory, path::Path};
-
-        let store = InMemory::new();
-        let bytes = Bytes::from_static(b"same replay");
-        let digest = hex::encode(Sha256::digest(&bytes));
-        let first =
-            HotlapEntity::store(&store, &replay_object_suffix(&digest), bytes.clone().into())
-                .await
-                .unwrap();
-        let second =
-            HotlapEntity::store(&store, &replay_object_suffix(&digest), bytes.clone().into())
-                .await
-                .unwrap();
-        store.delete(&Path::from(first)).await.unwrap();
-        assert_eq!(
-            store
-                .get(&Path::from(second))
-                .await
-                .unwrap()
-                .bytes()
-                .await
-                .unwrap(),
-            bytes
-        );
-    }
 
     fn uploaded_spr(filename: impl Into<String>) -> UploadedSpr {
         UploadedSpr {
@@ -444,14 +300,6 @@ mod tests {
                 .validate()
                 .is_ok()
         );
-    }
-
-    #[test]
-    fn replay_username_must_match_unless_enforcement_is_disabled() {
-        assert!(validate_replay_username(true, "example", "example").is_ok());
-        assert!(validate_replay_username(true, "Example", "example").is_ok());
-        assert!(validate_replay_username(true, "another", "example").is_err());
-        assert!(validate_replay_username(false, "another", "example").is_ok());
     }
 
     #[test]

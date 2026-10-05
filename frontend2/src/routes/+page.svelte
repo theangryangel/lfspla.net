@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { artworkFor } from '$lib/assets/artwork.js';
+	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
+	import { delta, lapTime } from '$lib/format.js';
+	import { hotlapPath } from '$lib/era.js';
 	import HotlapActivity from '$lib/components/app/HotlapActivity.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import PageHeading from '$lib/components/app/PageHeading.svelte';
 	import StatsBar from '$lib/components/app/StatsBar.svelte';
-	import xrgImage from '$assets/builtin-vehicles/XRG.png?url';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import type { PageProps } from './$types';
 
@@ -16,7 +17,8 @@
 		{ label: 'Combinations', value: data.stats?.combinations },
 		{ label: 'Eras', value: data.stats?.eras },
 	]);
-	const trackArtwork = artworkFor('track', 'BL1');
+	const combo = $derived(data.stats?.combo_spotlight);
+	const driver = $derived(data.stats?.driver_spotlight);
 </script>
 
 <main
@@ -44,83 +46,114 @@
 		<div class="space-y-4">
 			<Card.Root class="gap-2 bg-muted/40 py-4 shadow-none ring-0">
 				<Card.Header>
-					<Card.Title id="home-spotlight-title" class="text-base font-semibold">
-						Combo spotlight
-					</Card.Title>
-					<Card.Description>Era / Track / Vehicle</Card.Description>
-					<Card.Action class="self-center">
-						<div
-							class="relative h-12 w-20 overflow-hidden rounded-md bg-muted/40"
-							aria-hidden="true"
-						>
-							{#if trackArtwork && 'markup' in trackArtwork}
-								<div
-									class="absolute inset-0 [&>svg]:size-full [&>svg]:rotate-90 [&>svg]:scale-150"
-								>
-									{@html trackArtwork.markup}
-								</div>
-							{/if}
-							<img
-								src={xrgImage}
-								alt=""
-								class="absolute right-0 bottom-1 w-14 object-contain"
+					<Card.Title id="home-spotlight-title" class="text-base font-semibold"
+						>Combo spotlight</Card.Title
+					>
+					<Card.Description>
+						{#if combo}
+							<a
+								class="hover:underline"
+								href={`${hotlapPath(encodeURIComponent(combo.era_id))}/charts/${encodeURIComponent(combo.track)}/${encodeURIComponent(combo.vehicle)}`}
+							>
+								{combo.era_title} / {combo.track} / {combo.vehicle}
+							</a>
+						{:else}
+							Most popular among recent uploads
+						{/if}
+					</Card.Description>
+					{#if combo}
+						<Card.Action class="flex gap-1 self-center" aria-hidden="true">
+							<Thumbnail
+								kind="track"
+								code={combo.track}
+								class="w-12 rounded-md"
 							/>
-						</div>
-					</Card.Action>
+							<Thumbnail
+								kind="vehicle"
+								code={combo.vehicle}
+								src={combo.vehicle_image_url}
+								class="w-12 rounded-md"
+							/>
+						</Card.Action>
+					{/if}
 				</Card.Header>
 				<Card.Content>
-					<div class="space-y-1.5">
-						<div class="flex items-center justify-between gap-3">
-							<div class="flex min-w-0 items-center gap-2">
-								<Flag code="gb" />
-								<p class="truncate text-sm font-medium">Driver name</p>
-							</div>
-							<p
-								class="shrink-0 font-mono text-sm font-semibold tabular-nums text-time-best"
-							>
-								--:--.---
-							</p>
+					{#if combo}
+						<div class="space-y-1.5">
+							{#each combo.leaders as entry, index (entry.player.id)}
+								<div
+									class="flex items-center justify-between gap-3"
+									class:opacity-40={index === 2}
+								>
+									<div class="flex min-w-0 items-center gap-2">
+										<Flag
+											code={entry.player.flag_code}
+											fallback={entry.player.country_code}
+										/>
+										<a
+											class="truncate text-sm hover:underline"
+											class:font-medium={entry.position === 1}
+											href={`/drivers/${encodeURIComponent(entry.player.lfs_username)}`}
+											>{entry.player.display_name}</a
+										>
+									</div>
+									<p
+										class="shrink-0 font-mono tabular-nums"
+										class:text-sm={entry.position === 1}
+										class:text-xs={entry.position !== 1}
+										class:font-semibold={entry.position === 1}
+										class:text-time-best={entry.position === 1}
+										class:text-muted-foreground={entry.position !== 1}
+									>
+										{entry.position === 1
+											? lapTime(entry.lap_time_ms)
+											: delta(entry.distance_to_world_record_ms)}
+									</p>
+								</div>
+							{/each}
 						</div>
-						<div class="flex items-center justify-between gap-3">
-							<div class="flex min-w-0 items-center gap-2">
-								<Flag code="de" />
-								<p class="truncate text-sm">Driver name</p>
-							</div>
-							<p
-								class="shrink-0 font-mono text-xs tabular-nums text-muted-foreground"
-							>
-								+0:0.513
-							</p>
-						</div>
-						<div class="flex items-center justify-between gap-3 opacity-40">
-							<div class="flex min-w-0 items-center gap-2">
-								<Flag code="fi" />
-								<p class="truncate text-sm">Driver name</p>
-							</div>
-							<p
-								class="shrink-0 font-mono text-xs tabular-nums text-muted-foreground"
-							>
-								+0:1.204
-							</p>
-						</div>
-					</div>
+					{:else}
+						<p class="text-sm text-muted-foreground">
+							{data.stats
+								? 'No validated uploads yet.'
+								: 'Spotlight unavailable.'}
+						</p>
+					{/if}
 				</Card.Content>
 			</Card.Root>
 			<Card.Root class="gap-2 bg-muted/40 py-4 shadow-none ring-0">
 				<Card.Header>
-					<Card.Title class="text-base font-semibold">
-						Driver spotlight
-					</Card.Title>
+					<Card.Title class="text-base font-semibold"
+						>Driver spotlight</Card.Title
+					>
 					<Card.Description>Most new personal bests recently</Card.Description>
 				</Card.Header>
 				<Card.Content>
-					<div class="flex items-center justify-between gap-3">
-						<div class="flex min-w-0 items-center gap-2">
-							<Flag code="gb" />
-							<p class="truncate text-sm font-medium">Driver name</p>
+					{#if driver}
+						<div class="flex items-center justify-between gap-3">
+							<div class="flex min-w-0 items-center gap-2">
+								<Flag
+									code={driver.player.flag_code}
+									fallback={driver.player.country_code}
+								/>
+								<a
+									class="truncate text-sm font-medium hover:underline"
+									href={`/drivers/${encodeURIComponent(driver.player.lfs_username)}`}
+									>{driver.player.display_name}</a
+								>
+							</div>
+							<p class="shrink-0 text-sm text-muted-foreground">
+								{driver.recent_personal_bests}
+								{driver.recent_personal_bests === 1 ? 'PB' : 'PBs'}
+							</p>
 						</div>
-						<p class="shrink-0 text-sm text-muted-foreground">N new PBs</p>
-					</div>
+					{:else}
+						<p class="text-sm text-muted-foreground">
+							{data.stats
+								? 'No current personal bests among recent uploads.'
+								: 'Spotlight unavailable.'}
+						</p>
+					{/if}
 				</Card.Content>
 			</Card.Root>
 		</div>

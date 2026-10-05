@@ -1,41 +1,30 @@
-//! Application models, business rules, and database operations, grouped by feature.
+//! Persisted application concepts and their behavior, grouped by feature.
 //!
 //! HTTP and CLI concerns remain in their respective entrypoint modules.
 
-use std::time::Duration;
-
-pub(crate) mod badges;
-pub(crate) mod country;
-mod ordering;
-pub use ordering::Ordering;
-pub mod eras;
-pub mod hotlaps;
-pub(crate) mod personal_access_tokens;
-pub(crate) mod player_flags;
-pub(crate) mod players;
-pub mod rankings;
-pub(crate) mod stats;
+pub(crate) mod badge;
+pub(crate) mod era;
+pub(crate) mod hotlap;
+pub(crate) mod personal_access_token;
+pub(crate) mod player;
+pub(crate) mod ranking;
+pub(crate) mod site_stats;
 pub(crate) mod track;
-pub(crate) mod tracks;
 pub(crate) mod vehicle;
-pub(crate) mod vehicles;
-pub(crate) mod version;
 
-/// Escapes the wildcards a `LIKE`/`ILIKE` pattern would otherwise honour.
-///
-/// Free text typed by a caller must match literally, so `%`, `_` and the
-/// escape character itself are neutralised before the pattern is built.
-pub(crate) fn escape_like(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('%', "\\%")
-        .replace('_', "\\_")
-}
+pub(crate) mod webhook;
 
-/// Converts a duration into the milliseconds a `BIGINT` column stores.
-pub(crate) fn duration_millis(duration: Duration) -> Result<i64, sea_orm::DbErr> {
-    i64::try_from(duration.as_millis())
-        .map_err(|_| sea_orm::DbErr::Type("duration exceeds BIGINT milliseconds".to_owned()))
-}
+pub(crate) mod chart;
+pub(crate) mod ranking_chart_membership;
+pub(crate) mod webhook_notification;
 
-pub(crate) mod webhooks;
+pub(crate) use chart::Model as Chart;
+pub(crate) use era::Model as Era;
+pub(crate) use hotlap::Model as Hotlap;
+pub(crate) use personal_access_token::Model as PersonalAccessToken;
+pub(crate) use player::Model as Player;
+pub(crate) use ranking::Model as Ranking;
+pub(crate) use track::Model as Track;
+pub(crate) use vehicle::Model as Vehicle;
+pub(crate) use webhook::Model as Webhook;
+pub(crate) use webhook_notification::Model as WebhookNotification;

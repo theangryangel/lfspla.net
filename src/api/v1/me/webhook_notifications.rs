@@ -1,5 +1,12 @@
 //! Delivery status for the current player's webhook notifications.
 
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
+        extractors::BrowserAuthenticatedPlayer,
+    },
+    models::{webhook, webhook_notification as notification},
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -11,15 +18,6 @@ use sea_orm::{
 use serde::Serialize;
 use time::OffsetDateTime;
 use utoipa::ToSchema;
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
-        extractors::BrowserAuthenticatedPlayer,
-    },
-    models::webhooks::{self, notification},
-};
-
 #[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 enum DeliveryStatus {
@@ -32,7 +30,7 @@ enum DeliveryStatus {
 pub(crate) struct WebhookNotificationResponse {
     id: i64,
     webhook_name: String,
-    event_kind: webhooks::WebhookEventKind,
+    event_kind: webhook::WebhookEventKind,
     status: DeliveryStatus,
     attempt_count: i32,
     #[serde(with = "time::serde::rfc3339")]
@@ -79,7 +77,7 @@ pub(crate) async fn list(
         .map_err(ApiError::database)?;
     let notifications = notification::Entity::find()
         .join(JoinType::InnerJoin, notification::Relation::Webhook.def())
-        .filter(webhooks::Column::PlayerId.eq(player.id))
+        .filter(webhook::Column::PlayerId.eq(player.id))
         .order_by_desc(notification::Column::CreatedAt)
         .order_by_desc(notification::Column::Id);
     let total = notifications
@@ -97,8 +95,8 @@ pub(crate) async fn list(
     let webhook_names = if webhook_ids.is_empty() {
         Vec::new()
     } else {
-        webhooks::Entity::find()
-            .filter(webhooks::Column::Id.is_in(webhook_ids))
+        webhook::Entity::find()
+            .filter(webhook::Column::Id.is_in(webhook_ids))
             .all(&transaction)
             .await
             .map_err(ApiError::database)?

@@ -1,15 +1,15 @@
 //! Public profile detail for one player.
 
+use crate::era_slug::EraSlug;
+
+use super::response::{PlayerChartResultResponse, chart_result_responses};
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, extractors as extract},
+    models::{badge::PlayerBadge, player::PlayerProfile},
+};
 use axum::{Json, extract::State};
 use serde::Serialize;
 use utoipa::ToSchema;
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors as extract},
-    models::{badges::PlayerBadge, players::PlayerProfile},
-};
-
-use super::response::{PlayerChartResultResponse, chart_result_responses};
 
 /// Lifetime totals across all stored physics eras.
 #[derive(Debug, Serialize, ToSchema)]
@@ -30,7 +30,7 @@ pub(crate) struct PlayerStatsResponse {
 /// One era in which the player has a validated lap.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct PlayerEraStatsResponse {
-    id: String,
+    id: EraSlug,
     title: String,
     hotlaps: i64,
     personal_bests: i64,
@@ -80,14 +80,12 @@ pub(crate) async fn detail(
         .profile(&state.database)
         .await
         .map_err(ApiError::database)?;
-    Ok(Json(PlayerResponse::try_from(profile)?))
+    Ok(Json(PlayerResponse::from(profile)))
 }
 
-impl TryFrom<PlayerProfile> for PlayerResponse {
-    type Error = ApiError;
-
-    fn try_from(profile: PlayerProfile) -> Result<Self, Self::Error> {
-        Ok(PlayerResponse {
+impl From<PlayerProfile> for PlayerResponse {
+    fn from(profile: PlayerProfile) -> Self {
+        PlayerResponse {
             id: profile.player.id,
             flag_code: profile
                 .player
@@ -124,7 +122,7 @@ impl TryFrom<PlayerProfile> for PlayerResponse {
                     badges: era.badges,
                 })
                 .collect(),
-            highlights: chart_result_responses(profile.highlights)?,
-        })
+            highlights: chart_result_responses(profile.highlights),
+        }
     }
 }

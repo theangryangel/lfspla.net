@@ -6,6 +6,7 @@ publish = false
 homepage = "https://github.com/theangryangel/lfspla.net/"
 
 [features]
+default = ["aws"]
 aws = ["object_store/aws"]
 azure = ["object_store/azure"]
 gcp = ["object_store/gcp"]

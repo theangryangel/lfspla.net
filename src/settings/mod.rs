@@ -14,7 +14,7 @@ pub use hlvc::HlvcSettings;
 pub use hotlaps::HotlapSettings;
 pub use lfs::LfsSettings;
 pub(crate) use lfs::OAuthSettings;
-pub use storage::StorageSettings;
+pub use storage::{StorageLocation, StorageSettings};
 pub(crate) use types::{NonEmptyString, PublicBaseUrl};
 pub use web::WebSettings;
 pub use webhooks::WebhookSettings;
@@ -136,8 +136,8 @@ mod tests {
             Path::new("/srv/lfs/.wine")
         );
         assert_eq!(
-            settings.storage.object_store_root.path(),
-            config_dir().join("data/storage")
+            settings.storage.object_store_root,
+            StorageLocation::Local(config_dir().join("data/storage"))
         );
         assert!(settings.lfs.oauth.is_none());
         assert!(settings.hotlaps.enforce_replay_username);
@@ -206,8 +206,8 @@ mod tests {
             config_dir().join("prefix")
         );
         assert_eq!(
-            settings.storage.object_store_root.path(),
-            config_dir().join("objects")
+            settings.storage.object_store_root,
+            StorageLocation::Local(config_dir().join("objects"))
         );
     }
 

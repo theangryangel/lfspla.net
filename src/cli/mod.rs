@@ -4,18 +4,18 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-pub(crate) mod config;
+mod config;
 #[cfg(debug_assertions)]
-pub(crate) mod demo;
-pub(crate) mod era;
-pub(crate) mod hotlap;
-pub(crate) mod lfs;
-pub(crate) mod maintenance;
-pub(crate) mod migrate;
-pub(crate) mod openapi;
-pub(crate) mod player;
-pub(crate) mod storage;
-pub(crate) mod worker;
+mod demo;
+mod era;
+mod hotlap;
+mod lfs;
+mod maintenance;
+mod migrate;
+mod openapi;
+mod player;
+mod storage;
+mod worker;
 
 /// lfspla.net command-line arguments.
 #[derive(Debug, Parser)]
@@ -76,4 +76,22 @@ pub enum Command {
         #[command(subcommand)]
         action: maintenance::MaintenanceCommand,
     },
+}
+
+/// Dispatches one parsed command.
+pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
+    match &args.command {
+        #[cfg(debug_assertions)]
+        Command::Demo(options) => demo::run(args, options).await,
+        Command::GenerateConfig(options) => config::run(options),
+        Command::Migrate => migrate::run(args).await,
+        Command::Openapi => openapi::run(),
+        Command::Worker => worker::run(args).await,
+        Command::Web => crate::api::run(args).await,
+        Command::Hotlap { action } => hotlap::run(args, action).await,
+        Command::Lfs { action } => lfs::run(args, action).await,
+        Command::Era { action } => era::run(args, action).await,
+        Command::Player { action } => player::run(args, action).await,
+        Command::Maintenance { action } => maintenance::run(args, action).await,
+    }
 }

@@ -1,32 +1,35 @@
 //! LFSWorld v1 hotlap CSV importer.
 
+use crate::era_slug::EraSlug;
+
+use crate::milliseconds::Milliseconds;
+
 mod persist;
 
+use crate::models::era::definition as era_definitions;
+use crate::{
+    cli::Args,
+    db,
+    models::{
+        era::definition::EraDefinition,
+        hotlap::{self, SteeringInput},
+    },
+    settings::Settings,
+};
+use anyhow::{Context, bail, ensure};
+use celes::Country;
+use insim_core::game_version::GameVersion;
+use lfsplanet_spr::{ConventionalFilename, PlayerFlags};
+use persist::persist;
+use sea_orm::EntityTrait;
+use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap, HashSet, btree_map::Entry},
     fs::File,
     path::{Path, PathBuf},
     str::FromStr,
 };
-
-use anyhow::{Context, bail, ensure};
-use celes::Country;
-use insim_core::game_version::GameVersion;
-use lfsplanet_spr::{ConventionalFilename, PlayerFlags};
-use sea_orm::EntityTrait;
-use serde::Deserialize;
 use time::OffsetDateTime;
-
-use crate::{
-    cli::era::{self as era_definitions, EraDefinition},
-    models::hotlaps::{self, SteeringInput},
-    settings::Settings,
-    startup,
-};
-
-use crate::cli::Args;
-use persist::persist;
-
 const CURRENT_HEADERS: [&str; 20] = [
     "itemnr",
     "user",
@@ -102,11 +105,11 @@ struct CsvHotlap {
     _legacy_track: String,
     #[serde(rename = "car")]
     _legacy_vehicle: String,
-    split1: i64,
-    split2: i64,
-    split3: i64,
-    split4: i64,
-    laptime: i64,
+    split1: Milliseconds,
+    split2: Milliseconds,
+    split3: Milliseconds,
+    split4: Milliseconds,
+    laptime: Milliseconds,
     #[serde(default, rename = "bestlapnr")]
     _best_lap_number: Option<i64>,
     spr: String,
@@ -128,12 +131,12 @@ struct CsvHotlap {
 struct ImportedHotlap {
     fingerprint: String,
     lfs_username: String,
-    era_slug: String,
+    era_slug: EraSlug,
     era_id: i64,
     track: String,
     vehicle: String,
-    lap_time_ms: i64,
-    split_times_ms: [i64; 4],
+    lap_time_ms: Milliseconds,
+    split_times_ms: [Milliseconds; 4],
     original_filename: String,
     /// Materialised for the chart query's controller filter; every other
     /// control setting is derived from `player_flags` when the row is read.
@@ -161,12 +164,10 @@ struct ImportData {
 /// Imports an LFSWorld v1 hotlap CSV export.
 pub(super) async fn run(args: &Args, hotlaps_csv: &[PathBuf]) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
-    let database = startup::connect(&settings.database, 2).await?;
-    let eras = era_definitions::list_definitions(&database).await?;
+    let database = db::connect(&settings.database, 2).await?;
+    let eras = era_definitions::list(&database).await?;
     let mut data = load(hotlaps_csv, &eras)?;
-    let persisted_eras = crate::models::eras::EraEntity::find()
-        .all(&database)
-        .await?;
+    let persisted_eras = crate::models::era::Entity::find().all(&database).await?;
     let era_ids = persisted_eras
         .iter()
         .map(|era| (era.slug.as_str(), era.id))
@@ -330,10 +331,15 @@ fn parse_row(
     ensure!(row.itemnr > 0, "itemnr must be positive");
     ensure!(row.id > 0, "player id must be positive");
     ensure!(!row.user.is_empty(), "username must not be empty");
-    ensure!(row.laptime > 0, "lap time must be positive");
+    ensure!(
+        row.laptime > Milliseconds::ZERO,
+        "lap time must be positive"
+    );
     let split_times_ms = [row.split1, row.split2, row.split3, row.split4];
     ensure!(
-        split_times_ms.iter().all(|split| *split >= 0),
+        split_times_ms
+            .iter()
+            .all(|split| *split >= Milliseconds::ZERO),
         "split times must not be negative"
     );
     ensure!(
@@ -358,16 +364,16 @@ fn parse_row(
             extension.to_ascii_lowercase().ends_with(".spr"),
             "archived SPR filename has no .spr extension"
         );
-        let minutes = row.laptime / 60_000;
-        let seconds = row.laptime % 60_000 / 1_000;
-        let milliseconds = row.laptime % 1_000;
+        let minutes = row.laptime.as_millis() / 60_000;
+        let seconds = row.laptime.as_millis() % 60_000 / 1_000;
+        let milliseconds = row.laptime.as_millis() % 1_000;
         normalized_filename = format!("{prefix}_{minutes}{seconds:02}{milliseconds:03}.spr");
         &normalized_filename
     };
     let filename = ConventionalFilename::try_from(filename_text)
         .with_context(|| format!("invalid SPR filename {:?}", row.spr))?;
     let filename_time =
-        i64::try_from(filename.lap_time.as_millis()).context("filename lap time exceeds BIGINT")?;
+        Milliseconds::try_from(filename.lap_time).context("filename lap time exceeds BIGINT")?;
     ensure!(
         filename_time == row.laptime,
         "filename lap time {filename_time} does not match CSV lap time {}",
@@ -426,7 +432,7 @@ fn parse_row(
     // gate, because LFS reported zero before it could report ABS.
     let abs_enabled = match row.abs {
         None => None,
-        Some(0) => hotlaps::resolve_abs(false, &game_version),
+        Some(0) => hotlap::resolve_abs(false, &game_version),
         Some(1) => Some(true),
         Some(value) => bail!("unknown ABS value {value}"),
     };
@@ -508,7 +514,8 @@ mod tests {
 
     #[test]
     fn home_nation_flags_survive_country_normalisation() {
-        use lfsplanet_flags::{CountryFlagsExt, FlagCode};
+        use lfsplanet_flags::CountryFlagsExt;
+        use lfsplanet_flags::FlagCode;
 
         for (name, expected) in [
             ("England", "gb-eng"),

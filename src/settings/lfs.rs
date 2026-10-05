@@ -1,5 +1,6 @@
 //! Settings for local LFS installations and outbound integrations.
 
+use lfsplanet_lfs_api::LfsClient;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -35,6 +36,18 @@ impl Default for LfsSettings {
 }
 
 impl LfsSettings {
+    /// Creates an LFS API client when OAuth credentials are configured.
+    pub(crate) fn to_api_client(&self) -> anyhow::Result<Option<LfsClient>> {
+        let Some(oauth) = &self.oauth else {
+            return Ok(None);
+        };
+        Ok(Some(LfsClient::new(
+            lfsplanet_lfs_api::http_client(self.outbound_http_timeout.duration())?,
+            oauth.client_id.as_str().to_owned(),
+            oauth.client_secret.as_str().to_owned(),
+        )))
+    }
+
     /// Installer cache shared by every named installation.
     pub fn installer_cache_root(&self) -> PathBuf {
         self.installation_root.path().join(".cache/installers")

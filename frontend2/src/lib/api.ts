@@ -363,7 +363,7 @@ export interface ManagedHotlapResponse {
   era_id: string;
   era_title: string;
   track: string;
-  vehicle: string | null;
+  vehicle: string;
   raw_vehicle_name: string;
   mod_version: number | null;
   lap_time_ms: number;
@@ -457,7 +457,7 @@ export interface HotlapActivityResponse {
   player: PlayerSummary;
   era_id: string;
   track: string;
-  vehicle: string | null;
+  vehicle: string;
   lap_time_ms: number;
   position: number | null;
   distance_to_world_record_ms: number | null;
@@ -471,11 +471,36 @@ export interface PlayerComparisonResponse {
   right: { player: PlayerSummary; results: PlayerChartResultResponse[] };
 }
 
+export interface ComboSpotlight {
+  era_id: string;
+  era_title: string;
+  track: string;
+  track_name: string;
+  vehicle: string;
+  vehicle_name: string;
+  vehicle_image_url: string | null;
+  recent_uploads: number;
+  leaders: {
+    player: PlayerSummary;
+    position: number;
+    lap_time_ms: number;
+    distance_to_world_record_ms: number;
+  }[];
+}
+
+export interface DriverSpotlight {
+  player: PlayerSummary;
+  recent_personal_bests: number;
+}
+
 export interface StatsResponse {
   validated_hotlaps: number;
   drivers: number;
   combinations: number;
   eras: number;
+  spotlight_uploads: number;
+  combo_spotlight: ComboSpotlight | null;
+  driver_spotlight: DriverSpotlight | null;
 }
 
 export interface PersonalAccessTokenResponse {

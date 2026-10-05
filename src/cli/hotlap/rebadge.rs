@@ -1,23 +1,19 @@
 //! Manual player badge rebuilds.
 
-use std::collections::HashSet;
-
-use anyhow::{Context, bail};
-
-use sea_orm::{EntityTrait, QueryOrder};
-
-use crate::{cli::Args, models::eras, settings::Settings, startup};
-
 use super::RebadgeScope;
+use crate::{cli::Args, db, models::era, settings::Settings};
+use anyhow::{Context, bail};
+use sea_orm::{EntityTrait, QueryOrder};
+use std::collections::HashSet;
 
 /// Rebuilds every badge for the selected eras.
 ///
 /// Use this for repairs after era policy changes or badge drift.
 pub(super) async fn run(args: &Args, scope: &RebadgeScope) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
-    let database = startup::connect(&settings.database, 2).await?;
-    let eras = eras::EraEntity::find()
-        .order_by_asc(eras::EraColumn::Id)
+    let database = db::connect(&settings.database, 2).await?;
+    let eras = era::Entity::find()
+        .order_by_asc(era::Column::Id)
         .all(&database)
         .await
         .context("failed to load eras for badge rebuilding")?;

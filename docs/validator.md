@@ -99,7 +99,8 @@ notifications. The test-validation endpoint queues notifications too.
 
 `WebhookEvent` owns the event snapshot; Strum generates `WebhookEventKind` for
 subscription selection. `WebhookFormat` selects the delivery implementation,
-currently Discord. These models and rendering live in `src/models/webhooks`. A world
+currently Discord. These models live in `src/models/webhook`, with rendering in
+`discord.rs`. A world
 record event is emitted only after the chart has been reranked and the new lap's
 stored chart position is exactly one.
 
@@ -110,7 +111,7 @@ also removes its notifications. Pausing a subscription holds queued work and
 prevents new work; resuming does not backfill events missed while paused.
 
 `lfsplanet worker` runs validation and webhook delivery as separate Tokio tasks.
-The delivery processor in `src/jobs/webhooks.rs` locks both the notification and
+The delivery processor in `src/services/deliver_webhook/mod.rs` locks both the notification and
 subscription with `FOR UPDATE SKIP LOCKED`. This serializes sends for each
 subscription across processes. Discord rate-limit cooldowns are stored on the
 subscription. Each request has a 15-second timeout. Network errors and server

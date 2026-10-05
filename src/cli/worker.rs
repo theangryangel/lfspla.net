@@ -1,17 +1,18 @@
 //! Runs the application's background record processors.
 
-use crate::{cli::Args, jobs::hlvc::HotlapValidation, settings::Settings, startup, storage};
+use crate::{
+    cli::Args, db, services::validate_hotlap::HotlapValidation, settings::Settings, storage,
+};
 use lfsplanet_jobs::{Runner, WorkerConfig};
-
 pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
-    let database = startup::connect(&settings.database, 4).await?;
+    let database = db::connect(&settings.database, 4).await?;
     let object_store = storage::build(&settings.storage)?;
     let config = WorkerConfig {
         workers: 1,
         poll_interval: settings.worker.hlvc.poll_interval.duration(),
     };
-    let notifications = crate::jobs::webhooks::WebhookNotifications::new(
+    let notifications = crate::services::deliver_webhook::WebhookNotifications::new(
         database.clone(),
         settings.web.public_base_url.url().clone(),
     )?;

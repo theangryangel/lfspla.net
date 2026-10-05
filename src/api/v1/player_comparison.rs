@@ -1,28 +1,23 @@
 //! Comparison of two players' current personal bests.
 
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, extractors as extract,
+        v1::{PlayerSummary, players::response},
+    },
+    models::player::{Entity as PlayerEntity, PlayerComparison, PlayerFilter},
+};
 use axum::{
     Json,
     extract::{Query, State},
     http::StatusCode,
 };
 use insim_core::{track::Track, vehicle::Vehicle};
-use sea_orm::EntityTrait;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::{Validate, ValidationError};
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, extractors as extract,
-        v1::{PlayerSummary, players::response},
-    },
-    models::{
-        hotlaps::HotlapRankable,
-        players::{PlayerComparison, PlayerEntity, PlayerFilter},
-    },
-};
-
 pub(super) fn router() -> OpenApiRouter<ApiState> {
     OpenApiRouter::new().routes(routes!(compare))
 }
@@ -93,42 +88,43 @@ pub(crate) async fn compare(
         .vehicle
         .filter(|value| !value.trim().is_empty())
         .map(|value| {
-            value
+            let vehicle = value
                 .to_ascii_uppercase()
                 .parse::<Vehicle>()
-                .expect("insim_core vehicle parsing is infallible")
-                .ensure_hotlap_rankable()
+                .expect("insim_core vehicle parsing is infallible");
+            if vehicle == Vehicle::Unknown {
+                Err(())
+            } else {
+                Ok(vehicle)
+            }
         })
         .transpose()
         .map_err(|_| invalid_comparison_filter())?;
     let era_id = query.era.trim();
     let era = extract::resolve_era(&state.database, era_id).await?;
-    let track_eligible = match &track {
-        Some(track) => era
-            .admits_track(&state.database, track)
-            .await
-            .map_err(ApiError::database)?,
-        None => true,
-    };
-    let vehicle_eligible = match &vehicle {
-        Some(vehicle) => era
-            .admits_vehicle(&state.database, vehicle)
-            .await
-            .map_err(ApiError::database)?,
-        None => true,
-    };
-    let pair_eligible = match (&track, &vehicle) {
-        (Some(track), Some(vehicle)) => era
-            .admits_combination(&state.database, track, vehicle)
-            .await
-            .map_err(ApiError::database)?,
-        _ => true,
-    };
-    if !track_eligible || !vehicle_eligible || !pair_eligible {
-        return Err(invalid_comparison_filter());
-    }
     let track = track.map(|track| track.to_string());
     let vehicle = vehicle.map(|vehicle| vehicle.to_string());
+    if track.is_some() || vehicle.is_some() {
+        use crate::models::{chart, vehicle as vehicle_model};
+        let mut charts = chart::Entity::find().filter(chart::Column::EraId.eq(era.id));
+        if let Some(track) = &track {
+            charts = charts.filter(chart::Column::TrackId.eq(track));
+        }
+        if let Some(vehicle) = &vehicle {
+            charts = charts
+                .filter(chart::Column::VehicleId.eq(vehicle))
+                .inner_join(vehicle_model::Entity)
+                .filter(vehicle_model::Column::Available.eq(true));
+        }
+        if charts
+            .one(&state.database)
+            .await
+            .map_err(ApiError::database)?
+            .is_none()
+        {
+            return Err(invalid_comparison_filter());
+        }
+    }
     let (left, right) = tokio::try_join!(
         PlayerEntity::find()
             .with_username(&query.left)
@@ -152,23 +148,21 @@ pub(crate) async fn compare(
         .await
         .map_err(ApiError::database)?;
 
-    Ok(Json(PlayerComparisonResponse::try_from(comparison)?))
+    Ok(Json(PlayerComparisonResponse::from(comparison)))
 }
 
-impl TryFrom<PlayerComparison> for PlayerComparisonResponse {
-    type Error = ApiError;
-
-    fn try_from(comparison: PlayerComparison) -> Result<Self, Self::Error> {
-        Ok(Self {
+impl From<PlayerComparison> for PlayerComparisonResponse {
+    fn from(comparison: PlayerComparison) -> Self {
+        Self {
             left: ComparedPlayerResponse {
                 player: comparison.left.player.into(),
-                results: response::chart_result_responses(comparison.left.results)?,
+                results: response::chart_result_responses(comparison.left.results),
             },
             right: ComparedPlayerResponse {
                 player: comparison.right.player.into(),
-                results: response::chart_result_responses(comparison.right.results)?,
+                results: response::chart_result_responses(comparison.right.results),
             },
-        })
+        }
     }
 }
 
@@ -213,5 +207,62 @@ mod tests {
             vehicle: None,
         };
         assert!(query.validate().is_err());
+    }
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn chart_filters_preserve_partial_pair_and_availability_rules(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+        crate::models::Track::sync(&database).await?;
+        crate::models::Vehicle::sync_builtin(&database).await?;
+        sqlx::raw_sql(include_str!("../../services/validate_hotlap/fixtures.sql"))
+            .execute(&pool)
+            .await?;
+        sqlx::raw_sql("INSERT INTO player (lfs_username, display_name) VALUES ('other', 'Other');
+            INSERT INTO chart (era_id, track_id, vehicle_id) SELECT id, 'BL2', 'XRG' FROM era;
+            INSERT INTO ranking_chart_membership (era_id, ranking_id, position, chart_id)
+            SELECT ranking.era_id, ranking.id, 1, chart.id FROM ranking JOIN chart ON chart.era_id = ranking.era_id
+            WHERE chart.track_id = 'BL2';
+            UPDATE vehicle SET available = false WHERE id = 'XFG';").execute(&pool).await?;
+        let state = ApiState {
+            database,
+            oauth: None,
+            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+            hotlaps: Default::default(),
+        };
+        for (track, vehicle, valid) in [
+            (None, None, true),
+            (Some("bl1"), None, true),
+            (None, Some("xrg"), true),
+            (Some("bl2"), Some("xrg"), true),
+            (Some("bl1"), Some("xrg"), false),
+            (None, Some("xfg"), false),
+            (Some("bl1"), Some("xfg"), false),
+            (Some("BL3X"), None, false),
+            (Some("NOPE"), None, false),
+            (None, Some("NOPE"), false),
+            (Some(" "), Some(" "), true),
+        ] {
+            let result = compare(
+                Query(PlayerComparisonQuery {
+                    left: "worker-test".into(),
+                    right: "other".into(),
+                    era: "2026-09-23".into(),
+                    track: track.map(str::to_owned),
+                    vehicle: vehicle.map(str::to_owned),
+                }),
+                State(state.clone()),
+            )
+            .await;
+            if valid {
+                assert!(result.is_ok(), "{track:?}/{vehicle:?}: {result:?}");
+            } else {
+                let error = result.unwrap_err();
+                assert_eq!(error.status, StatusCode::BAD_REQUEST);
+                assert_eq!(error.code, "invalid_comparison_filter");
+            }
+        }
+        Ok(())
     }
 }

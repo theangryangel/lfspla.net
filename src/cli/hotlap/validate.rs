@@ -1,15 +1,16 @@
 //! One-shot, operator-visible HLVC diagnostics.
 
+use crate::installation_id::InstallationId;
 use std::path::Path;
 
 use anyhow::Context;
 
-use crate::{cli::Args, lfs::installations::resolve_installation, settings::Settings};
+use crate::{cli::Args, services::manage_lfs::resolve_installation, settings::Settings};
 
 /// Validates one local replay without storing or publishing anything.
 pub(super) async fn run(
     args: &Args,
-    installation_id: &str,
+    installation_id: &InstallationId,
     replay_path: &Path,
 ) -> anyhow::Result<()> {
     lfsplanet_lfs::ensure_supported()?;

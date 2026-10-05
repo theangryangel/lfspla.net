@@ -1,5 +1,10 @@
 //! One-shot maintenance command orchestration.
 
+use crate::{
+    cli::{Args, storage},
+    db,
+    settings::Settings,
+};
 use anyhow::{Context, bail};
 use clap::Subcommand;
 use sea_orm::DatabaseConnection;
@@ -7,19 +12,6 @@ use std::path::PathBuf;
 use time::Duration;
 use tower_sessions::session_store::ExpiredDeletion;
 use tower_sessions_sqlx_store::PostgresStore;
-
-use crate::{
-    cli::Args,
-    cli::storage,
-    lfs::api_client,
-    models::{
-        personal_access_tokens, tracks,
-        vehicles::{self, mods},
-    },
-    settings::Settings,
-    startup,
-};
-
 const PERSONAL_ACCESS_TOKEN_RETENTION: Duration = Duration::days(90);
 
 /// One-shot maintenance operation.
@@ -60,17 +52,24 @@ pub(crate) enum MaintenanceCommand {
 /// Runs the selected maintenance task once and exits.
 pub(crate) async fn run(args: &Args, action: &MaintenanceCommand) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
-    let database = startup::connect(&settings.database, 2).await?;
+    let database = db::connect(&settings.database, 2).await?;
 
     match action {
         MaintenanceCommand::SessionsGc => sessions_gc(&database).await,
         MaintenanceCommand::AccessTokensGc => access_tokens_gc(&database).await,
         MaintenanceCommand::BadgesRefresh => {
-            Ok(crate::models::eras::retry_badge_refreshes(&database).await?)
+            Ok(crate::models::badge::retry_badge_refreshes(&database).await?)
         }
         MaintenanceCommand::CatalogueSync {
             standard_vehicle_images_dir,
-        } => catalogue_sync(&settings, &database, standard_vehicle_images_dir.as_deref()).await,
+        } => {
+            crate::services::sync_catalogue::sync(
+                &settings,
+                &database,
+                standard_vehicle_images_dir.as_deref(),
+            )
+            .await
+        }
         MaintenanceCommand::StorageGc {
             delete,
             older_than_hours,
@@ -94,55 +93,13 @@ async fn sessions_gc(database: &DatabaseConnection) -> anyhow::Result<()> {
 
 async fn access_tokens_gc(database: &DatabaseConnection) -> anyhow::Result<()> {
     let cutoff = time::OffsetDateTime::now_utc() - PERSONAL_ACCESS_TOKEN_RETENTION;
-    let deleted = personal_access_tokens::delete_stale(database, cutoff)
+    let deleted = crate::models::PersonalAccessToken::delete_stale(database, cutoff)
         .await
         .context("failed to delete stale personal access tokens")?;
     tracing::info!(
         deleted,
         "stale personal access token garbage collection completed"
     );
-    Ok(())
-}
-
-async fn catalogue_sync(
-    settings: &Settings,
-    database: &DatabaseConnection,
-    standard_vehicle_images_dir: Option<&std::path::Path>,
-) -> anyhow::Result<()> {
-    let client = api_client(&settings.lfs)?.context(
-        "LFS OAuth credentials are required for catalogue synchronization; configure lfs.oauth",
-    )?;
-
-    tracks::sync(database)
-        .await
-        .context("canonical track synchronization failed")?;
-    vehicles::sync_builtin(database)
-        .await
-        .context("built-in vehicle synchronization failed")?;
-    let object_store = crate::storage::build(&settings.storage)?;
-    let builtin_images = match standard_vehicle_images_dir {
-        Some(directory) => vehicles::seed_builtin_images(database, object_store.clone(), directory)
-            .await
-            .context("built-in vehicle image seeding failed")?,
-        None => 0,
-    };
-
-    let previous_images = mods::image_cache_state(database)
-        .await
-        .context("Vehicle Mods image state loading failed")?;
-    let remote = client
-        .vehicle_mods()
-        .await
-        .context("Vehicle Mods catalogue refresh failed")?;
-    mods::refresh(database, &remote)
-        .await
-        .context("Vehicle Mods catalogue persistence failed")?;
-    let images = mods::cache_images(database, object_store, client, &remote, &previous_images)
-        .await
-        .context("Vehicle Mods cover synchronization failed")?;
-    let mods = remote.len();
-
-    tracing::info!(mods, images, builtin_images, "catalogue synchronized");
     Ok(())
 }
 
@@ -166,7 +123,7 @@ async fn run_all(
     record("access-tokens-gc", access_tokens_gc(database).await);
     record(
         "badges-refresh",
-        crate::models::eras::retry_badge_refreshes(database)
+        crate::models::badge::retry_badge_refreshes(database)
             .await
             .map_err(Into::into),
     );
@@ -182,7 +139,7 @@ async fn run_all(
     );
     record(
         "catalogue-sync",
-        catalogue_sync(settings, database, None).await,
+        crate::services::sync_catalogue::sync(settings, database, None).await,
     );
 
     if failures.is_empty() {

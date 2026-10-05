@@ -1,5 +1,7 @@
 //! Era capability endpoints.
 
+use crate::era_slug::EraSlug;
+
 mod charts;
 mod combinations;
 mod rankings;
@@ -8,23 +10,21 @@ mod upload;
 mod vehicles;
 mod world_records;
 
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
+    models::{era, ranking as ranking_store, ranking::RankingFilter},
+};
 use axum::{Json, extract::State};
+use rankings::RankingSummary;
 use sea_orm::{EntityTrait, QueryOrder};
 use serde::Serialize;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
-    models::{eras, rankings as ranking_store, rankings::RankingFilter},
-};
-
-use rankings::RankingSummary;
-
 /// An era and the rankings it offers.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct EraSummary {
-    id: String,
+    id: EraSlug,
     title: String,
     open: bool,
     version_requirement: String,
@@ -59,9 +59,9 @@ pub(crate) async fn list(
     // offers. sea-orm prepends the era key ordering so it can group the rows,
     // which is the same chronological order the era list has always used, and
     // the ranking position survives as the final sort key.
-    let eras = eras::EraEntity::find()
-        .find_with_related(ranking_store::RankingEntity)
-        .order_by_asc(ranking_store::RankingColumn::Position)
+    let eras = era::Entity::find()
+        .find_with_related(ranking_store::Entity)
+        .order_by_asc(ranking_store::Column::Position)
         .all(&state.database)
         .await
         .map_err(ApiError::database)?;
@@ -88,9 +88,9 @@ pub(crate) async fn detail(
     extract::Era(era): extract::Era,
     State(state): State<ApiState>,
 ) -> Result<Json<EraSummary>, ApiError> {
-    let rankings = ranking_store::RankingEntity::find()
+    let rankings = ranking_store::Entity::find()
         .in_era(era.id)
-        .order_by_asc(ranking_store::RankingColumn::Position)
+        .order_by_asc(ranking_store::Column::Position)
         .all(&state.database)
         .await
         .map_err(ApiError::database)?;
@@ -99,7 +99,7 @@ pub(crate) async fn detail(
 }
 
 /// Builds the era navigation payload shared by the list and detail endpoints.
-fn era_summary(era: eras::EraModel, rankings: Vec<ranking_store::RankingRow>) -> EraSummary {
+fn era_summary(era: crate::models::Era, rankings: Vec<crate::models::Ranking>) -> EraSummary {
     EraSummary {
         id: era.slug,
         title: era.title,

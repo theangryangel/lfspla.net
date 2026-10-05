@@ -1,21 +1,27 @@
 //! lfspla.net API, replay validator, and CLI.
 
 mod api;
-mod auth;
 mod cli;
-mod jobs;
-mod lfs;
+mod country;
+mod db;
+mod era_slug;
+mod game_version;
+mod installation_id;
+mod milliseconds;
 mod models;
+mod ordering;
+mod player_flags;
+mod ranking_slug;
+mod services;
 mod settings;
-mod startup;
 mod storage;
+mod track_id;
 mod validate;
+mod vehicle_id;
 
 use clap::Parser;
+use cli::Args;
 use tracing_subscriber::EnvFilter;
-
-use cli::{Args, Command};
-
 const DEFAULT_LOG_FILTER: &str = "warn,lfsplanet=info";
 
 #[tokio::main]
@@ -28,18 +34,5 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let args = Args::parse();
-    match &args.command {
-        #[cfg(debug_assertions)]
-        Command::Demo(options) => cli::demo::run(&args, options).await,
-        Command::GenerateConfig(options) => cli::config::run(options),
-        Command::Migrate => cli::migrate::run(&args).await,
-        Command::Openapi => cli::openapi::run(),
-        Command::Worker => cli::worker::run(&args).await,
-        Command::Web => api::run(&args).await,
-        Command::Hotlap { action } => cli::hotlap::run(&args, action).await,
-        Command::Lfs { action } => cli::lfs::run(&args, action).await,
-        Command::Era { action } => cli::era::run(&args, action).await,
-        Command::Player { action } => cli::player::run(&args, action).await,
-        Command::Maintenance { action } => cli::maintenance::run(&args, action).await,
-    }
+    cli::run(&args).await
 }

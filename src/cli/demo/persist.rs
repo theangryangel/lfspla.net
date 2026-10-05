@@ -1,21 +1,16 @@
+use super::{DemoArgs, generate};
+use crate::milliseconds::Milliseconds;
+use crate::models::Era;
+use anyhow::{Context, ensure};
+use rand::{RngExt, SeedableRng, rngs::StdRng, seq::SliceRandom};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, TransactionTrait};
+use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     future::Future,
     time::{Duration, Instant},
 };
-
-use anyhow::{Context, ensure};
-use rand::{RngExt, SeedableRng, rngs::StdRng, seq::SliceRandom};
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, TransactionTrait};
-use serde_json::{Value, json};
 use time::OffsetDateTime;
-
-use super::{DemoArgs, generate};
-use crate::models::{
-    eras::{self, EraModel},
-    tracks, vehicles,
-};
-
 const BATCH_SIZE: usize = 500;
 const COUNTRIES: [&str; 12] = [
     "GB", "DE", "FR", "FI", "SE", "NL", "PL", "US", "BR", "AU", "JP", "CA",
@@ -29,7 +24,7 @@ pub(super) async fn populate(
     let transaction = database.begin().await?;
     progress(
         "Waiting for the catalogue lock",
-        eras::lock_rebuild(&transaction),
+        crate::db::lock_rebuild(&transaction),
     )
     .await?;
     let era = progress(
@@ -50,9 +45,9 @@ pub(super) async fn populate(
         options.players,
         options.coverage
     );
-    let baselines: Vec<i64> = charts
+    let baselines: Vec<Milliseconds> = charts
         .iter()
-        .map(|_| rng.random_range(40_000..200_000))
+        .map(|_| Milliseconds::from_millis(rng.random_range(40_000..200_000)))
         .collect();
     let now = OffsetDateTime::now_utc();
     let profiles = generate::profiles(&mut rng, options.players);
@@ -106,7 +101,7 @@ pub(super) async fn populate(
             let (lap, date) = generate::lap(&mut rng, profile, baselines[chart_index], now);
             pending.push(json!({
                     "player": player_ids[index], "era": era.id,
-                    "track": chart.track_id, "vehicle": chart.vehicle_id,
+                    "track": chart.track_id.to_string(), "vehicle": chart.vehicle_id.to_string(),
                     "lap": lap, "date": date.unix_timestamp(), "version": "0.0A",
                     "fingerprint": format!("demo:{}:{}:{}:{}", era.id, player_ids[index], chart.track_id, chart.vehicle_id),
                 }));
@@ -139,7 +134,7 @@ pub(super) async fn populate(
         "Updating database statistics",
         transaction.execute_raw(Statement::from_string(
             DbBackend::Postgres,
-            "ANALYZE player, hotlap, ranking_chart".to_owned(),
+            "ANALYZE player, hotlap, chart, ranking_chart_membership".to_owned(),
         )),
     )
     .await?;
@@ -157,7 +152,7 @@ pub(super) async fn populate(
     )
     .await?;
     tracing::info!(
-        era = era.slug,
+        era = %era.slug,
         combinations = charts.len(),
         hotlaps = total,
         "demo era generated"
@@ -196,9 +191,9 @@ async fn progress<T, E>(label: &str, task: impl Future<Output = Result<T, E>>) -
     }
 }
 
-async fn create_era(database: &impl ConnectionTrait) -> anyhow::Result<EraModel> {
-    tracks::sync(database).await?;
-    vehicles::sync_builtin(database).await?;
+async fn create_era(database: &impl ConnectionTrait) -> anyhow::Result<Era> {
+    crate::models::Track::sync(database).await?;
+    crate::models::Vehicle::sync_builtin(database).await?;
     database
         .execute_raw(Statement::from_string(
             DbBackend::Postgres,
@@ -212,9 +207,8 @@ async fn create_era(database: &impl ConnectionTrait) -> anyhow::Result<EraModel>
                 .to_owned(),
         ))
         .await?;
-    eras::validate_version_requirements(database).await?;
-    let era = eras::find_by_slug("demo")
-        .one(database)
+    crate::models::Era::validate_version_requirements(database).await?;
+    let era = crate::models::Era::find_by_slug(database, &"demo".parse().unwrap())
         .await?
         .context("demo era was not found")?;
     let ranking = database.query_one_raw(Statement::from_sql_and_values(DbBackend::Postgres,
@@ -236,19 +230,28 @@ async fn create_era(database: &impl ConnectionTrait) -> anyhow::Result<EraModel>
     database
         .execute_raw(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "DELETE FROM ranking_chart WHERE era_id = $1 AND ranking_id = $2",
+            "INSERT INTO chart (era_id, track_id, vehicle_id)
+         SELECT $1, track.id, vehicle.id FROM track CROSS JOIN vehicle
+         WHERE NOT track.open_configuration AND vehicle.available AND vehicle.kind = 'standard'
+         ON CONFLICT (era_id, track_id, vehicle_id) DO NOTHING",
+            [era.id.into()],
+        ))
+        .await?;
+    database
+        .execute_raw(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "DELETE FROM ranking_chart_membership WHERE era_id = $1 AND ranking_id = $2",
             [era.id.into(), ranking_id.into()],
         ))
         .await?;
     database
         .execute_raw(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "INSERT INTO ranking_chart (era_id, ranking_id, position, track_id, vehicle_id)
+            "INSERT INTO ranking_chart_membership (era_id, ranking_id, position, chart_id)
          SELECT ranking.era_id, ranking.id,
-            (row_number() OVER (ORDER BY track.id, vehicle.id) - 1)::integer, track.id, vehicle.id
-         FROM ranking CROSS JOIN track CROSS JOIN vehicle
-         WHERE ranking.era_id = $1 AND NOT track.open_configuration AND vehicle.available
-           AND vehicle.kind = 'standard'",
+            (row_number() OVER (PARTITION BY ranking.id ORDER BY chart.track_id, chart.vehicle_id) - 1)::integer, chart.id
+         FROM ranking JOIN chart ON chart.era_id = ranking.era_id
+         WHERE ranking.era_id = $1",
             [era.id.into()],
         ))
         .await?;
@@ -260,16 +263,17 @@ async fn insert_hotlaps(database: &impl ConnectionTrait, rows: &[Value]) -> anyh
         .execute_raw(Statement::from_sql_and_values(
             DbBackend::Postgres,
             "INSERT INTO hotlap (
-            player_id, era_id, track, vehicle, raw_vehicle_name,
+            player_id, era_id, chart_id, track, vehicle, raw_vehicle_name,
             lap_time_ms, split_1_ms, split_2_ms, split_3_ms, split_4_ms,
             source, fingerprint, steering, player_flags, created_at, game_version, state
-         ) SELECT player, era, track, vehicle, vehicle,
+         ) SELECT player, era, chart.id, track, vehicle, vehicle,
             lap, lap / 3, lap * 2 / 3, lap, 0,
             'demo', fingerprint, 'wheel', 0, to_timestamp(date), version, 'valid'
          FROM jsonb_to_recordset($1) AS h(
             player BIGINT, era BIGINT, track TEXT, vehicle TEXT, lap BIGINT,
             fingerprint TEXT, date BIGINT, version TEXT
-         ) ON CONFLICT (source, fingerprint) DO NOTHING",
+         ) JOIN chart ON chart.era_id = h.era AND chart.track_id = h.track AND chart.vehicle_id = h.vehicle
+         ON CONFLICT (source, fingerprint) DO NOTHING",
             [json!(rows).into()],
         ))
         .await?;
