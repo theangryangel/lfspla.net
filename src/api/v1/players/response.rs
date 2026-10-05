@@ -1,9 +1,8 @@
 //! Response types and conversions shared by player routes.
 
+use crate::{api::ApiError, models::player::PlayerChartResult};
 use serde::Serialize;
 use utoipa::ToSchema;
-
-use crate::{api::ApiError, models::players::PlayerChartResult};
 
 /// A high-ranking current personal best on an individual chart.
 #[derive(Debug, Serialize, ToSchema)]

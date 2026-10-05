@@ -1,21 +1,15 @@
+use super::{DemoArgs, generate};
+use crate::models::Era;
+use anyhow::{Context, ensure};
+use rand::{RngExt, SeedableRng, rngs::StdRng, seq::SliceRandom};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, TransactionTrait};
+use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     future::Future,
     time::{Duration, Instant},
 };
-
-use anyhow::{Context, ensure};
-use rand::{RngExt, SeedableRng, rngs::StdRng, seq::SliceRandom};
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, TransactionTrait};
-use serde_json::{Value, json};
 use time::OffsetDateTime;
-
-use super::{DemoArgs, generate};
-use crate::models::{
-    eras::{self, EraModel},
-    tracks, vehicles,
-};
-
 const BATCH_SIZE: usize = 500;
 const COUNTRIES: [&str; 12] = [
     "GB", "DE", "FR", "FI", "SE", "NL", "PL", "US", "BR", "AU", "JP", "CA",
@@ -29,7 +23,7 @@ pub(super) async fn populate(
     let transaction = database.begin().await?;
     progress(
         "Waiting for the catalogue lock",
-        eras::lock_rebuild(&transaction),
+        crate::db::locks::lock_rebuild(&transaction),
     )
     .await?;
     let era = progress(
@@ -196,9 +190,9 @@ async fn progress<T, E>(label: &str, task: impl Future<Output = Result<T, E>>) -
     }
 }
 
-async fn create_era(database: &impl ConnectionTrait) -> anyhow::Result<EraModel> {
-    tracks::sync(database).await?;
-    vehicles::sync_builtin(database).await?;
+async fn create_era(database: &impl ConnectionTrait) -> anyhow::Result<Era> {
+    crate::models::Track::sync(database).await?;
+    crate::models::Vehicle::sync_builtin(database).await?;
     database
         .execute_raw(Statement::from_string(
             DbBackend::Postgres,
@@ -212,9 +206,8 @@ async fn create_era(database: &impl ConnectionTrait) -> anyhow::Result<EraModel>
                 .to_owned(),
         ))
         .await?;
-    eras::validate_version_requirements(database).await?;
-    let era = eras::find_by_slug("demo")
-        .one(database)
+    crate::models::Era::validate_version_requirements(database).await?;
+    let era = crate::models::Era::find_by_slug(database, "demo")
         .await?
         .context("demo era was not found")?;
     let ranking = database.query_one_raw(Statement::from_sql_and_values(DbBackend::Postgres,

@@ -1,5 +1,17 @@
 //! Page-paginated best-hotlap leaderboard for one era-scoped chart.
 
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
+        extractors as extract,
+        v1::{PlayerSummary, hotlaps::response::RankingContribution},
+    },
+    models::{
+        badge::PlayerBadge,
+        hotlap::{DriverSide, HotlapRankable, SteeringInput},
+        leaderboard::{BestHotlap, BestHotlapColumn, BestHotlapFilters, BestHotlapPage},
+    },
+};
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -11,21 +23,6 @@ use sea_orm::{ActiveEnum, ConnectionTrait, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
-        extractors as extract,
-        v1::{PlayerSummary, hotlaps::response::RankingContribution},
-    },
-    models::{
-        badges::PlayerBadge,
-        hotlaps::{
-            self, BestHotlap, BestHotlapColumn, BestHotlapFilters, BestHotlapPage, DriverSide,
-            HotlapRankable, SteeringInput,
-        },
-    },
-};
 
 /// Builds era-scoped chart routes.
 pub(super) fn router() -> OpenApiRouter<ApiState> {
@@ -189,7 +186,7 @@ pub(crate) async fn best(
         .map_err(|_| invalid_controller_filter())?;
     let offset = pagination.offset()?;
 
-    let (entries, total) = hotlaps::list_best(
+    let leaderboard = crate::models::leaderboard::ChartLeaderboard::load(
         &state.database,
         BestHotlapFilters {
             era_id: era.id,
@@ -207,6 +204,7 @@ pub(crate) async fn best(
     )
     .await
     .map_err(ApiError::database)?;
+    let crate::models::leaderboard::ChartLeaderboard { entries, total } = leaderboard;
     let mut badges_by_player = era
         .list_badges_for_players(&state.database, entries.iter().map(|entry| entry.player.id))
         .await
@@ -343,7 +341,10 @@ mod tests {
 
     #[tokio::test]
     async fn page_two_is_accepted_by_http_query_extractors() {
-        use axum::{Router, body::Body, http::Request, routing::get};
+        use axum::Router;
+        use axum::body::Body;
+        use axum::http::Request;
+        use axum::routing::get;
         use tower::ServiceExt;
 
         async fn extract_page(

@@ -1,5 +1,9 @@
 //! Public player search.
 
+use crate::{
+    api::{ApiError, ApiState, ListResponse, v1::PlayerSummary},
+    models::player::{Column as PlayerColumn, Entity as PlayerEntity, PlayerFilter},
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -7,12 +11,6 @@ use axum::{
 use sea_orm::{EntityTrait, QueryOrder, QuerySelect};
 use serde::Deserialize;
 use utoipa::IntoParams;
-
-use crate::{
-    api::{ApiError, ApiState, ListResponse, v1::PlayerSummary},
-    models::players::{PlayerColumn, PlayerEntity, PlayerFilter},
-};
-
 const SEARCH_LIMIT: u64 = 25;
 
 /// Search text for the public driver finder.

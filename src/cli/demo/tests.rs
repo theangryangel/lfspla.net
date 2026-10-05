@@ -1,7 +1,6 @@
 use super::{DemoArgs, persist};
-use crate::models::{eras, hotlaps::HotlapEntity};
+use crate::models::hotlap::Entity as HotlapEntity;
 use sea_orm::{EntityTrait, SqlxPostgresConnector};
-
 #[sqlx::test]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> anyhow::Result<()> {
@@ -16,7 +15,9 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         .execute(&pool).await?;
 
     let inserted = persist::populate(&database, &options).await?;
-    let era = eras::find_by_slug("demo").one(&database).await?.unwrap();
+    let era = crate::models::Era::find_by_slug(&database, "demo")
+        .await?
+        .unwrap();
     assert!(!era.open);
     let laps = HotlapEntity::find().all(&database).await?;
     assert_eq!(laps.len(), inserted);
@@ -141,8 +142,7 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
     .execute(&pool)
     .await?;
     let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-    let before = eras::find_by_slug("2026-09-30")
-        .one(&database)
+    let before = crate::models::Era::find_by_slug(&database, "2026-09-30")
         .await?
         .unwrap();
     persist::populate(
@@ -155,8 +155,7 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
         },
     )
     .await?;
-    let after = eras::find_by_slug("2026-09-30")
-        .one(&database)
+    let after = crate::models::Era::find_by_slug(&database, "2026-09-30")
         .await?
         .unwrap();
     assert_eq!(before, after);

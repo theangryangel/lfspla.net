@@ -1,5 +1,14 @@
 //! Browser-managed personal access tokens for API clients.
 
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, ListResponse, extractors::BrowserAuthenticatedPlayer,
+    },
+    models::personal_access_token::{
+        self, Column as PersonalAccessTokenColumn, CreatePersonalAccessToken,
+        Entity as PersonalAccessTokenEntity, Model as PersonalAccessToken,
+    },
+};
 use axum::{
     Json,
     extract::{Path, State},
@@ -8,17 +17,6 @@ use axum::{
 use sea_orm::{ModelTrait, QueryOrder};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, ListResponse, extractors::BrowserAuthenticatedPlayer,
-    },
-    models::personal_access_tokens::{
-        self, CreatePersonalAccessToken, PersonalAccessTokenColumn, PersonalAccessTokenEntity,
-        PersonalAccessTokenModel,
-    },
-};
-
 #[derive(Debug, Deserialize, ToSchema)]
 pub(crate) struct CreatePersonalAccessTokenRequest {
     /// Human-readable purpose shown in the token list.
@@ -98,7 +96,7 @@ pub(crate) async fn create(
     BrowserAuthenticatedPlayer(player): BrowserAuthenticatedPlayer,
     Json(request): Json<CreatePersonalAccessTokenRequest>,
 ) -> Result<(StatusCode, Json<CreatedPersonalAccessTokenResponse>), ApiError> {
-    let created = personal_access_tokens::issue(
+    let created = crate::models::PersonalAccessToken::issue(
         &state.database,
         player.id,
         CreatePersonalAccessToken {
@@ -108,8 +106,8 @@ pub(crate) async fn create(
     )
     .await
     .map_err(|error| match error {
-        personal_access_tokens::CreateError::Validation(error) => error.into(),
-        personal_access_tokens::CreateError::Database(error) => ApiError::database(error),
+        personal_access_token::CreateError::Validation(error) => error.into(),
+        personal_access_token::CreateError::Database(error) => ApiError::database(error),
     })?;
 
     tracing::info!(
@@ -147,7 +145,7 @@ pub(crate) async fn revoke(
     State(state): State<ApiState>,
     BrowserAuthenticatedPlayer(player): BrowserAuthenticatedPlayer,
 ) -> Result<StatusCode, ApiError> {
-    let revoked = personal_access_tokens::revoke(&state.database, player.id, token_id)
+    let revoked = crate::models::PersonalAccessToken::revoke(&state.database, player.id, token_id)
         .await
         .map_err(ApiError::database)?;
     if !revoked {
@@ -165,8 +163,8 @@ pub(crate) async fn revoke(
     Ok(StatusCode::NO_CONTENT)
 }
 
-impl From<PersonalAccessTokenModel> for PersonalAccessTokenResponse {
-    fn from(token: PersonalAccessTokenModel) -> Self {
+impl From<PersonalAccessToken> for PersonalAccessTokenResponse {
+    fn from(token: PersonalAccessToken) -> Self {
         Self {
             id: token.id,
             name: token.name,

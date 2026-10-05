@@ -2,31 +2,30 @@
 
 mod persist;
 
+use crate::models::era::definition as era_definitions;
+use crate::{
+    cli::Args,
+    db,
+    models::{
+        era::definition::EraDefinition,
+        hotlap::{self, SteeringInput},
+    },
+    settings::Settings,
+};
+use anyhow::{Context, bail, ensure};
+use celes::Country;
+use insim_core::game_version::GameVersion;
+use lfsplanet_spr::{ConventionalFilename, PlayerFlags};
+use persist::persist;
+use sea_orm::EntityTrait;
+use serde::Deserialize;
 use std::{
     collections::{BTreeMap, HashMap, HashSet, btree_map::Entry},
     fs::File,
     path::{Path, PathBuf},
     str::FromStr,
 };
-
-use anyhow::{Context, bail, ensure};
-use celes::Country;
-use insim_core::game_version::GameVersion;
-use lfsplanet_spr::{ConventionalFilename, PlayerFlags};
-use sea_orm::EntityTrait;
-use serde::Deserialize;
 use time::OffsetDateTime;
-
-use crate::{
-    cli::era::{self as era_definitions, EraDefinition},
-    models::hotlaps::{self, SteeringInput},
-    settings::Settings,
-    startup,
-};
-
-use crate::cli::Args;
-use persist::persist;
-
 const CURRENT_HEADERS: [&str; 20] = [
     "itemnr",
     "user",
@@ -161,12 +160,10 @@ struct ImportData {
 /// Imports an LFSWorld v1 hotlap CSV export.
 pub(super) async fn run(args: &Args, hotlaps_csv: &[PathBuf]) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
-    let database = startup::connect(&settings.database, 2).await?;
-    let eras = era_definitions::list_definitions(&database).await?;
+    let database = db::connect(&settings.database, 2).await?;
+    let eras = era_definitions::list(&database).await?;
     let mut data = load(hotlaps_csv, &eras)?;
-    let persisted_eras = crate::models::eras::EraEntity::find()
-        .all(&database)
-        .await?;
+    let persisted_eras = crate::models::era::Entity::find().all(&database).await?;
     let era_ids = persisted_eras
         .iter()
         .map(|era| (era.slug.as_str(), era.id))
@@ -426,7 +423,7 @@ fn parse_row(
     // gate, because LFS reported zero before it could report ABS.
     let abs_enabled = match row.abs {
         None => None,
-        Some(0) => hotlaps::resolve_abs(false, &game_version),
+        Some(0) => hotlap::resolve_abs(false, &game_version),
         Some(1) => Some(true),
         Some(value) => bail!("unknown ABS value {value}"),
     };
@@ -508,7 +505,8 @@ mod tests {
 
     #[test]
     fn home_nation_flags_survive_country_normalisation() {
-        use lfsplanet_flags::{CountryFlagsExt, FlagCode};
+        use lfsplanet_flags::CountryFlagsExt;
+        use lfsplanet_flags::FlagCode;
 
         for (name, expected) in [
             ("England", "gb-eng"),

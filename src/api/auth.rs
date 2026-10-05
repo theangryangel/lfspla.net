@@ -4,6 +4,7 @@ use crate::api::{
     ApiError, ApiState,
     extractors::{browser_player, login, reset_csrf_token, secrets_match, verify_csrf},
 };
+use crate::models::Player;
 use axum::{
     Router,
     extract::{Query, State},
@@ -13,7 +14,6 @@ use axum::{
 };
 use serde::Deserialize;
 use tower_sessions::Session;
-
 const OAUTH_STATE_KEY: &str = "oauth_state";
 
 #[derive(Debug, Deserialize)]
@@ -77,16 +77,20 @@ async fn callback(
             "LFS authentication is not configured",
         )
     })?;
-    let player = crate::auth::authenticate(&state.database, provider, &query.code)
+    let account = provider
+        .authenticate(&query.code)
         .await
-        .map_err(ApiError::authentication)?
-        .ok_or_else(|| {
-            ApiError::new(
-                StatusCode::UNAUTHORIZED,
-                "oauth_authentication_failed",
-                "LFS authentication was not accepted",
-            )
-        })?;
+        .map_err(ApiError::authentication)?;
+    let player = Player::record_authentication(&state.database, &account)
+        .await
+        .map_err(ApiError::authentication)?;
+    if player.deny_auth {
+        return Err(ApiError::new(
+            StatusCode::UNAUTHORIZED,
+            "oauth_authentication_failed",
+            "LFS authentication was not accepted",
+        ));
+    }
     login(&session, player.id).await?;
     reset_csrf_token(&session).await?;
     tracing::info!(

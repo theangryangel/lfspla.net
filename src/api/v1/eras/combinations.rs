@@ -1,6 +1,18 @@
 //! The actual pairs offered by an era, including pairs with no uploaded laps.
-use std::collections::HashMap;
-
+use super::{tracks::TrackSummary, vehicles::VehicleSummary};
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
+        extractors as extract,
+    },
+    models::{
+        RankingChart,
+        hotlap::HotlapRankable,
+        ranking_chart::Column as RankingChartColumn,
+        track::{Column as TrackColumn, Entity as TrackEntity},
+        vehicle::{Column as VehicleColumn, Entity as VehicleEntity},
+    },
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -11,23 +23,9 @@ use sea_orm::{
     TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use super::{tracks::TrackSummary, vehicles::VehicleSummary};
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
-        extractors as extract,
-    },
-    models::{
-        hotlaps::HotlapRankable,
-        rankings::{RankingChartColumn, RankingChartModel},
-        tracks::{TrackColumn, TrackEntity},
-        vehicles::{VehicleColumn, VehicleEntity},
-    },
-};
-
 #[derive(Debug, Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub(crate) struct CombinationQuery {
@@ -214,7 +212,7 @@ fn rejected(reason: CombinationRejection) -> CombinationCheck {
 /// Loads track and vehicle metadata in two queries for the whole page.
 async fn hydrate(
     database: &impl sea_orm::ConnectionTrait,
-    pairs: Vec<RankingChartModel>,
+    pairs: Vec<RankingChart>,
 ) -> Result<Vec<CombinationSummary>, ApiError> {
     let (tracks, vehicles) = tokio::try_join!(
         TrackEntity::find()

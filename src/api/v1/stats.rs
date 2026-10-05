@@ -1,17 +1,14 @@
 //! Public homepage totals.
-use std::time::Duration;
-
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse},
+    models::site_stats::SiteStats,
+};
 use axum::{Json, extract::State};
 use axum_response_cache::CacheLayer;
 use serde::Serialize;
+use std::time::Duration;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse},
-    models::stats::SiteStats,
-};
-
 #[derive(Serialize, ToSchema)]
 pub(crate) struct StatsResponse {
     /// All hotlaps whose validation state is valid.

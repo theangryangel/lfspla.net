@@ -1,5 +1,14 @@
 //! Reading one identified hotlap.
 
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer, v1::PlayerSummary},
+    models::{
+        Era, Hotlap,
+        era::Entity as EraEntity,
+        hotlap::{self, DriverSide, HotlapFilter, HotlapState, SteeringInput},
+        player,
+    },
+};
 use axum::{
     Json,
     extract::{Path, State},
@@ -7,15 +16,6 @@ use axum::{
 use sea_orm::EntityTrait;
 use serde::Serialize;
 use utoipa::ToSchema;
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer, v1::PlayerSummary},
-    models::{
-        eras::{EraEntity, EraModel},
-        hotlaps::{self, DriverSide, HotlapFilter, HotlapModel, HotlapState, SteeringInput},
-        players,
-    },
-};
 
 /// Hotlap details. Owners can see all states and processing fields.
 /// Other callers see only valid laps, with processing fields set to null.
@@ -94,10 +94,10 @@ pub(crate) async fn detail(
     // The lap and its owner arrive together: the hotlap entity declares the
     // relation, so this is one join rather than a second round trip.
     let viewers_hotlap = match viewer_id {
-        Some(player_id) => hotlaps::HotlapEntity::find_by_id(hotlap_id)
+        Some(player_id) => hotlap::Entity::find_by_id(hotlap_id)
             .uploads()
             .owned_by(player_id)
-            .find_also_related(players::PlayerEntity)
+            .find_also_related(player::Entity)
             .find_also_related(EraEntity)
             .one(&state.database)
             .await
@@ -107,9 +107,9 @@ pub(crate) async fn detail(
     let owner = viewers_hotlap.is_some();
     let (hotlap, player, era) = match viewers_hotlap {
         Some(found) => found,
-        None => hotlaps::HotlapEntity::find_by_id(hotlap_id)
+        None => hotlap::Entity::find_by_id(hotlap_id)
             .valid()
-            .find_also_related(players::PlayerEntity)
+            .find_also_related(player::Entity)
             .find_also_related(EraEntity)
             .one(&state.database)
             .await
@@ -138,9 +138,9 @@ fn hotlap_not_found() -> ApiError {
 }
 
 fn response(
-    hotlap: HotlapModel,
-    player: players::PlayerModel,
-    era: &EraModel,
+    hotlap: Hotlap,
+    player: crate::models::Player,
+    era: &Era,
     owner: bool,
 ) -> HotlapResponse {
     let hotlap_id = hotlap.id;

@@ -1,5 +1,6 @@
 //! Shared direction for ordered collections.
 use serde::{Deserialize, Serialize};
+
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize, ToSchema)]

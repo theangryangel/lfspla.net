@@ -3,11 +3,9 @@ mod persist;
 #[cfg(test)]
 mod tests;
 
+use crate::{cli::Args, db, settings::Settings};
 use anyhow::ensure;
 use clap::Args as ClapArgs;
-
-use crate::{cli::Args, settings::Settings, startup};
-
 #[derive(Clone, Debug, Eq, PartialEq, ClapArgs)]
 pub(crate) struct DemoArgs {
     /// Confirm database writes.
@@ -28,7 +26,7 @@ pub(crate) async fn run(args: &Args, options: &DemoArgs) -> anyhow::Result<()> {
     ensure!(options.yes, "generating demo data requires --yes");
     let settings = Settings::load(&args.config)?;
     eprintln!("Connecting to the database for demo generation...");
-    let database = startup::connect(&settings.database, 2).await?;
+    let database = db::connect(&settings.database, 2).await?;
     let count = persist::populate(&database, options).await?;
     println!(
         "Generated {} demo player profiles and inserted {count} new demo hotlaps.",

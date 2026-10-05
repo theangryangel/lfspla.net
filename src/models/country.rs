@@ -1,10 +1,12 @@
 //! `celes::Country` as a column type.
 
 use celes::Country;
+
 use sea_orm::{
     ColIdx, DbErr, QueryResult, TryGetError, TryGetable,
     sea_query::{ArrayType, ColumnType, Nullable, StringLen, Value, ValueType, ValueTypeErr},
 };
+
 use serde::{Serialize, Serializer};
 
 /// An ISO 3166-1 country, stored as its alpha-2 code.

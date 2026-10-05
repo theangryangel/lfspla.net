@@ -1,21 +1,20 @@
 //! Immediate hotlap validation for test environments.
 
+use super::response::ManagedHotlapResponse;
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
+    models::{
+        badge::rebuild_published_badges,
+        era::Entity as EraEntity,
+        hotlap::{self, HotlapFilter},
+    },
+};
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
 };
 use sea_orm::EntityTrait;
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
-    models::{
-        eras::{EraEntity, rebuild_published_badges},
-        hotlaps::{self, HotlapFilter, lifecycle},
-    },
-};
-
-use super::response::ManagedHotlapResponse;
 
 #[utoipa::path(
     post,
@@ -49,7 +48,7 @@ pub(crate) async fn validate_for_testing(
         ));
     }
 
-    let hotlap = hotlaps::HotlapEntity::find_by_id(hotlap_id)
+    let hotlap = hotlap::Entity::find_by_id(hotlap_id)
         .uploads()
         .owned_by(player.id)
         .one(&state.database)
@@ -87,10 +86,11 @@ pub(crate) async fn validate_for_testing(
             "The hotlap's combination is not eligible for this era",
         ));
     }
-    let hotlap = lifecycle::validate_owned_for_testing(&state.database, hotlap_id, player.id)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Hotlap"))?;
+    let hotlap =
+        crate::models::Hotlap::validate_owned_for_testing(&state.database, hotlap_id, player.id)
+            .await
+            .map_err(ApiError::database)?
+            .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Hotlap"))?;
     // Rebuild badges after publishing, as the background validator does.
     rebuild_published_badges(&state.database, hotlap.era_id).await;
 

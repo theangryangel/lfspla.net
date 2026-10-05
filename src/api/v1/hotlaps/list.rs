@@ -1,37 +1,24 @@
 //! Filtered, ordered hotlap activity and the caller's submissions.
 
-use std::collections::HashMap;
-
+use super::response::{ManagedHotlapResponse, RankingContribution};
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
+        extractors::AuthenticatedPlayer, v1::PlayerSummary,
+    },
+    models::hotlap::{
+        Entity as HotlapEntity, HotlapFilter, HotlapListColumn, HotlapRankable, HotlapState,
+    },
+};
 use axum::{
     Json,
     extract::{Query, State},
     http::StatusCode,
 };
 use insim_core::{track::Track, vehicle::Vehicle};
-use sea_orm::{
-    AccessMode, ColumnTrait, ConnectionTrait, DbBackend, EntityTrait, IsolationLevel,
-    PaginatorTrait, QueryFilter, QuerySelect, QueryTrait, Statement, TransactionTrait,
-};
+
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
-        extractors::AuthenticatedPlayer, v1::PlayerSummary,
-    },
-    models::{
-        eras::EraEntity,
-        hotlaps::{
-            HotlapColumn, HotlapEntity, HotlapFilter, HotlapListColumn, HotlapOrder,
-            HotlapRankable, HotlapState,
-        },
-        players::{PlayerColumn, PlayerEntity, PlayerFilter},
-    },
-};
-
-use super::response::{ManagedHotlapResponse, RankingContribution};
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum HotlapListState {
@@ -107,45 +94,18 @@ fn descending() -> Ordering {
 
 impl HotlapQuery {
     fn filtered(&self, viewer_id: Option<i64>) -> Result<sea_orm::Select<HotlapEntity>, ApiError> {
-        let (selected_state, owner) = self.scope(viewer_id)?;
-        let mut hotlaps = HotlapEntity::find();
-        if let Some(hotlap_state) = selected_state.state() {
-            hotlaps = hotlaps.in_state(hotlap_state);
-        } else if selected_state == HotlapListState::Unpublished {
-            hotlaps =
-                hotlaps.filter(crate::models::hotlaps::HotlapColumn::State.ne(HotlapState::Valid));
+        let (state, owner) = self.scope(viewer_id)?;
+        Ok(crate::models::hotlap::HotlapActivityFilter {
+            state: state.state(),
+            unpublished: state == HotlapListState::Unpublished,
+            owner,
+            lfs_username: self.lfs_username.as_deref(),
+            track: self.track,
+            vehicle: self.vehicle,
+            ranked_only: self.ranked_only,
+            rank: self.rank,
         }
-        if let Some(owner) = owner {
-            hotlaps = hotlaps.uploads().owned_by(owner);
-        }
-        if let Some(username) = &self.lfs_username {
-            hotlaps = hotlaps.filter(
-                HotlapColumn::PlayerId.in_subquery(
-                    PlayerEntity::find()
-                        .with_username(username)
-                        .select_only()
-                        .column(PlayerColumn::Id)
-                        .into_query(),
-                ),
-            );
-        }
-        if let Some(track) = self.track {
-            hotlaps = hotlaps.filter(HotlapColumn::Track.eq(track.to_string()));
-        }
-        if let Some(vehicle) = self.vehicle {
-            hotlaps = hotlaps.filter(HotlapColumn::Vehicle.eq(vehicle.to_string()));
-        }
-        if self.ranked_only {
-            hotlaps = hotlaps.filter(sea_orm::sea_query::Expr::cust(
-                "EXISTS (SELECT 1 FROM hotlap_personal_best WHERE hotlap_id = hotlap.id)",
-            ));
-        }
-        if let Some(rank) = self.rank {
-            hotlaps = hotlaps.filter(sea_orm::sea_query::Expr::cust(format!(
-                "EXISTS (SELECT 1 FROM hotlap_personal_best WHERE hotlap_id = hotlap.id AND position <= {rank})"
-            )));
-        }
-        Ok(hotlaps)
+        .select())
     }
 
     fn scope(&self, viewer_id: Option<i64>) -> Result<(HotlapListState, Option<i64>), ApiError> {
@@ -227,133 +187,49 @@ pub(crate) async fn list(
                 .id,
         );
     }
-    let transaction = state
-        .database
-        .begin_with_config(
-            Some(IsolationLevel::RepeatableRead),
-            Some(AccessMode::ReadOnly),
-        )
-        .await
-        .map_err(ApiError::database)?;
-    let total = hotlaps
-        .clone()
-        .count(&transaction)
-        .await
-        .map_err(ApiError::database)?;
-    // Keep the sort narrow: full replay/profile fields are loaded only for the page.
-    let ids = hotlaps
-        .ordered(query.column, query.order)
-        .select_only()
-        .column(HotlapColumn::Id)
-        .offset(offset)
-        .limit(pagination.per_page)
-        .into_tuple::<i64>()
-        .all(&transaction)
-        .await
-        .map_err(ApiError::database)?;
-    let rows = HotlapEntity::find()
-        .filter(HotlapColumn::Id.is_in(ids))
-        .ordered(query.column, query.order)
-        .find_also_related(PlayerEntity)
-        // `HotlapEntity` declares `era_id` as an Era relation, so load the
-        // public slug with the page rather than leaking the internal key.
-        .find_also_related(EraEntity)
-        .all(&transaction)
-        .await
-        .map_err(ApiError::database)?;
-    let mut chart_data = HashMap::<i64, (i64, i64)>::new();
-    let mut ranking_contributions = HashMap::<i64, Vec<RankingContribution>>::new();
-    if !rows.is_empty() {
-        let placeholders = (1..=rows.len())
-            .map(|index| format!("${index}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let ranked = transaction
-            .query_all_raw(Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                format!(
-                    r"SELECT current.hotlap_id,
-                             current.position,
-                             current_lap.lap_time_ms - record_lap.lap_time_ms AS distance_to_world_record_ms
-                      FROM hotlap_personal_best current
-                      JOIN hotlap current_lap ON current_lap.id = current.hotlap_id
-                      JOIN hotlap_personal_best record
-                        ON record.era_id = current.era_id
-                       AND record.track = current.track
-                       AND record.vehicle = current.vehicle
-                       AND record.position = 1
-                      JOIN hotlap record_lap ON record_lap.id = record.hotlap_id
-                      WHERE current.hotlap_id IN ({placeholders})"
-                ),
-                rows.iter().map(|(hotlap, _, _)| hotlap.id.into()),
-            ))
-            .await
-            .map_err(ApiError::database)?;
-        for row in ranked {
-            chart_data.insert(
-                row.try_get("", "hotlap_id").map_err(ApiError::database)?,
-                (
-                    row.try_get("", "position").map_err(ApiError::database)?,
-                    row.try_get("", "distance_to_world_record_ms")
-                        .map_err(ApiError::database)?,
-                ),
-            );
+    let page = crate::models::hotlap::HotlapActivity::load(
+        &state.database,
+        hotlaps,
+        query.column,
+        query.order,
+        offset,
+        pagination.per_page,
+    )
+    .await
+    .map_err(|error| {
+        use crate::models::hotlap::ActivityError;
+        match error {
+            ActivityError::Database(error) => ApiError::database(error),
+            ActivityError::MissingPlayer => ApiError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "missing_player",
+                "Hotlap owner could not be loaded.",
+            ),
+            ActivityError::MissingEra => ApiError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "missing_era",
+                "Hotlap era could not be loaded.",
+            ),
         }
-        let ranking_rows = transaction
-            .query_all_raw(Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                format!(
-                    r"SELECT current.hotlap_id, ranking.slug, ranking.title
-                       FROM hotlap_personal_best current
-                       JOIN ranking_chart
-                         ON ranking_chart.era_id = current.era_id
-                        AND ranking_chart.track_id = current.track
-                        AND ranking_chart.vehicle_id = current.vehicle
-                       JOIN ranking
-                         ON ranking.id = ranking_chart.ranking_id
-                        AND ranking.era_id = ranking_chart.era_id
-                       WHERE current.hotlap_id IN ({placeholders})
-                       ORDER BY ranking.position, ranking.id"
-                ),
-                rows.iter().map(|(hotlap, _, _)| hotlap.id.into()),
-            ))
-            .await
-            .map_err(ApiError::database)?;
-        for row in ranking_rows {
-            ranking_contributions
-                .entry(row.try_get("", "hotlap_id").map_err(ApiError::database)?)
-                .or_default()
-                .push(RankingContribution {
-                    id: row.try_get("", "slug").map_err(ApiError::database)?,
-                    title: row.try_get("", "title").map_err(ApiError::database)?,
-                });
-        }
-    }
-    transaction.commit().await.map_err(ApiError::database)?;
-    let activity = rows
+    })?;
+    let total = page.total;
+    let activity = page
+        .entries
         .into_iter()
-        .map(|(hotlap, player, era)| {
-            let player = player.ok_or_else(|| {
-                ApiError::new(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "missing_player",
-                    "Hotlap owner could not be loaded.",
-                )
-            })?;
-            // The database foreign key prevents this in normal operation; a
-            // missing era means the page could not be represented correctly.
-            let era = era.ok_or_else(|| {
-                ApiError::new(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "missing_era",
-                    "Hotlap era could not be loaded.",
-                )
-            })?;
-            let chart_data_for_hotlap = chart_data.get(&hotlap.id).copied();
-            let contributions_for_hotlap = ranking_contributions
-                .get(&hotlap.id)
-                .cloned()
-                .unwrap_or_default();
+        .map(|entry| {
+            let crate::models::hotlap::HotlapActivityEntry {
+                hotlap,
+                player,
+                era,
+                position,
+                distance_to_world_record_ms,
+                contributes_to,
+            } = entry;
+            let chart_data_for_hotlap = position.zip(distance_to_world_record_ms);
+            let contributions_for_hotlap = contributes_to
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<RankingContribution>>();
             let submission = query.mine.then(|| {
                 let submission = ManagedHotlapResponse::new(hotlap.clone(), &era);
                 let submission = match chart_data_for_hotlap {
@@ -362,7 +238,7 @@ pub(crate) async fn list(
                 };
                 submission.with_ranking_contributions(contributions_for_hotlap.clone())
             });
-            Ok(HotlapActivityResponse {
+            HotlapActivityResponse {
                 submission,
                 id: hotlap.id,
                 player: player.into(),
@@ -375,9 +251,9 @@ pub(crate) async fn list(
                 contributes_to: contributions_for_hotlap,
                 state: hotlap.state,
                 created_at: hotlap.created_at,
-            })
+            }
         })
-        .collect::<Result<Vec<_>, ApiError>>()?;
+        .collect();
     Ok(Json(PaginatedResponse {
         items: activity,
         pagination: pagination.metadata(total),
@@ -387,6 +263,7 @@ pub(crate) async fn list(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sea_orm::{DbBackend, QueryTrait};
 
     fn query(search: &str) -> HotlapQuery {
         serde_urlencoded::from_str(search).unwrap()

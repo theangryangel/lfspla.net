@@ -4,19 +4,6 @@ mod personal_access_tokens;
 mod webhook_notifications;
 mod webhooks;
 
-use axum::{
-    Json,
-    extract::State,
-    http::{HeaderMap, StatusCode, header},
-};
-use celes::Country;
-use lfsplanet_flags::{CountryFlagsExt, FlagCode};
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, IntoActiveModel};
-use serde::{Deserialize, Serialize};
-use tower_sessions::Session;
-use utoipa::ToSchema;
-use utoipa_axum::{router::OpenApiRouter, routes};
-
 use crate::{
     api::{
         ApiError, ApiState, ErrorResponse,
@@ -25,6 +12,18 @@ use crate::{
     },
     models::country::CountryCode,
 };
+use axum::{
+    Json,
+    extract::State,
+    http::{HeaderMap, StatusCode, header},
+};
+use celes::Country;
+use lfsplanet_flags::{CountryFlagsExt, FlagCode};
+
+use serde::{Deserialize, Serialize};
+use tower_sessions::Session;
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 /// Stable authentication-state envelope returned to the frontend.
 #[derive(Debug, Serialize, ToSchema)]
@@ -139,11 +138,8 @@ pub(crate) async fn update(
 ) -> Result<Json<PlayerSummary>, ApiError> {
     let (country_code, flag_code) =
         request.resolve(player.country_code.map(|code| code.0), player.flag_code)?;
-    let mut active = player.into_active_model();
-    active.country_code = Set(country_code.map(CountryCode));
-    active.flag_code = Set(flag_code);
-    let updated = active
-        .update(&state.database)
+    let updated = player
+        .update_preferences(&state.database, country_code.map(CountryCode), flag_code)
         .await
         .map_err(ApiError::database)?;
     tracing::info!(

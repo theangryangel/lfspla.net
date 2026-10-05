@@ -1,15 +1,12 @@
 //! Transactional persistence for preflighted historical hotlaps.
 
-use std::collections::{HashMap, HashSet};
-
+use super::ImportData;
 use anyhow::Context;
 use sea_orm::{
     ActiveEnum, DatabaseConnection,
     sqlx::{self, Postgres, QueryBuilder},
 };
-
-use super::ImportData;
-
+use std::collections::{HashMap, HashSet};
 const SOURCE: &str = "lfsworld_v1";
 
 #[allow(clippy::too_many_lines)]
@@ -20,7 +17,7 @@ pub(super) async fn persist(
     let pool = database.get_postgres_connection_pool();
     let mut transaction = pool.begin().await?;
     sqlx::query("SELECT pg_advisory_xact_lock($1)")
-        .bind(crate::models::eras::CATALOGUE_LOCK)
+        .bind(crate::db::locks::CATALOGUE_LOCK)
         .execute(&mut *transaction)
         .await?;
     let eligible: HashSet<(i64, String, String)> =
@@ -177,7 +174,7 @@ ORDER BY
     .await?;
 
     for era_id in &era_ids {
-        sqlx::query(crate::models::eras::RERANK_SQL)
+        sqlx::query(crate::models::personal_best::RERANK_SQL)
             .bind(era_id)
             .bind(None::<&str>)
             .bind(None::<&str>)

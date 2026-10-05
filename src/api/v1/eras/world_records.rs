@@ -1,7 +1,15 @@
 //! Era-wide holders of current individual-chart world records.
 
-use std::collections::HashMap;
-
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
+        extractors as extract, v1::PlayerSummary,
+    },
+    models::{
+        era::rank_world_record_holders,
+        player::{Column as PlayerColumn, Entity as PlayerEntity},
+    },
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -10,19 +18,8 @@ use sea_orm::{
     AccessMode, ColumnTrait, EntityTrait, IsolationLevel, QueryFilter, TransactionTrait,
 };
 use serde::Serialize;
+use std::collections::HashMap;
 use utoipa::ToSchema;
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
-        extractors as extract, v1::PlayerSummary,
-    },
-    models::{
-        eras::rank_world_record_holders,
-        players::{PlayerColumn, PlayerEntity},
-    },
-};
-
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct WorldRecordHolderResponse {
     /// Competition rank by record count; equal counts share a position.

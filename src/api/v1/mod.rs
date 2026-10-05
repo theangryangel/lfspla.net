@@ -9,11 +9,10 @@ pub mod players;
 pub mod stats;
 pub mod vehicles;
 
+use crate::api::ApiState;
 use serde::Serialize;
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
-
-use crate::api::ApiState;
 
 /// Public player details shared by API responses.
 #[derive(Debug, Serialize, ToSchema)]
@@ -27,8 +26,8 @@ pub(crate) struct PlayerSummary {
     pub flag_code: Option<String>,
 }
 
-impl From<crate::models::players::PlayerModel> for PlayerSummary {
-    fn from(player: crate::models::players::PlayerModel) -> Self {
+impl From<crate::models::Player> for PlayerSummary {
+    fn from(player: crate::models::Player) -> Self {
         Self {
             id: player.id,
             flag_code: player.flag_code.map(|code| code.as_str().to_owned()),

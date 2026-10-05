@@ -1,5 +1,9 @@
 //! Public vehicle image delivery.
 
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse},
+    models::vehicle::{Column as VehicleColumn, Entity as VehicleEntity},
+};
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -9,11 +13,6 @@ use axum::{
 use object_store::{ObjectStoreExt, path::Path as ObjectPath};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse},
-    models::vehicles::{VehicleColumn, VehicleEntity},
-};
 
 /// The relative URL for a vehicle's cached image.
 pub(crate) fn image_url(vehicle_id: &str) -> String {

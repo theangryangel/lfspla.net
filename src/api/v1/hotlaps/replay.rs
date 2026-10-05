@@ -1,5 +1,9 @@
 //! Replay file downloads for published hotlaps and their owners' submissions.
 
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
+    models::hotlap::{self, HotlapState},
+};
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -9,11 +13,6 @@ use axum::{
 use object_store::{ObjectStoreExt, path::Path as ObjectPath};
 use sea_orm::EntityTrait;
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
-    models::hotlaps::{self, HotlapState},
-};
 
 /// Path prefix for replay downloads.
 const PATH_PREFIX: &str = "/api/v1/hotlaps";
@@ -48,7 +47,7 @@ pub(crate) async fn download(
     viewer: Option<AuthenticatedPlayer>,
 ) -> Result<Response, ApiError> {
     let viewer = viewer.map(|AuthenticatedPlayer(viewer)| viewer);
-    let hotlap = hotlaps::HotlapEntity::find_by_id(hotlap_id)
+    let hotlap = hotlap::Entity::find_by_id(hotlap_id)
         .one(&state.database)
         .await
         .map_err(ApiError::database)?

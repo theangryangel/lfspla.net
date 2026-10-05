@@ -1,7 +1,5 @@
 //! LFS integration.
 
-pub(crate) mod installations;
-
 use crate::settings::LfsSettings;
 
 use lfsplanet_lfs_api::LfsClient;

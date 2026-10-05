@@ -1,15 +1,13 @@
 //! Public profile detail for one player.
 
+use super::response::{PlayerChartResultResponse, chart_result_responses};
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, extractors as extract},
+    models::{badge::PlayerBadge, player::PlayerProfile},
+};
 use axum::{Json, extract::State};
 use serde::Serialize;
 use utoipa::ToSchema;
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors as extract},
-    models::{badges::PlayerBadge, players::PlayerProfile},
-};
-
-use super::response::{PlayerChartResultResponse, chart_result_responses};
 
 /// Lifetime totals across all stored physics eras.
 #[derive(Debug, Serialize, ToSchema)]

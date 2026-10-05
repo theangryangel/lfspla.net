@@ -1,5 +1,6 @@
 //! Resolution of the era named by an API route.
 
+use crate::api::{ApiError, ApiState};
 use axum::{
     extract::{FromRequestParts, Path},
     http::request::Parts,
@@ -8,13 +9,8 @@ use axum::{
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 
-use crate::{
-    api::{ApiError, ApiState},
-    models::eras,
-};
-
 /// An era resolved from the route's `{era}` path parameter.
-pub(crate) struct Era(pub(crate) eras::EraModel);
+pub(crate) struct Era(pub(crate) crate::models::Era);
 
 #[derive(Deserialize)]
 struct EraParameter {
@@ -47,9 +43,8 @@ impl FromRequestParts<ApiState> for Era {
 pub(crate) async fn resolve_era(
     database: &DatabaseConnection,
     id: &str,
-) -> Result<eras::EraModel, ApiError> {
-    eras::find_by_slug(id)
-        .one(database)
+) -> Result<crate::models::Era, ApiError> {
+    crate::models::Era::find_by_slug(database, id)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("era_not_found", "Era"))

@@ -1,5 +1,12 @@
 //! Vehicle catalogue endpoints scoped to an era.
 
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, ListResponse, PER_PAGE, extractors as extract},
+    models::{
+        Vehicle as VehicleRecord,
+        vehicle::{VehicleFilter, VehicleOrder},
+    },
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -9,12 +16,6 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::Validate;
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse, PER_PAGE, extractors as extract},
-    models::vehicles::{VehicleFilter, VehicleModel, VehicleOrder},
-};
-
 const MAX_SEARCH_LIMIT: u32 = 100;
 
 /// Metadata for one canonical Live for Speed vehicle.
@@ -103,8 +104,8 @@ pub(crate) async fn list_for_era(
     Ok(Json(ListResponse::from(vehicles)))
 }
 
-impl From<VehicleModel> for VehicleSummary {
-    fn from(vehicle: VehicleModel) -> Self {
+impl From<VehicleRecord> for VehicleSummary {
+    fn from(vehicle: VehicleRecord) -> Self {
         Self {
             image_url: vehicle
                 .image_object_key

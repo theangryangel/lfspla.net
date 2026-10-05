@@ -1,5 +1,17 @@
 //! Rankings offered by an era, and their standings.
 
+use super::charts::BestHotlapResponse;
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract,
+        extractors::AuthenticatedPlayer,
+    },
+    models::{
+        badge::PlayerBadge,
+        leaderboard::BestHotlap,
+        ranking::{self, RankingFilter, RankingRules},
+    },
+};
 use axum::{
     Json,
     extract::{Path, State},
@@ -9,20 +21,6 @@ use sea_orm::{EntityTrait, QueryOrder};
 use serde::Serialize;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, ListResponse,
-        extractors::{self as extract, AuthenticatedPlayer},
-    },
-    models::{
-        badges::PlayerBadge,
-        hotlaps::BestHotlap,
-        rankings::{self, RankingFilter, RankingRules},
-    },
-};
-
-use super::charts::BestHotlapResponse;
 
 /// A ranking offered by an era.
 #[derive(Debug, Serialize, ToSchema)]
@@ -35,8 +33,8 @@ pub(crate) struct RankingSummary {
     my_progress: Option<RankingProgressResponse>,
 }
 
-impl From<rankings::RankingRow> for RankingSummary {
-    fn from(ranking: rankings::RankingRow) -> Self {
+impl From<crate::models::Ranking> for RankingSummary {
+    fn from(ranking: crate::models::Ranking) -> Self {
         Self {
             id: ranking.slug,
             title: ranking.title,
@@ -57,10 +55,7 @@ pub(crate) struct RankingCombinationResponse {
 }
 
 impl RankingCombinationResponse {
-    fn new(
-        chart: &crate::models::rankings::RankingChartModel,
-        my_hotlap: Option<BestHotlapResponse>,
-    ) -> Self {
+    fn new(chart: &crate::models::RankingChart, my_hotlap: Option<BestHotlapResponse>) -> Self {
         Self {
             track: chart.track_id.clone(),
             vehicle: chart.vehicle_id.clone(),
@@ -172,9 +167,9 @@ pub(crate) async fn list(
     State(state): State<ApiState>,
 ) -> Result<Json<ListResponse<RankingSummary>>, ApiError> {
     let player = player.map(|AuthenticatedPlayer(player)| player);
-    let rankings = rankings::RankingEntity::find()
+    let rankings = ranking::Entity::find()
         .in_era(era.id)
-        .order_by_asc(rankings::RankingColumn::Position)
+        .order_by_asc(ranking::Column::Position)
         .all(&state.database)
         .await
         .map_err(ApiError::database)?;
@@ -234,7 +229,7 @@ pub(crate) async fn detail(
 ) -> Result<Json<RankingDetailResponse>, ApiError> {
     let player = player.map(|AuthenticatedPlayer(player)| player);
     let era = extract::resolve_era(&state.database, &era_id).await?;
-    let ranking = rankings::LoadedRanking::find(&state.database, era.id, &ranking_id)
+    let ranking = ranking::RankingWithCharts::find(&state.database, era.id, &ranking_id)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("ranking_not_found", "Ranking"))?;
@@ -314,7 +309,7 @@ pub(crate) async fn players(
     State(state): State<ApiState>,
 ) -> Result<Json<PersonalRankingResponse>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
-    let ranking = rankings::LoadedRanking::find(&state.database, era.id, &ranking_id)
+    let ranking = ranking::RankingWithCharts::find(&state.database, era.id, &ranking_id)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("ranking_not_found", "Ranking"))?;
@@ -371,7 +366,7 @@ pub(crate) async fn nations(
     State(state): State<ApiState>,
 ) -> Result<Json<NationRankingResponse>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
-    let ranking = rankings::LoadedRanking::find(&state.database, era.id, &ranking_id)
+    let ranking = ranking::RankingWithCharts::find(&state.database, era.id, &ranking_id)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("ranking_not_found", "Ranking"))?;
@@ -420,7 +415,7 @@ fn ranking_not_configured() -> ApiError {
         ("country" = String, Path, description = "Country code")
     ),
     responses(
-        (status = 200, description = "Scoring contributions by player", body = ListResponse<rankings::NationContribution>),
+        (status = 200, description = "Scoring contributions by player", body = ListResponse<ranking::NationContribution>),
         (status = 404, description = "Era or ranking not found", body = ErrorResponse),
         (status = 409, description = "Ranking chart selection is not configured", body = ErrorResponse)
     )
@@ -428,9 +423,9 @@ fn ranking_not_configured() -> ApiError {
 pub(crate) async fn nation_contributions(
     Path((era_id, ranking_id, country)): Path<(String, String, String)>,
     State(state): State<ApiState>,
-) -> Result<Json<ListResponse<rankings::NationContribution>>, ApiError> {
+) -> Result<Json<ListResponse<ranking::NationContribution>>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
-    let ranking = rankings::LoadedRanking::find(&state.database, era.id, &ranking_id)
+    let ranking = ranking::RankingWithCharts::find(&state.database, era.id, &ranking_id)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("ranking_not_found", "Ranking"))?;

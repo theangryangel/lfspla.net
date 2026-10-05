@@ -1,5 +1,13 @@
 //! Track metadata endpoints scoped to an era.
 
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
+    models::{
+        Track as TrackRecord,
+        hotlap::HotlapRankable,
+        track::{TrackLocation, TrackOrder},
+    },
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -8,14 +16,6 @@ use insim_core::vehicle::Vehicle;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
-    models::{
-        hotlaps::HotlapRankable,
-        tracks::{TrackLocation, TrackModel, TrackOrder},
-    },
-};
 
 /// Canonical LFS track configuration metadata.
 #[derive(Debug, Serialize, ToSchema)]
@@ -101,8 +101,8 @@ pub(crate) async fn list_for_era(
     )))
 }
 
-impl From<TrackModel> for TrackSummary {
-    fn from(track: TrackModel) -> Self {
+impl From<TrackRecord> for TrackSummary {
+    fn from(track: TrackRecord) -> Self {
         Self {
             code: track.id,
             name: track.name,

@@ -1,5 +1,15 @@
 //! Comparison of two players' current personal bests.
 
+use crate::{
+    api::{
+        ApiError, ApiState, ErrorResponse, extractors as extract,
+        v1::{PlayerSummary, players::response},
+    },
+    models::{
+        hotlap::HotlapRankable,
+        player::{Entity as PlayerEntity, PlayerComparison, PlayerFilter},
+    },
+};
 use axum::{
     Json,
     extract::{Query, State},
@@ -11,18 +21,6 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::{Validate, ValidationError};
-
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, extractors as extract,
-        v1::{PlayerSummary, players::response},
-    },
-    models::{
-        hotlaps::HotlapRankable,
-        players::{PlayerComparison, PlayerEntity, PlayerFilter},
-    },
-};
-
 pub(super) fn router() -> OpenApiRouter<ApiState> {
     OpenApiRouter::new().routes(routes!(compare))
 }

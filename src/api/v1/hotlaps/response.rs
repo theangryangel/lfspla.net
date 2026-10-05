@@ -1,13 +1,11 @@
 //! Response models shared by the routes that manage uploaded hotlaps.
 
+use crate::models::{
+    Era, Hotlap,
+    hotlap::{DriverSide, HotlapState, SteeringInput},
+};
 use serde::Serialize;
 use utoipa::ToSchema;
-
-use crate::models::{
-    eras::EraModel,
-    hotlaps::{DriverSide, HotlapModel, HotlapState, SteeringInput},
-};
-
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub(crate) struct RankingContribution {
     pub(crate) id: String,
@@ -67,7 +65,7 @@ pub(crate) struct ManagedHotlapResponse {
 }
 
 impl ManagedHotlapResponse {
-    pub(crate) fn new(hotlap: HotlapModel, era: &EraModel) -> Self {
+    pub(crate) fn new(hotlap: Hotlap, era: &Era) -> Self {
         let controls = hotlap.controls();
         Self {
             id: hotlap.id,
@@ -123,5 +121,14 @@ impl ManagedHotlapResponse {
     ) -> Self {
         self.contributes_to = contributions;
         self
+    }
+}
+
+impl From<crate::models::hotlap::RankingContribution> for RankingContribution {
+    fn from(value: crate::models::hotlap::RankingContribution) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+        }
     }
 }
