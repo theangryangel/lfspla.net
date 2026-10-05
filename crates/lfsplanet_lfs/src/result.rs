@@ -30,11 +30,13 @@ pub enum HlvcResult {
 }
 
 impl HlvcResult {
-    pub(crate) const fn code(self) -> u8 {
+    #[must_use]
+    pub const fn code(self) -> u8 {
         self as u8
     }
 
-    pub(crate) const fn description(self) -> &'static str {
+    #[must_use]
+    pub const fn description(self) -> &'static str {
         match self {
             Self::Unknown => "unknown HLVC return value",
             Self::Ok => "OK",

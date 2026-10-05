@@ -22,19 +22,26 @@ pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     let processor = HotlapValidation {
         database,
         object_store,
-        runtime: settings.lfs_runtime,
+        runtime: settings.lfs.runtime,
+        installation_root: settings.lfs.installation_root.path().to_owned(),
         settings: settings.worker.hlvc,
     };
     tracing::info!("background worker started");
+    #[cfg(unix)]
     let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
     let mut signal_result = Ok(());
     Runner::new()
         .register(processor, config)?
         .register(notifications, webhook_config)?
         .run(async {
+            #[cfg(unix)]
             tokio::select! {
                 result = tokio::signal::ctrl_c() => signal_result = result,
                 _ = terminate.recv() => {}
+            }
+            #[cfg(not(unix))]
+            {
+                signal_result = tokio::signal::ctrl_c().await;
             }
         })
         .await?;

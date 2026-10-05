@@ -5,7 +5,8 @@ fn processor(pool: sqlx::PgPool) -> HotlapValidation {
     HotlapValidation {
         database: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
         object_store: Arc::new(object_store::memory::InMemory::new()),
-        runtime: LfsRuntimeSettings::default(),
+        runtime: lfsplanet_lfs::RuntimeConfig::default(),
+        installation_root: "/srv/lfs".into(),
         settings: HlvcSettings::default(),
     }
 }

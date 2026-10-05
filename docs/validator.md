@@ -1,25 +1,25 @@
 # Replay validation
 
 The validator runs LFS HLVC against queued SPR replays. It requires Linux,
-Wine, and Bubblewrap.
+Wine, and Bubblewrap. Their paths are configured under `lfs`; see
+[configuration](configuration.md#local-lfs-runtime).
 
 ## Host requirements
 
 - Wine
 - Bubblewrap 0.11.0 or newer, not setuid
 - Unprivileged user namespaces enabled on the host
-- A persistent LFS installation root, installer-download directory, and the
-  parent of a shared Wine prefix
+- A persistent LFS installation root and the parent of a shared Wine prefix
 
 These requirements are not verified at startup.
 
-## Installing LFS
+## Adding an LFS installation
 
-`lfsplanet lfs` manages named installations beneath `lfs_installation_root`. A name is a
+`lfsplanet lfs` manages named installations beneath `lfs.installation_root`. A name is a
 safe path component and is not derived from an era.
 
 ```sh
-lfsplanet lfs install 0.8 \
+lfsplanet lfs add 0.8 \
   --download-url 'https://www.lfs.net/file_lfs.php?name=LFS_S3_8C20_setup.exe' \
   --username YOUR_USERNAME \
   --unlock-code "$LFS_UNLOCK_CODE"
@@ -29,15 +29,16 @@ lfsplanet lfs path 0.8
 ```
 
 To diagnose one local replay without uploading or storing it, run it through
-the same HLVC sandbox directly. The command prints Bubblewrap and Wine exit
+the same HLVC sandbox directly. The command prints runner and runtime exit
 codes plus captured stdout and stderr:
 
 ```sh
 lfsplanet hotlap validate 0.8 /path/to/replay.spr
 ```
 
-Downloads are cached in `installer_download_root`, outside the destination,
-using the requested URL as the cache key. This directory must be on disk rather
+Downloads are cached under `installation_root/.cache/installers`, outside each
+installation, using the requested URL as the cache key. The cache directory is
+created automatically and must be on disk rather
 than a size-constrained `/tmp` tmpfs. Delete a cached file to force a fresh
 download. The installer is extracted without network access, prepared with
 `LFS.exe /nogfx=extract`, then unlocked with network access. Existing
@@ -68,7 +69,6 @@ lfsplanet worker
 The worker selects pending hotlaps with `FOR UPDATE SKIP LOCKED`, holding the
 transaction until validation and its result are saved. Each worker needs a
 database connection. Shutdown on SIGINT or SIGTERM lets the current attempt finish.
-`hotlap watch` remains an alias for `worker`.
 
 Infrastructure failures retry after 30 seconds, up to five completed attempts.
 Exhausted hotlaps remain pending with `error_detail` populated, and still count

@@ -1,13 +1,8 @@
 //! lfspla.net API, replay validator, and CLI.
-//!
-//! Linux only: LFS installation and validation use Wine and Bubblewrap.
-#[cfg(not(target_os = "linux"))]
-compile_error!("lfsplanet targets Linux only: replay validation requires Bubblewrap.");
 
 mod api;
 mod auth;
 mod cli;
-mod hlvc;
 mod jobs;
 mod lfs;
 mod models;

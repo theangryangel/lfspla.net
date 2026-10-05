@@ -12,9 +12,7 @@ use super::RebadgeScope;
 
 /// Rebuilds every badge for the selected eras.
 ///
-/// `hotlap watch` already rebuilds an era as it publishes replays into it, so
-/// this exists for repairs: after era policy changes, or after badges drifted
-/// while no validator was running.
+/// Use this for repairs after era policy changes or badge drift.
 pub(super) async fn run(args: &Args, scope: &RebadgeScope) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
     let database = startup::connect(&settings.database, 2).await?;

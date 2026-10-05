@@ -4,7 +4,6 @@ mod database;
 mod hlvc;
 mod hotlaps;
 mod lfs;
-mod lfs_runtime;
 mod storage;
 mod types;
 mod web;
@@ -15,7 +14,6 @@ pub use hlvc::HlvcSettings;
 pub use hotlaps::HotlapSettings;
 pub use lfs::LfsSettings;
 pub(crate) use lfs::OAuthSettings;
-pub use lfs_runtime::LfsRuntimeSettings;
 pub use storage::StorageSettings;
 pub(crate) use types::{NonEmptyString, PublicBaseUrl};
 pub use web::WebSettings;
@@ -38,10 +36,7 @@ pub struct Settings {
     pub database: DatabaseSettings,
     /// How the API process presents itself over HTTP.
     pub web: WebSettings,
-    /// Paths and executables that define the local LFS runtime.
-    #[serde(flatten)]
-    pub lfs_runtime: LfsRuntimeSettings,
-    /// Credentials and limits for outbound calls to LFS.
+    /// Local installations, platform runtime and outbound LFS integration.
     #[serde(default)]
     pub lfs: LfsSettings,
     /// Policy applied to uploaded replays.
@@ -83,7 +78,7 @@ impl Settings {
         let mut settings: Self = serde_saphyr::from_str(text).context("failed to parse YAML")?;
         settings.hotlaps.validate()?;
         // Resolve paths here because deserialization has no config directory.
-        settings.lfs_runtime.resolve_paths(base_dir);
+        settings.lfs.resolve_paths(base_dir)?;
         settings.storage.resolve_paths(base_dir);
         Ok(settings)
     }
@@ -103,17 +98,21 @@ mod tests {
         )
     }
 
+    fn config_dir() -> std::path::PathBuf {
+        std::env::temp_dir().join("lfsplanet-settings")
+    }
+
     fn load(sections: &str) -> Settings {
-        Settings::from_yaml(&yaml("", sections), Path::new("/config")).unwrap()
+        Settings::from_yaml(&yaml("", sections), &config_dir()).unwrap()
     }
 
     fn load_web(web_extra: &str) -> Settings {
-        Settings::from_yaml(&yaml(web_extra, ""), Path::new("/config")).unwrap()
+        Settings::from_yaml(&yaml(web_extra, ""), &config_dir()).unwrap()
     }
 
     fn assert_rejected(sections: &str) {
         assert!(
-            Settings::from_yaml(&yaml("", sections), Path::new("/config")).is_err(),
+            Settings::from_yaml(&yaml("", sections), &config_dir()).is_err(),
             "accepted {sections:?}"
         );
     }
@@ -121,21 +120,24 @@ mod tests {
     #[test]
     fn optional_sections_may_be_omitted_entirely() {
         let settings = load("");
+        let mut defaults = LfsSettings::default();
+        defaults.resolve_paths(&config_dir()).unwrap();
         assert_eq!(
-            settings.lfs_runtime.installation_root.path(),
-            Path::new("/srv/lfs")
+            settings.lfs.installation_root.path(),
+            defaults.installation_root.path()
         );
         assert_eq!(
-            settings.lfs_runtime.installer_download_root.path(),
-            Path::new("/srv/lfs/downloads")
+            settings.lfs.installer_cache_root(),
+            defaults.installation_root.path().join(".cache/installers")
         );
+        #[cfg(target_os = "linux")]
         assert_eq!(
-            settings.lfs_runtime.wine_prefix.path(),
+            settings.lfs.runtime.wine_prefix.as_path(),
             Path::new("/srv/lfs/.wine")
         );
         assert_eq!(
             settings.storage.object_store_root.path(),
-            Path::new("/config/data/storage")
+            config_dir().join("data/storage")
         );
         assert!(settings.lfs.oauth.is_none());
         assert!(settings.hotlaps.enforce_replay_username);
@@ -146,21 +148,18 @@ mod tests {
     fn the_required_sections_are_required() {
         let key = "a5".repeat(64);
         assert!(
-            Settings::from_yaml(
-                &format!("web:\n  session_key: \"{key}\"\n"),
-                Path::new("/c")
-            )
-            .is_err(),
+            Settings::from_yaml(&format!("web:\n  session_key: \"{key}\"\n"), &config_dir())
+                .is_err(),
             "accepted a document with no database section"
         );
         assert!(
-            Settings::from_yaml("database:\n  url: postgresql://x\n", Path::new("/c")).is_err(),
+            Settings::from_yaml("database:\n  url: postgresql://x\n", &config_dir()).is_err(),
             "accepted a document with no web section"
         );
         assert!(
             Settings::from_yaml(
                 &format!("database:\n  url: \"\"\nweb:\n  session_key: \"{key}\"\n"),
-                Path::new("/c")
+                &config_dir()
             )
             .is_err(),
             "accepted a blank database url"
@@ -191,31 +190,34 @@ mod tests {
     #[test]
     fn relative_paths_are_resolved_from_the_config_directory() {
         let settings = load(
-            "lfs_installation_root: lfs\ninstaller_download_root: downloads\nwine_prefix: prefix\nstorage:\n  object_store_root: objects\n",
+            "lfs:\n  installation_root: lfs\n  wine_prefix: prefix\nstorage:\n  object_store_root: objects\n",
         );
         assert_eq!(
-            settings.lfs_runtime.installation_root.path(),
-            Path::new("/config/lfs")
+            settings.lfs.installation_root.path(),
+            config_dir().join("lfs")
         );
         assert_eq!(
-            settings.lfs_runtime.installer_download_root.path(),
-            Path::new("/config/downloads")
+            settings.lfs.installer_cache_root(),
+            config_dir().join("lfs/.cache/installers")
         );
+        #[cfg(target_os = "linux")]
         assert_eq!(
-            settings.lfs_runtime.wine_prefix.path(),
-            Path::new("/config/prefix")
+            settings.lfs.runtime.wine_prefix.as_path(),
+            config_dir().join("prefix")
         );
         assert_eq!(
             settings.storage.object_store_root.path(),
-            Path::new("/config/objects")
+            config_dir().join("objects")
         );
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn system_executable_paths_are_not_resolved_against_the_config_directory() {
-        let settings = load("wine_executable: /usr/bin/wine\n");
+        let settings = load("lfs:\n  wine_executable: /usr/bin/wine\n");
+        #[cfg(target_os = "linux")]
         assert_eq!(
-            settings.lfs_runtime.wine_executable.path(),
+            settings.lfs.runtime.wine_executable.as_path(),
             Path::new("/usr/bin/wine")
         );
     }
@@ -223,12 +225,14 @@ mod tests {
     #[test]
     fn validator_defaults_are_sane() {
         let settings = load("");
+        #[cfg(target_os = "linux")]
         assert_eq!(
-            settings.lfs_runtime.wine_executable.path(),
+            settings.lfs.runtime.wine_executable.as_path(),
             Path::new("/usr/bin/wine")
         );
+        #[cfg(target_os = "linux")]
         assert_eq!(
-            settings.lfs_runtime.bubblewrap_executable.path(),
+            settings.lfs.runtime.bubblewrap_executable.as_path(),
             Path::new("/usr/bin/bwrap")
         );
         assert_eq!(
@@ -253,6 +257,58 @@ mod tests {
             6
         );
         assert_rejected("worker:\n  webhooks:\n    workers: 0\n");
+    }
+
+    #[test]
+    fn consolidated_lfs_configuration_round_trips() {
+        let settings = load(
+            "lfs:\n  installation_root: games\n  wine_prefix: prefix\n  wine_executable: /usr/bin/wine\n  bubblewrap_executable: /usr/bin/bwrap\n  outbound_http_timeout_seconds: 25\n  oauth:\n    client_id: client\n    client_secret: secret\n",
+        );
+        let serialized = serde_saphyr::to_string(&settings).unwrap();
+        assert!(serialized.contains("lfs:"));
+        assert!(!serialized.contains("runtime:"));
+        assert_eq!(
+            settings.lfs.installation_root.path(),
+            config_dir().join("games")
+        );
+        assert_eq!(
+            settings.lfs.outbound_http_timeout.duration(),
+            Duration::from_secs(25)
+        );
+        assert_eq!(
+            settings.lfs.oauth.as_ref().unwrap().client_id.as_str(),
+            "client"
+        );
+        Settings::from_yaml(&serialized, &config_dir()).unwrap();
+        assert_rejected("wine_executable: /usr/bin/wine\n");
+        #[cfg(target_os = "linux")]
+        assert_rejected("lfs:\n  installer_download_root: downloads\n");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_runtime_rejects_empty_paths_and_unknown_settings() {
+        assert_rejected("lfs:\n  wine_prefix: \"\"\n");
+        assert_rejected("lfs:\n  wine_executable: \"\"\n");
+        assert_rejected("lfs:\n  bubblewrap_executable: \"\"\n");
+        assert_rejected("lfs:\n  not_a_setting: true\n");
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    #[test]
+    fn unsupported_runtime_ignores_extra_fields_without_losing_application_settings() {
+        let settings = load(
+            "lfs:\n  installation_root: games\n  wine_prefix: ignored\n  future_runtime: ignored\n  outbound_http_timeout_seconds: 25\n",
+        );
+        assert_eq!(
+            settings.lfs.installation_root.path(),
+            config_dir().join("games")
+        );
+        assert_eq!(
+            settings.lfs.outbound_http_timeout.duration(),
+            Duration::from_secs(25)
+        );
+        assert_rejected("lfs:\n  outbound_http_timeout_seconds: 0\n");
     }
 
     #[test]
@@ -324,7 +380,7 @@ mod tests {
         assert!(
             Settings::from_yaml(
                 &yaml("  http_request_timeout_seconds: 0\n", ""),
-                Path::new("/c")
+                &config_dir()
             )
             .is_err(),
             "accepted a zero inbound request timeout"

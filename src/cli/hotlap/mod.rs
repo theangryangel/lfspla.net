@@ -6,7 +6,6 @@ mod import_lfsworld;
 mod inspect;
 mod rebadge;
 mod validate;
-mod watch;
 
 pub(crate) use args::{HotlapCommand, RebadgeScope};
 
@@ -25,6 +24,5 @@ pub(crate) async fn run(args: &Args, action: &HotlapCommand) -> anyhow::Result<(
             installation_id,
             replay,
         } => validate::run(args, installation_id, replay).await,
-        HotlapCommand::Watch => watch::run(args).await,
     }
 }

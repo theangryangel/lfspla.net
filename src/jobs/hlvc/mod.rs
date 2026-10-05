@@ -4,6 +4,7 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Context;
 use lfsplanet_jobs::{Processor, Step};
+use lfsplanet_lfs::HlvcResult;
 use object_store::{ObjectStore, ObjectStoreExt, path::Path};
 use sea_orm::{
     ActiveModelTrait,
@@ -14,7 +15,7 @@ use sea_orm::{
 };
 
 use crate::{
-    hlvc::{self, HlvcResult},
+    lfs::installations::resolve_installation,
     models::{
         eras::{self, EraEntity},
         hotlaps::{
@@ -22,7 +23,7 @@ use crate::{
             personal_bests,
         },
     },
-    settings::{HlvcSettings, LfsRuntimeSettings},
+    settings::HlvcSettings,
 };
 
 const MAX_ATTEMPTS: i32 = 5;
@@ -31,7 +32,8 @@ const RETRY_DELAY: time::Duration = time::Duration::seconds(30);
 pub(crate) struct HotlapValidation {
     pub database: DatabaseConnection,
     pub object_store: Arc<dyn ObjectStore>,
-    pub runtime: LfsRuntimeSettings,
+    pub runtime: lfsplanet_lfs::RuntimeConfig,
+    pub installation_root: std::path::PathBuf,
     pub settings: HlvcSettings,
 }
 
@@ -157,6 +159,7 @@ impl HotlapValidation {
         transaction: &DatabaseTransaction,
         hotlap: &HotlapModel,
     ) -> anyhow::Result<HlvcResult> {
+        lfsplanet_lfs::ensure_supported()?;
         let key = hotlap
             .spr_object_key
             .as_deref()
@@ -172,11 +175,26 @@ impl HotlapValidation {
             .one(transaction)
             .await?
             .context("hotlap references a missing era")?;
-        Ok(
-            hlvc::validate(&self.runtime, &self.settings, &era.installation_id, &replay)
-                .await?
-                .lfs,
+        let installation = resolve_installation(&self.installation_root, &era.installation_id)?;
+        let diagnostic = lfsplanet_lfs::validate(
+            &self.runtime,
+            &installation,
+            &replay,
+            self.settings.timeout.duration(),
         )
+        .await?;
+        if !diagnostic.output.stderr.is_empty() {
+            tracing::debug!(stderr = %String::from_utf8_lossy(&diagnostic.output.stderr), "validation diagnostics");
+        }
+        let result = diagnostic.result()?;
+        tracing::debug!(
+            child_pid = result.child_pid,
+            process_exit_code = result.process_exit_code,
+            runtime_exit_code = result.runtime_exit_code,
+            lfs_exit_code = result.lfs.code(),
+            "validation completed"
+        );
+        Ok(result.lfs)
     }
 }
 

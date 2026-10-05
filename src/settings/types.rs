@@ -209,13 +209,17 @@ mod tests {
     fn config_path_rejects_empty_and_resolves_relative_paths() {
         assert!(parse::<ConfigPath>(r#""""#).is_err());
 
+        let root = tempfile::tempdir().unwrap();
+        let base = root.path().join("config");
         let mut relative = parse::<ConfigPath>("data/storage").unwrap();
-        relative.resolve(Path::new("/config"));
-        assert_eq!(relative.path(), Path::new("/config/data/storage"));
+        relative.resolve(&base);
+        assert_eq!(relative.path(), base.join("data/storage"));
 
-        let mut absolute = parse::<ConfigPath>("/srv/lfs").unwrap();
-        absolute.resolve(Path::new("/config"));
-        assert_eq!(absolute.path(), Path::new("/srv/lfs"));
+        let path = root.path().join("lfs");
+        let yaml = serde_saphyr::to_string(&path).unwrap();
+        let mut absolute = parse::<ConfigPath>(&yaml).unwrap();
+        absolute.resolve(&base);
+        assert_eq!(absolute.path(), path);
     }
 
     #[test]

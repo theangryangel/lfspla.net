@@ -11,8 +11,8 @@ pub(crate) enum LfsCommand {
         #[arg(value_name = "INSTALLATION")]
         installation_id: String,
     },
-    /// Create, prepare, and unlock a named LFS installation.
-    Install {
+    /// Add a named LFS installation, preparing and unlocking it.
+    Add {
         /// New installation identifier.
         #[arg(value_name = "INSTALLATION")]
         installation_id: String,

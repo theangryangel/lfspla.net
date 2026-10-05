@@ -56,7 +56,7 @@ pub enum Command {
         #[command(subcommand)]
         action: hotlap::HotlapCommand,
     },
-    /// Install and maintain named LFS installations.
+    /// Add and maintain named LFS installations.
     Lfs {
         #[command(subcommand)]
         action: lfs::LfsCommand,
