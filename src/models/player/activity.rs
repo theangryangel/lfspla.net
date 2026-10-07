@@ -30,14 +30,20 @@ pub(crate) struct PlayerChartResult {
     pub downloadable: bool,
     pub era_id: i64,
     pub era_slug: EraSlug,
+    pub era_title: String,
     pub track: String,
     pub vehicle: String,
     pub lap_time_ms: Milliseconds,
     pub distance_to_world_record_ms: Milliseconds,
     pub position: i64,
-    pub entries: i64,
     pub created_at: time::OffsetDateTime,
-    pub game_version: String,
+    pub game_version: crate::game_version::GameVersionCode,
+    pub split_1_ms: Milliseconds,
+    pub split_2_ms: Milliseconds,
+    pub split_3_ms: Milliseconds,
+    pub split_4_ms: Milliseconds,
+    pub player_flags: crate::player_flags::PlayerFlagsBits,
+    pub abs_enabled: Option<bool>,
 }
 
 impl Player {
@@ -112,15 +118,20 @@ SELECT
     (hotlap.spr_object_key IS NOT NULL) AS downloadable,
     chart.era_id,
     era.slug AS era_slug,
+    era.title AS era_title,
     chart.track_id AS track,
     chart.vehicle_id AS vehicle,
     hotlap.lap_time_ms,
     hotlap.lap_time_ms - record.lap_time_ms AS distance_to_world_record_ms,
     pb.position,
-    (SELECT COUNT(*) FROM hotlap_personal_best entries
-     WHERE entries.chart_id = pb.chart_id) AS entries,
     hotlap.created_at,
-    hotlap.game_version
+    hotlap.game_version,
+    hotlap.split_1_ms,
+    hotlap.split_2_ms,
+    hotlap.split_3_ms,
+    hotlap.split_4_ms,
+    hotlap.player_flags,
+    hotlap.abs_enabled
 FROM hotlap_personal_best pb
 JOIN chart ON chart.id = pb.chart_id
 JOIN era ON era.id = chart.era_id

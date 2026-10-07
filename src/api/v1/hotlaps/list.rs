@@ -1,16 +1,18 @@
 //! Filtered, ordered hotlap activity and the caller's submissions.
 
-use crate::era_slug::EraSlug;
-
-use crate::milliseconds::Milliseconds;
-
-use super::response::{ManagedHotlapResponse, RankingContribution};
+use super::{
+    query::{controller_filter, country_filter},
+    response::{Hotlap, list_response},
+};
 use crate::{
     api::{
         ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
-        extractors::AuthenticatedPlayer, v1::PlayerSummary,
+        extractors::AuthenticatedPlayer,
     },
-    models::hotlap::{Entity as HotlapEntity, HotlapFilter, HotlapListColumn, HotlapState},
+    models::{
+        Hotlap as HotlapModel,
+        hotlap::{HotlapListColumn, HotlapListFilters, HotlapListPage, HotlapState},
+    },
 };
 use axum::{
     Json,
@@ -19,7 +21,7 @@ use axum::{
 };
 use insim_core::{track::Track, vehicle::Vehicle};
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use utoipa::{IntoParams, ToSchema};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
@@ -64,10 +66,14 @@ pub(crate) struct HotlapQuery {
     ranked_only: bool,
     /// Only ranked chart personal bests at this position or better.
     rank: Option<i64>,
+    /// ISO 3166-1 alpha-2 player country.
+    country: Option<String>,
+    /// Controller: wheel, mouse, keyboard, or keyboard_stabilised.
+    controller: Option<String>,
     /// Only the caller's uploaded replays (requires authentication), including management details.
     #[serde(default)]
     mine: bool,
-    /// Defaults to submitted. Unranked laps sort last in both directions.
+    /// Defaults to submitted. Ties use chart rank ascending; unranked ties sort last.
     #[serde(default)]
     #[param(inline)]
     column: HotlapListColumn,
@@ -99,9 +105,9 @@ fn descending() -> Ordering {
 }
 
 impl HotlapQuery {
-    fn filtered(&self, viewer_id: Option<i64>) -> Result<sea_orm::Select<HotlapEntity>, ApiError> {
+    fn filters(&self, viewer_id: Option<i64>) -> Result<HotlapListFilters<'_>, ApiError> {
         let (state, owner) = self.scope(viewer_id)?;
-        Ok(crate::models::hotlap::HotlapActivityFilter {
+        Ok(HotlapListFilters {
             state: state.state(),
             unpublished: state == HotlapListState::Unpublished,
             owner,
@@ -110,8 +116,10 @@ impl HotlapQuery {
             vehicle: self.vehicle,
             ranked_only: self.ranked_only,
             rank: self.rank,
-        }
-        .select())
+            country: country_filter(self.country.as_deref())?,
+            controller: controller_filter(self.controller.as_deref())?,
+            ..HotlapListFilters::default()
+        })
     }
 
     fn scope(&self, viewer_id: Option<i64>) -> Result<(HotlapListState, Option<i64>), ApiError> {
@@ -135,30 +143,6 @@ impl HotlapQuery {
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct HotlapActivityResponse {
-    /// Management details included only for mine=true; never exposed in the public feed.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    submission: Option<ManagedHotlapResponse>,
-    id: i64,
-    player: PlayerSummary,
-    era_id: EraSlug,
-    track: String,
-    vehicle: String,
-    lap_time_ms: Milliseconds,
-    /// Current chart position; null when this upload is not a ranked personal best.
-    #[schema(required)]
-    position: Option<i64>,
-    /// Gap to the current chart world record in milliseconds; null when unranked.
-    #[schema(required)]
-    distance_to_world_record_ms: Option<Milliseconds>,
-    contributes_to: Vec<RankingContribution>,
-    state: HotlapState,
-    #[serde(with = "time::serde::rfc3339")]
-    #[schema(value_type = String, format = DateTime)]
-    created_at: time::OffsetDateTime,
-}
-
 #[allow(clippy::too_many_lines)]
 #[utoipa::path(
     get,
@@ -171,7 +155,7 @@ pub(crate) struct HotlapActivityResponse {
         PaginationQuery
     ),
     responses(
-        (status = 200, description = "Filtered hotlaps in requested order; defaults to newest first", body = PaginatedResponse<HotlapActivityResponse>),
+        (status = 200, description = "Filtered hotlaps in requested order; defaults to newest first", body = PaginatedResponse<Hotlap>),
         (status = 400, description = "Invalid filter or pagination", body = ErrorResponse),
         (status = 401, description = "Authentication required or invalid credentials", body = ErrorResponse)
     )
@@ -181,88 +165,35 @@ pub(crate) async fn list(
     Query(pagination): Query<PaginationQuery>,
     State(state): State<ApiState>,
     viewer: Option<AuthenticatedPlayer>,
-) -> Result<Json<PaginatedResponse<HotlapActivityResponse>>, ApiError> {
+) -> Result<Json<PaginatedResponse<Hotlap>>, ApiError> {
     let viewer = viewer.map(|AuthenticatedPlayer(viewer)| viewer);
     let offset = pagination.offset()?;
-    let mut hotlaps = query.filtered(viewer.as_ref().map(|player| player.id))?;
+    let viewer_id = viewer.as_ref().map(|player| player.id);
+    let mut filters = query.filters(viewer_id)?;
     if let Some(era_slug) = &query.era_id {
-        hotlaps = hotlaps.in_era(
+        filters.era_id = Some(
             crate::api::extractors::resolve_era(&state.database, era_slug)
                 .await?
                 .id,
         );
     }
-    let page = crate::models::hotlap::HotlapActivity::load(
+    let page = HotlapModel::list(
         &state.database,
-        hotlaps,
-        query.column,
-        query.order,
-        offset,
-        pagination.per_page,
+        filters,
+        HotlapListPage {
+            column: query.column,
+            order: query.order,
+            offset,
+            limit: pagination.per_page,
+        },
     )
     .await
-    .map_err(|error| {
-        use crate::models::hotlap::ActivityError;
-        match error {
-            ActivityError::Database(error) => ApiError::database(error),
-            ActivityError::MissingPlayer => ApiError::new(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "missing_player",
-                "Hotlap owner could not be loaded.",
-            ),
-            ActivityError::MissingEra => ApiError::new(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "missing_era",
-                "Hotlap era could not be loaded.",
-            ),
-        }
-    })?;
-    let total = page.total;
-    let activity = page
-        .entries
-        .into_iter()
-        .map(|entry| {
-            let crate::models::hotlap::HotlapActivityEntry {
-                hotlap,
-                player,
-                era,
-                position,
-                distance_to_world_record_ms,
-                contributes_to,
-            } = entry;
-            let chart_data_for_hotlap = position.zip(distance_to_world_record_ms);
-            let contributions_for_hotlap = contributes_to
-                .into_iter()
-                .map(Into::into)
-                .collect::<Vec<RankingContribution>>();
-            let submission = query.mine.then(|| {
-                let submission = ManagedHotlapResponse::new(hotlap.clone(), &era);
-                let submission = match chart_data_for_hotlap {
-                    Some((position, distance)) => submission.with_chart_data(position, distance),
-                    None => submission,
-                };
-                submission.with_ranking_contributions(contributions_for_hotlap.clone())
-            });
-            HotlapActivityResponse {
-                submission,
-                id: hotlap.id,
-                player: player.into(),
-                era_id: era.slug,
-                track: hotlap.track.to_string(),
-                vehicle: hotlap.vehicle.to_string(),
-                lap_time_ms: hotlap.lap_time_ms,
-                position: chart_data_for_hotlap.map(|(position, _)| position),
-                distance_to_world_record_ms: chart_data_for_hotlap.map(|(_, distance)| distance),
-                contributes_to: contributions_for_hotlap,
-                state: hotlap.state,
-                created_at: hotlap.created_at,
-            }
-        })
-        .collect();
-    Ok(Json(PaginatedResponse {
-        items: activity,
-        pagination: pagination.metadata(total),
-    }))
+    .map_err(ApiError::from)?;
+    Ok(Json(list_response(
+        page,
+        &pagination,
+        query.mine.then_some(viewer_id).flatten(),
+    )))
 }
 
 #[cfg(test)]
@@ -306,10 +237,11 @@ mod tests {
     fn filters_combine_without_changing_private_scope() {
         let filters =
             query("mine=true&lfs_username=ExAmPlE&track=SO4R&vehicle=RB4&ranked_only=true");
-        assert!(filters.filtered(None).is_err());
+        assert!(filters.filters(None).is_err());
         let sql = filters
-            .filtered(Some(7))
+            .filters(Some(7))
             .unwrap()
+            .select()
             .build(DbBackend::Postgres)
             .to_string();
         for predicate in [
@@ -323,11 +255,26 @@ mod tests {
             assert!(sql.contains(predicate), "{sql}");
         }
         let sql = query("ranked_only=false")
-            .filtered(None)
+            .filters(None)
             .unwrap()
+            .select()
             .build(DbBackend::Postgres)
             .to_string();
         assert!(!sql.contains("hotlap_personal_best"));
+    }
+
+    #[test]
+    fn common_country_and_controller_filters_are_validated() {
+        let request = query("country=GB&controller=mouse");
+        let filters = request.filters(None).unwrap();
+        assert_eq!(filters.country.unwrap().alpha2, "GB");
+        assert_eq!(
+            filters.controller,
+            Some(crate::models::hotlap::SteeringInput::Mouse)
+        );
+        assert!(query("country=invalid").filters(None).is_err());
+        assert!(query("controller=invalid").filters(None).is_err());
+        assert_eq!(query("column=set").column, HotlapListColumn::Submitted);
     }
 
     #[test]

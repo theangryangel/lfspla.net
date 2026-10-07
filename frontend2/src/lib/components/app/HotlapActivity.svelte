@@ -12,7 +12,7 @@
 		get,
 		query,
 		type EraSummary,
-		type HotlapActivityResponse,
+		type Hotlap,
 		type HotlapListColumn,
 		type Ordering,
 		type PaginatedResponse,
@@ -41,7 +41,7 @@
 	} = $props();
 
 	const session = useSession();
-	let response = $state<PaginatedResponse<HotlapActivityResponse> | null>(null);
+	let response = $state<PaginatedResponse<Hotlap> | null>(null);
 	let loading = $state(true);
 	let unavailable = $state(false);
 	let requestId = 0;
@@ -93,7 +93,7 @@
 		unavailable = false;
 		response = null;
 		try {
-			const result = await get<PaginatedResponse<HotlapActivityResponse>>(
+			const result = await get<PaginatedResponse<Hotlap>>(
 				fetch,
 				url,
 			);

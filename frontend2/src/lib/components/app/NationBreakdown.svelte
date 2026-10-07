@@ -111,13 +111,13 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each rows as row (row.player_id)}
+						{#each rows as row (row.player.id)}
 							<Table.Row>
 								<Table.Cell
 									><a
 										class="font-medium hover:underline"
-										href={`/drivers/${encodeURIComponent(row.lfs_username)}`}
-										onclick={() => (open = false)}>{row.display_name}</a
+										href={`/drivers/${encodeURIComponent(row.player.lfs_username)}`}
+										onclick={() => (open = false)}>{row.player.display_name}</a
 									></Table.Cell
 								>
 								<Table.Cell class="text-right tabular-nums"

@@ -1,28 +1,25 @@
 //! Page-paginated best-hotlap leaderboard for one era-scoped chart.
 
-use crate::era_slug::EraSlug;
-
-use crate::milliseconds::Milliseconds;
+use super::response::Chart;
 
 use crate::{
     api::{
         ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
         extractors as extract,
-        v1::{PlayerSummary, hotlaps::response::RankingContribution},
+        v1::hotlaps::{
+            query::{controller_filter, country_filter},
+            response::{Hotlap, RankingContribution, list_response},
+        },
     },
     models::{
-        badge::PlayerBadge,
-        chart::{BestHotlap, BestHotlapColumn, BestHotlapFilters, BestHotlapPage},
-        hotlap::{DriverSide, SteeringInput},
+        Hotlap as HotlapModel,
+        hotlap::{HotlapListColumn, HotlapListFilters, HotlapListPage},
     },
 };
 use axum::{
     Json,
     extract::{Path, Query, State},
-    http::StatusCode,
 };
-use celes::Country;
-use sea_orm::ActiveEnum;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -35,11 +32,11 @@ pub(super) fn router() -> OpenApiRouter<ApiState> {
 /// Filters and pagination for the chart leaderboard.
 #[derive(Debug, Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
-pub(crate) struct BestHotlapQuery {
+pub(crate) struct ChartHotlapQuery {
     /// Column to sort by; defaults to rank. Driver uses case-insensitive display name.
-    #[serde(default)]
+    #[serde(default = "rank_column")]
     #[param(inline)]
-    column: BestHotlapColumn,
+    column: HotlapListColumn,
     /// Sort direction; defaults to asc. Equal values retain chart rank order.
     #[serde(default)]
     #[param(inline)]
@@ -50,47 +47,8 @@ pub(crate) struct BestHotlapQuery {
     controller: Option<String>,
 }
 
-/// A player profile attached to a public leaderboard entry.
-#[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct BestHotlapPlayerResponse {
-    #[serde(flatten)]
-    player: PlayerSummary,
-    badges: Vec<PlayerBadge>,
-}
-
-/// One player's fastest valid lap for the requested chart and era.
-#[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct BestHotlapResponse {
-    /// Global chart position, unchanged by filters or pagination.
-    position: i64,
-    id: i64,
-    /// Relative URL of the original replay, absent when none is stored.
-    #[schema(required)]
-    spr_url: Option<String>,
-    player: BestHotlapPlayerResponse,
-    track: String,
-    vehicle: String,
-    lap_time_ms: Milliseconds,
-    distance_to_benchmark_ms: Milliseconds,
-    distance_to_world_record_ms: Milliseconds,
-    split_1_ms: Milliseconds,
-    split_2_ms: Milliseconds,
-    split_3_ms: Milliseconds,
-    split_4_ms: Milliseconds,
-    steering: SteeringInput,
-    brake_help_enabled: bool,
-    automatic_gears: bool,
-    #[schema(required)]
-    manual_shifter: Option<bool>,
-    axis_clutch: bool,
-    automatic_clutch: bool,
-    driver_side: DriverSide,
-    #[schema(required)]
-    abs_enabled: Option<bool>,
-    #[serde(with = "time::serde::rfc3339")]
-    #[schema(value_type = String, format = DateTime)]
-    created_at: time::OffsetDateTime,
-    game_version: String,
+fn rank_column() -> HotlapListColumn {
+    HotlapListColumn::Rank
 }
 
 /// Composite identity of one hotlap chart.
@@ -104,11 +62,9 @@ pub(crate) struct HotlapChartPath {
 /// Page-paginated representation of one hotlap chart.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct HotlapChartResponse {
-    era_id: EraSlug,
-    track: String,
-    vehicle: String,
+    chart: Chart,
     #[serde(flatten)]
-    page: PaginatedResponse<BestHotlapResponse>,
+    page: PaginatedResponse<Hotlap>,
     /// Rankings that include this combination
     contributes_to: Vec<RankingContribution>,
 }
@@ -121,7 +77,7 @@ pub(crate) struct HotlapChartResponse {
         ("era" = String, Path, description = "Target era identifier"),
         ("track" = String, Path, description = "Canonical track configuration code"),
         ("vehicle" = String, Path, description = "Canonical vehicle code"),
-        BestHotlapQuery,
+        ChartHotlapQuery,
         PaginationQuery,
     ),
     responses(
@@ -132,7 +88,7 @@ pub(crate) struct HotlapChartResponse {
 )]
 pub(crate) async fn best(
     Path(path): Path<HotlapChartPath>,
-    Query(query): Query<BestHotlapQuery>,
+    Query(query): Query<ChartHotlapQuery>,
     Query(pagination): Query<PaginationQuery>,
     State(state): State<ApiState>,
 ) -> Result<Json<HotlapChartResponse>, ApiError> {
@@ -146,71 +102,38 @@ pub(crate) async fn best(
     .await
     .map_err(ApiError::database)?
     .ok_or_else(chart_not_found)?;
-    let track_id = chart.track_id.to_string();
-    let vehicle_id = chart.vehicle_id.to_string();
-    let contributes_to = chart
-        .rankings()
-        .all(&state.database)
-        .await
-        .map_err(ApiError::database)?
-        .into_iter()
-        .map(|ranking| RankingContribution {
-            id: ranking.slug.to_string(),
-            title: ranking.title,
-        })
-        .collect();
-    let country = query
-        .country
-        .as_deref()
-        .map(Country::from_alpha2)
-        .transpose()
-        .map_err(|_| invalid_country_filter())?;
-    let controller = query
-        .controller
-        .as_ref()
-        .map(SteeringInput::try_from_value)
-        .transpose()
-        .map_err(|_| invalid_controller_filter())?;
-    let offset = pagination.offset()?;
-
-    let (entries, total) = chart
-        .leaderboard(
-            &state.database,
-            BestHotlapFilters {
-                country,
-                controller,
-            },
-            BestHotlapPage {
-                offset,
-                limit: pagination.per_page,
-                column: query.column,
-                order: query.order,
-            },
-        )
-        .await
-        .map_err(ApiError::database)?;
-    let mut badges_by_player = era
-        .list_badges_for_players(&state.database, entries.iter().map(|entry| entry.player.id))
-        .await
-        .map_err(ApiError::database)?;
-
-    Ok(Json(HotlapChartResponse {
-        era_id: era.slug,
-        track: track_id,
-        vehicle: vehicle_id,
-        contributes_to,
-        page: PaginatedResponse {
-            items: entries
-                .into_iter()
-                .map(|entry| {
-                    let badges = badges_by_player
-                        .remove(&entry.player.id)
-                        .unwrap_or_default();
-                    BestHotlapResponse::from_best(entry, badges)
-                })
-                .collect(),
-            pagination: pagination.metadata(total),
+    let chart_response = Chart::load(&state.database, &era, std::slice::from_ref(&chart))
+        .await?
+        .pop()
+        .ok_or_else(|| {
+            ApiError::database(sea_orm::DbErr::RecordNotFound(
+                "hydrated chart missing".into(),
+            ))
+        })?;
+    let mut filters = HotlapListFilters::for_chart(&chart);
+    filters.country = country_filter(query.country.as_deref())?;
+    filters.controller = controller_filter(query.controller.as_deref())?;
+    let page = HotlapModel::list(
+        &state.database,
+        filters,
+        HotlapListPage {
+            column: query.column,
+            order: query.order,
+            offset: pagination.offset()?,
+            limit: pagination.per_page,
         },
+    )
+    .await
+    .map_err(ApiError::from)?;
+    let contributes_to = page
+        .chart_contributions
+        .as_ref()
+        .map(|contributions| contributions.iter().cloned().map(Into::into).collect())
+        .unwrap_or_default();
+    Ok(Json(HotlapChartResponse {
+        chart: chart_response,
+        contributes_to,
+        page: list_response(page, &pagination, None),
     }))
 }
 
@@ -218,69 +141,57 @@ fn chart_not_found() -> ApiError {
     ApiError::not_found("chart_not_found", "Chart")
 }
 
-fn invalid_country_filter() -> ApiError {
-    ApiError::new(
-        StatusCode::BAD_REQUEST,
-        "invalid_country_filter",
-        "The country filter must be an ISO 3166-1 alpha-2 code",
-    )
-}
-
-fn invalid_controller_filter() -> ApiError {
-    ApiError::new(
-        StatusCode::BAD_REQUEST,
-        "invalid_controller_filter",
-        "The controller filter is invalid",
-    )
-}
-
-impl BestHotlapResponse {
-    pub(crate) fn from_best(best: BestHotlap, badges: Vec<PlayerBadge>) -> Self {
-        let controls = best.hotlap.controls();
-        let vehicle = best.hotlap.vehicle;
-        Self {
-            position: best.position,
-            id: best.hotlap.id,
-            spr_url: best
-                .hotlap
-                .spr_object_key
-                .as_ref()
-                .map(|_| crate::api::v1::hotlaps::replay::download_url(best.hotlap.id)),
-            player: BestHotlapPlayerResponse {
-                player: best.player.into(),
-                badges,
-            },
-            track: best.hotlap.track.to_string(),
-            vehicle: vehicle.to_string(),
-            lap_time_ms: best.hotlap.lap_time_ms,
-            distance_to_benchmark_ms: best.distance_to_benchmark_ms,
-            distance_to_world_record_ms: best.distance_to_world_record_ms,
-            split_1_ms: best.hotlap.split_1_ms,
-            split_2_ms: best.hotlap.split_2_ms,
-            split_3_ms: best.hotlap.split_3_ms,
-            split_4_ms: best.hotlap.split_4_ms,
-            steering: controls.steering,
-            brake_help_enabled: controls.brake_help_enabled,
-            automatic_gears: controls.automatic_gears,
-            manual_shifter: controls.manual_shifter,
-            axis_clutch: controls.axis_clutch,
-            automatic_clutch: controls.automatic_clutch,
-            driver_side: controls.driver_side,
-            abs_enabled: best.hotlap.abs_enabled,
-            created_at: best.hotlap.created_at,
-            game_version: best.hotlap.game_version.to_string(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::http::StatusCode;
+
+    #[test]
+    fn empty_leaderboards_still_expose_the_chart_resource() {
+        use crate::api::v1::eras::{tracks::TrackSummary, vehicles::VehicleSummary};
+        let response = HotlapChartResponse {
+            chart: Chart::new(
+                "2007-12-21".parse().unwrap(),
+                "Historical".to_owned(),
+                TrackSummary::new(
+                    crate::track_id::TrackId(insim_core::track::Track::Bl1),
+                    "Blackwood GP".to_owned(),
+                    crate::models::track::TrackLocation::Bl,
+                    false,
+                    false,
+                ),
+                VehicleSummary::new(
+                    "XFG".parse().unwrap(),
+                    "XF GTI".to_owned(),
+                    "demo".to_owned(),
+                    false,
+                ),
+            ),
+            page: PaginatedResponse {
+                items: vec![],
+                pagination: PaginationQuery::default().metadata(0),
+            },
+            contributes_to: vec![],
+        };
+        let json = serde_json::to_value(response).unwrap();
+        assert_eq!(json["chart"]["era_id"], "2007-12-21");
+        assert_eq!(json["chart"]["track"]["code"], "BL1");
+        assert_eq!(json["chart"]["vehicle"]["code"], "XFG");
+        assert_eq!(
+            json["chart"]["vehicle"]["image_url"],
+            serde_json::Value::Null
+        );
+        assert_eq!(json["items"], serde_json::json!([]));
+        assert_eq!(json["pagination"]["total_items"], 0);
+        for old in ["era_id", "track", "vehicle"] {
+            assert!(json.get(old).is_none());
+        }
+    }
 
     #[test]
     fn chart_filters_and_shared_pagination_deserialize_together() {
         let search = "country=GB&controller=wheel&page=3&per_page=25";
-        let query: BestHotlapQuery = serde_urlencoded::from_str(search).unwrap();
+        let query: ChartHotlapQuery = serde_urlencoded::from_str(search).unwrap();
         let pagination: PaginationQuery = serde_urlencoded::from_str(search).unwrap();
         assert_eq!(query.country.as_deref(), Some("GB"));
         assert_eq!(query.controller.as_deref(), Some("wheel"));
@@ -290,13 +201,16 @@ mod tests {
     }
     #[test]
     fn chart_sort_values_are_typed_and_default_to_rank_ascending() {
-        let defaults: BestHotlapQuery = serde_urlencoded::from_str("").unwrap();
-        assert_eq!(defaults.column, BestHotlapColumn::Rank);
+        let defaults: ChartHotlapQuery = serde_urlencoded::from_str("").unwrap();
+        assert_eq!(defaults.column, HotlapListColumn::Rank);
         assert_eq!(defaults.order, Ordering::Asc);
+        let legacy: ChartHotlapQuery = serde_urlencoded::from_str("column=set").unwrap();
+        assert_eq!(legacy.column, HotlapListColumn::Submitted);
         for column in [
-            BestHotlapColumn::Rank,
-            BestHotlapColumn::Driver,
-            BestHotlapColumn::Set,
+            HotlapListColumn::Rank,
+            HotlapListColumn::Driver,
+            HotlapListColumn::Submitted,
+            HotlapListColumn::LapTime,
         ] {
             for order in [Ordering::Asc, Ordering::Desc] {
                 let encoded = serde_urlencoded::to_string([
@@ -310,7 +224,7 @@ mod tests {
                     ),
                 ])
                 .unwrap();
-                let query: BestHotlapQuery = serde_urlencoded::from_str(&encoded).unwrap();
+                let query: ChartHotlapQuery = serde_urlencoded::from_str(&encoded).unwrap();
                 assert_eq!(query.column, column);
                 assert_eq!(query.order, order);
             }
@@ -326,7 +240,7 @@ mod tests {
         use tower::ServiceExt;
 
         async fn extract_page(
-            Query(_filters): Query<BestHotlapQuery>,
+            Query(_filters): Query<ChartHotlapQuery>,
             Query(pagination): Query<PaginationQuery>,
         ) -> Result<Json<u64>, ApiError> {
             Ok(Json(pagination.offset()?))

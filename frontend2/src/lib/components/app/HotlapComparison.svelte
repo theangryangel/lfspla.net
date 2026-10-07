@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { BestHotlapResponse } from '$lib/api.js';
+	import type { Hotlap } from '$lib/api.js';
 	import { intermediateSplits, sectorTimes } from '$lib/hotlap-comparison.js';
 	import { delta, lapTime, relativeColor } from '$lib/format.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -17,8 +17,8 @@
 		onRemove,
 		onClear,
 	}: {
-		laps: BestHotlapResponse[];
-		onRemove: (lap: BestHotlapResponse) => void;
+		laps: Hotlap[];
+		onRemove: (lap: Hotlap) => void;
 		onClear: () => void;
 	} = $props();
 	let minimized = $state(false);

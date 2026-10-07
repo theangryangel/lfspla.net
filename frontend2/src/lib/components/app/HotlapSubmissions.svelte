@@ -17,7 +17,7 @@
 	} from '$lib/format.js';
 	import { queryValue } from '$lib/query.js';
 	import { useSession } from '$lib/session.svelte.js';
-	import { RequestFailed, send, type ManagedHotlapResponse } from '$lib/api.js';
+	import { RequestFailed, send, type Hotlap } from '$lib/api.js';
 	import type { EraSummary } from '$lib/api.js';
 	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import SortableHead from '$lib/components/app/SortableHead.svelte';
@@ -32,7 +32,7 @@
 		hotlaps: submissions,
 		era,
 	}: {
-		hotlaps: PaginatedResponse<ManagedHotlapResponse> | null;
+		hotlaps: PaginatedResponse<Hotlap> | null;
 		era?: EraSummary;
 	} = $props();
 
@@ -42,12 +42,12 @@
 	let removeError = $state('');
 	let refreshError = $state('');
 	let confirmOpen = $state(false);
-	let removeTarget = $state<ManagedHotlapResponse | null>(null);
+	let removeTarget = $state<Hotlap | null>(null);
 	let validating = $state<number | null>(null);
 	let validateError = $state('');
 	const busy = $derived(removing !== null || validating !== null);
 
-	async function validate(hotlap: ManagedHotlapResponse) {
+	async function validate(hotlap: Hotlap) {
 		if (busy) return;
 		validating = hotlap.id;
 		validateError = '';
@@ -73,9 +73,9 @@
 		}
 	}
 
-	const replayName = (hotlap: ManagedHotlapResponse) =>
-		hotlap.original_filename ??
-		`${hotlap.track} / ${hotlap.vehicle ?? hotlap.raw_vehicle_name}`;
+	const replayName = (hotlap: Hotlap) =>
+		hotlap.submission?.original_filename ??
+		`${hotlap.track} / ${hotlap.vehicle ?? hotlap.submission?.raw_vehicle_name}`;
 
 	/**
 	 * Withdraws one submission, in whatever state it reached.
@@ -193,7 +193,7 @@
 											{hotlap.track} / {hotlap.vehicle}
 										</a>
 									{:else}
-										{hotlap.track} / {hotlap.raw_vehicle_name}
+										{hotlap.track} / {hotlap.submission?.raw_vehicle_name}
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="text-center tabular-nums"
@@ -225,14 +225,14 @@
 									<Badge variant={hotlapStates[hotlap.state].variant}>
 										{hotlapStates[hotlap.state].label}
 									</Badge>
-									{#if hotlap.error_detail}
+									{#if hotlap.submission?.error_detail}
 										<p class="text-xs text-muted-foreground">
-											{hotlap.error_detail}
+											{hotlap.submission?.error_detail}
 										</p>
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="text-muted-foreground">
-									{hotlap.original_filename ?? '-'}
+									{hotlap.submission?.original_filename ?? '-'}
 								</Table.Cell>
 								<Table.Cell>
 									{#if session.me.allow_test_validation && hotlap.state !== 'valid'}

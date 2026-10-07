@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 
 /// Public player details shared by API responses.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub(crate) struct PlayerSummary {
     pub id: i64,
     pub lfs_username: String,

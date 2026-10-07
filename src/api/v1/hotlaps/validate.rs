@@ -1,6 +1,6 @@
 //! Immediate hotlap validation for test environments.
 
-use super::response::ManagedHotlapResponse;
+use super::response::Hotlap;
 use crate::{
     api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
     models::{badge::rebuild_published_badges, hotlap::TestValidationError},
@@ -24,7 +24,7 @@ use axum::{
         ("X-CSRF-Token" = String, Header, description = "Required with cookie-session authentication")
     ),
     responses(
-        (status = 200, description = "Hotlap immediately marked valid", body = ManagedHotlapResponse),
+        (status = 200, description = "Hotlap immediately marked valid", body = Hotlap),
         (status = 401, description = "Authentication required", body = ErrorResponse),
         (status = 403, description = "CSRF token invalid or test validation disabled", body = ErrorResponse),
         (status = 404, description = "Hotlap not found", body = ErrorResponse)
@@ -34,7 +34,7 @@ pub(crate) async fn validate_for_testing(
     Path(hotlap_id): Path<i64>,
     State(state): State<ApiState>,
     AuthenticatedPlayer(player): AuthenticatedPlayer,
-) -> Result<Json<ManagedHotlapResponse>, ApiError> {
+) -> Result<Json<Hotlap>, ApiError> {
     if !state.hotlaps.allow_test_validation {
         return Err(ApiError::new(
             StatusCode::FORBIDDEN,
@@ -58,7 +58,9 @@ pub(crate) async fn validate_for_testing(
     // Rebuild badges after publishing, as the background validator does.
     rebuild_published_badges(&state.database, hotlap.era_id).await;
 
-    Ok(Json(ManagedHotlapResponse::new(hotlap, &era)))
+    Ok(Json(
+        Hotlap::new(&hotlap, &era, player.into()).with_submission(&hotlap),
+    ))
 }
 
 #[cfg(test)]

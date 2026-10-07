@@ -37,9 +37,11 @@ implementations live alongside it, such as `player/profile.rs` and
 Application callers use named records exported from `models`, for example
 `Player::find_by_username`, `Era::find_by_slug`, and `Hotlap::count_outstanding`.
 SeaORM's `Entity`, `Column`, and `ActiveModel` remain available in the singular
-model module when a caller needs to compose a query. Read models such as
-`ChartLeaderboard`, `HotlapActivity`, and `RankingWithCharts` own joined and
-aggregated reads.
+model module when a caller needs to compose a query. Read models such as `HotlapPage` and `RankingWithCharts` own joined and
+aggregated reads. `Hotlap::list` in `models/hotlap/list.rs` loads filtered,
+ordered pages shared by the hotlap collection and chart leaderboard routes.
+HTTP adapters resolve ownership and chart scope, and API conversion builds
+public responses. Services own complete workflows rather than these reads.
 
 `src/services` owns complete application workflows:
 

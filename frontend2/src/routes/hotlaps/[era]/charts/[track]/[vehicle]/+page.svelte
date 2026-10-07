@@ -34,10 +34,10 @@
 	import { queryValue, setQuery, updateQuery } from '$lib/query.js';
 	import { useSession } from '$lib/session.svelte.js';
 	import {
-		type BestHotlapColumn,
-		type BestHotlapResponse,
+		type HotlapListColumn,
+		type Hotlap,
 		type Ordering,
-		type CountrySummary,
+		type CodeNameSummary,
 	} from '$lib/api.js';
 	import type { PageProps } from './$types';
 
@@ -67,10 +67,13 @@
 	const filtered = $derived(
 		Boolean(queryValue('country') || queryValue('controller')),
 	);
-	const column = $derived((queryValue('column') || 'rank') as BestHotlapColumn);
+	const requestedColumn = $derived(queryValue('column'));
+	const column = $derived(
+		(requestedColumn === 'set' ? 'submitted' : requestedColumn || 'rank') as HotlapListColumn,
+	);
 	const order = $derived((queryValue('order') || 'asc') as Ordering);
 	const record = $derived(
-		entries.length
+		entries.length && entries[0].distance_to_world_record_ms !== null
 			? entries[0].lap_time_ms - entries[0].distance_to_world_record_ms
 			: null,
 	);
@@ -78,7 +81,7 @@
 	const combination = $derived(
 		JSON.stringify([data.era.id, page.params.track, page.params.vehicle]),
 	);
-	let selection = $state<{ combination: string; laps: BestHotlapResponse[] }>({
+	let selection = $state<{ combination: string; laps: Hotlap[] }>({
 		combination: '',
 		laps: [],
 	});
@@ -89,7 +92,7 @@
 		if (selection.combination !== combination)
 			selection = { combination, laps: [] };
 	});
-	function toggleLap(lap: BestHotlapResponse) {
+	function toggleLap(lap: Hotlap) {
 		selection = {
 			combination,
 			laps: selectedLaps.some((entry) => entry.id === lap.id)
@@ -101,7 +104,7 @@
 	}
 
 	const ANY_NATION = { value: '', label: 'All nations' };
-	const countryOption = (c: CountrySummary) => ({
+	const countryOption = (c: CodeNameSummary) => ({
 		value: c.code,
 		label: c.name,
 		hint: c.code,
@@ -263,7 +266,7 @@
 								>
 								<Table.Head>Controls</Table.Head>
 								<SortableHead
-									column="set"
+									column="submitted"
 									activeColumn={column}
 									{order}
 									label="Set"
@@ -303,7 +306,7 @@
 											>
 												{entry.player.display_name}
 											</a>
-											{#each entry.player.badges as playerBadge, i (i)}
+											{#each entry.player.badges ?? [] as playerBadge, i (i)}
 												<PlayerBadge badge={playerBadge} />
 											{/each}
 											<CompareButton driver={entry.player} />
@@ -371,11 +374,11 @@
 										{dateTime(entry.created_at)} · {entry.game_version}
 									</Table.Cell>
 									<Table.Cell>
-										{#if entry.spr_url}
+										{#if entry.replay_url}
 											<Button
 												variant="ghost"
 												size="icon"
-												href={entry.spr_url}
+												href={entry.replay_url}
 												aria-label="Download {entry.player
 													.display_name}'s replay"
 											>

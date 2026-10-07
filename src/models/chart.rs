@@ -4,17 +4,10 @@
     reason = "entity fields mirror database column names"
 )]
 use crate::milliseconds::Milliseconds;
-use crate::models::{Hotlap, Player, hotlap::SteeringInput, player::Entity as PlayerEntity};
-use crate::ordering::Ordering;
+use crate::models::{Hotlap, Player};
 use crate::track_id::TrackId;
 use crate::vehicle_id::VehicleId;
-use celes::Country;
-use sea_orm::{
-    AccessMode, ActiveEnum, DatabaseConnection, DbBackend, FromQueryResult, IsolationLevel,
-    LoaderTrait, Statement, TransactionTrait,
-};
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use sea_orm::{DbBackend, Statement};
 
 use sea_orm::entity::prelude::*;
 
@@ -50,196 +43,12 @@ pub struct BestHotlap {
     pub distance_to_world_record_ms: Milliseconds,
 }
 
-/// Filters applied to the chart's current personal bests.
-pub struct BestHotlapFilters {
-    pub country: Option<Country>,
-    pub controller: Option<SteeringInput>,
-}
-
-/// Supported chart sort keys, independent of direction.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize, ToSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum BestHotlapColumn {
-    #[default]
-    Rank,
-    Driver,
-    Set,
-}
-
-impl BestHotlapColumn {
-    pub(super) fn sql(self) -> &'static str {
-        match self {
-            Self::Rank => "pb.position",
-            Self::Driver => "LOWER(player.display_name) COLLATE \"C\"",
-            Self::Set => "hotlap.created_at",
-        }
-    }
-}
-
-/// Offset pagination requested for a best-hotlap query.
-pub struct BestHotlapPage {
-    pub offset: u64,
-    pub limit: u64,
-    pub column: BestHotlapColumn,
-    pub order: Ordering,
-}
-
 impl ActiveModelBehavior for ActiveModel {}
-
-/// A hotlap, chart position, and time gaps. Player details are loaded
-/// in one query for the whole page.
-#[derive(Debug, FromQueryResult)]
-struct BestHotlapRow {
-    position: i64,
-    #[sea_orm(nested)]
-    hotlap: Hotlap,
-    distance_to_benchmark_ms: Milliseconds,
-    distance_to_world_record_ms: Milliseconds,
-}
 
 /// SQL for a percentage benchmark, rounded to the nearest millisecond.
 /// Chart leaderboards use 103%; aggregate rankings supply their configured percentage.
 pub(crate) fn benchmark_sql(record_expression: &str, percent: i32) -> String {
     format!("(({record_expression} * {percent} + 50) / 100)")
-}
-
-const CHART_FROM: &str = r"
-FROM hotlap_personal_best pb
-JOIN hotlap ON hotlap.id = pb.hotlap_id
-JOIN player ON player.id = pb.player_id
-";
-const CHART_FILTER: &str = r"
-WHERE pb.chart_id = $1
-  AND ($2::TEXT IS NULL OR hotlap.steering = $2)
-  AND ($3::TEXT IS NULL OR player.country_code = $3)
-";
-
-/// Lists current personal bests for one chart and era.
-impl Model {
-    pub async fn leaderboard(
-        &self,
-        database: &DatabaseConnection,
-        filters: BestHotlapFilters,
-        page: BestHotlapPage,
-    ) -> Result<(Vec<BestHotlap>, u64), sea_orm::DbErr> {
-        let transaction = database
-            .begin_with_config(
-                Some(IsolationLevel::RepeatableRead),
-                Some(AccessMode::ReadOnly),
-            )
-            .await?;
-        let result = list_best_in_snapshot(&transaction, self, filters, page).await?;
-        transaction.commit().await?;
-        Ok(result)
-    }
-}
-
-async fn list_best_in_snapshot(
-    database: &impl ConnectionTrait,
-    chart: &Model,
-    filters: BestHotlapFilters,
-    page: BestHotlapPage,
-) -> Result<(Vec<BestHotlap>, u64), sea_orm::DbErr> {
-    let sql = format!(
-        r"
-SELECT hotlap.*, pb.position,
-    hotlap.lap_time_ms - {benchmark} AS distance_to_benchmark_ms,
-    hotlap.lap_time_ms - record.lap_time_ms AS distance_to_world_record_ms
-{CHART_FROM}
-CROSS JOIN (
-    SELECT hotlap.lap_time_ms
-    FROM hotlap_personal_best pb
-    JOIN hotlap ON hotlap.id = pb.hotlap_id
-    WHERE pb.chart_id = $1
-      AND pb.position = 1
-) record
-{CHART_FILTER}
-ORDER BY {column} {order}, pb.position ASC
-LIMIT $4 OFFSET $5
-",
-        benchmark = benchmark_sql("record.lap_time_ms", 103),
-        column = page.column.sql(),
-        order = page.order.sql(),
-    );
-
-    // Shared filter parameters for both statements.
-    let mut values: Vec<sea_orm::Value> = vec![
-        chart.id.into(),
-        filters.controller.map(SteeringInput::into_value).into(),
-        filters
-            .country
-            .map(|country| country.alpha2.to_owned())
-            .into(),
-    ];
-
-    let total = database
-        .query_one_raw(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            format!("SELECT COUNT(*)::BIGINT AS total {CHART_FROM} {CHART_FILTER}"),
-            values.clone(),
-        ))
-        .await?
-        .ok_or_else(|| sea_orm::DbErr::RecordNotFound("chart count missing".into()))?
-        .try_get::<i64>("", "total")?;
-    values.push(
-        i64::try_from(page.limit)
-            .map_err(|e| sea_orm::DbErr::Type(e.to_string()))?
-            .into(),
-    );
-    values.push(
-        i64::try_from(page.offset)
-            .map_err(|e| sea_orm::DbErr::Type(e.to_string()))?
-            .into(),
-    );
-
-    let rows = BestHotlapRow::find_by_statement(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        sql,
-        values,
-    ))
-    .all(database)
-    .await?;
-
-    let (hotlaps, distances): (Vec<_>, Vec<_>) = rows
-        .into_iter()
-        .map(|row| {
-            (
-                row.hotlap,
-                (
-                    row.position,
-                    row.distance_to_benchmark_ms,
-                    row.distance_to_world_record_ms,
-                ),
-            )
-        })
-        .unzip();
-    // One further query for the whole page's owners, through the relation the
-    // hotlap entity declares.
-    let players = hotlaps.load_one(PlayerEntity, database).await?;
-
-    let entries = hotlaps
-        .into_iter()
-        .zip(distances)
-        .zip(players)
-        .map(|((hotlap, (position, benchmark, record)), player)| {
-            // `Restrict` on the relation means a lap cannot outlive its owner,
-            // so an absent player here is a broken row.
-            let player = player.ok_or_else(|| {
-                sea_orm::DbErr::Type(format!("hotlap {} has no player", hotlap.id))
-            })?;
-            Ok(BestHotlap {
-                position,
-                hotlap,
-                player,
-                distance_to_benchmark_ms: benchmark,
-                distance_to_world_record_ms: record,
-            })
-        })
-        .collect::<Result<Vec<_>, sea_orm::DbErr>>()?;
-    Ok((
-        entries,
-        u64::try_from(total).map_err(|e| sea_orm::DbErr::Type(e.to_string()))?,
-    ))
 }
 
 /// Shared by chart, era rebuilds, and SQLx imports. The caller holds the
@@ -361,25 +170,26 @@ mod tests {
             .one(&database)
             .await?
             .unwrap();
-        let (entries, total) = chart
-            .leaderboard(
-                &database,
-                BestHotlapFilters {
-                    country: None,
-                    controller: None,
-                },
-                BestHotlapPage {
-                    offset: 0,
-                    limit: 10,
-                    column: BestHotlapColumn::Rank,
-                    order: crate::ordering::Ordering::Asc,
-                },
-            )
-            .await?;
+        let page = Hotlap::list(
+            &database,
+            crate::models::hotlap::HotlapListFilters::for_chart(&chart),
+            crate::models::hotlap::HotlapListPage {
+                offset: 0,
+                limit: 10,
+                column: crate::models::hotlap::HotlapListColumn::Rank,
+                order: crate::ordering::Ordering::Asc,
+            },
+        )
+        .await?;
+        let entries = page.entries;
+        let total = page.total;
         assert_eq!(total, 1);
         assert_eq!(entries[0].hotlap.id, published.id);
-        assert_eq!(entries[0].position, 1);
-        assert_eq!(entries[0].distance_to_world_record_ms, Milliseconds::ZERO);
+        assert_eq!(entries[0].position, Some(1));
+        assert_eq!(
+            entries[0].distance_to_world_record_ms,
+            Some(Milliseconds::ZERO)
+        );
 
         let second: i64 = sqlx::query_scalar("INSERT INTO hotlap (
             player_id, era_id, chart_id, track, vehicle, raw_vehicle_name, lap_time_ms,

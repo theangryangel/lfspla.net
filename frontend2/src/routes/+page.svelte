@@ -53,9 +53,9 @@
 						{#if combo}
 							<a
 								class="hover:underline"
-								href={`${hotlapPath(encodeURIComponent(combo.era_id))}/charts/${encodeURIComponent(combo.track)}/${encodeURIComponent(combo.vehicle)}`}
+								href={`${hotlapPath(encodeURIComponent(combo.chart.era_id))}/charts/${encodeURIComponent(combo.chart.track.code)}/${encodeURIComponent(combo.chart.vehicle.code)}`}
 							>
-								{combo.era_title} / {combo.track} / {combo.vehicle}
+								{combo.chart.era_title} / {combo.chart.track.code} / {combo.chart.vehicle.code}
 							</a>
 						{:else}
 							Most popular among recent uploads
@@ -65,13 +65,13 @@
 						<Card.Action class="flex gap-1 self-center" aria-hidden="true">
 							<Thumbnail
 								kind="track"
-								code={combo.track}
+								code={combo.chart.track.code}
 								class="w-12 rounded-md"
 							/>
 							<Thumbnail
 								kind="vehicle"
-								code={combo.vehicle}
-								src={combo.vehicle_image_url}
+								code={combo.chart.vehicle.code}
+								src={combo.chart.vehicle.image_url}
 								class="w-12 rounded-md"
 							/>
 						</Card.Action>

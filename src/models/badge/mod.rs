@@ -88,7 +88,7 @@ pub(crate) enum PodiumLevel {
 impl Model {
     /// Loads stored badges for selected players in one era.
     pub(crate) async fn list_for_players(
-        database: &DatabaseConnection,
+        database: &impl sea_orm::ConnectionTrait,
         era_id: i64,
         player_ids: impl IntoIterator<Item = i64>,
     ) -> Result<std::collections::HashMap<i64, Vec<PlayerBadge>>, DbErr> {

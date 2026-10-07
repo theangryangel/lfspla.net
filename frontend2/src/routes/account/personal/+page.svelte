@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
-	import { getList, send, type FlagSummary } from '$lib/api.js';
+	import { getList, send, type CodeNameSummary } from '$lib/api.js';
 	import { useSession } from '$lib/session.svelte.js';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import Panel from '$lib/components/app/Panel.svelte';
@@ -12,7 +12,7 @@
 	const session = useSession();
 	let country = $derived(session.player?.country_code ?? '');
 	let flag = $derived(session.player?.flag_code ?? '');
-	let flags = $state<FlagSummary[]>([]);
+	let flags = $state<CodeNameSummary[]>([]);
 	let loadingFlags = $state(false);
 	let flagError = $state('');
 	let retry = $state(0);
@@ -24,7 +24,7 @@
 		flagError = '';
 		loadingFlags = !!code;
 		if (code) {
-			getList<FlagSummary>(
+			getList<CodeNameSummary>(
 				fetch,
 				`/api/v1/countries/${encodeURIComponent(code)}/flags`,
 			)

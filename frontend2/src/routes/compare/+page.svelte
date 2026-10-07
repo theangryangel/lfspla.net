@@ -6,7 +6,7 @@
 	import Empty from '$lib/components/app/Empty.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import { useComparison } from '$lib/compare.svelte.js';
-	import type { PlayerChartResultResponse } from '$lib/api.js';
+	import type { Hotlap } from '$lib/api.js';
 	import { lapTime, delta } from '$lib/format.js';
 	import type { PageProps } from './$types';
 	let { data }: PageProps = $props();
@@ -25,8 +25,8 @@
 				era: string;
 				track: string;
 				vehicle: string;
-				left?: PlayerChartResultResponse;
-				right?: PlayerChartResultResponse;
+				left?: Hotlap;
+				right?: Hotlap;
 			}
 		>();
 		for (const side of ['left', 'right'] as const)

@@ -26,7 +26,9 @@
 	const rows = $derived(
 		data.ranking.charts.map((chart) => ({
 			...chart,
-			key: `${chart.track}/${chart.vehicle}`,
+			track: chart.chart.track.code,
+			vehicle: chart.chart.vehicle.code,
+			key: `${chart.chart.track.code}/${chart.chart.vehicle.code}`,
 			lapTimeMs: chart.my_hotlap?.lap_time_ms ?? null,
 			position: chart.my_hotlap?.position ?? null,
 			distanceToWorldRecordMs:
@@ -43,7 +45,7 @@
 				: [],
 			createdAt: chart.my_hotlap?.created_at ?? null,
 			gameVersion: chart.my_hotlap?.game_version ?? null,
-			sprUrl: chart.my_hotlap?.spr_url ?? null,
+			sprUrl: chart.my_hotlap?.replay_url ?? null,
 		})),
 	);
 	const completed = $derived(

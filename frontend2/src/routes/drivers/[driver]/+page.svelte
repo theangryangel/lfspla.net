@@ -122,7 +122,7 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each player.highlights as result (result.hotlap_id)}
+						{#each player.highlights as result (result.id)}
 							<Table.Row>
 								<Table.Cell>
 									<a
@@ -150,7 +150,7 @@
 										? 'text-time-best'
 										: ''}"
 								>
-									#{result.position} of {result.entries.toLocaleString()}
+									#{result.position}
 								</Table.Cell>
 								<Table.Cell class="text-muted-foreground"
 									>{dateTime(result.created_at)}</Table.Cell

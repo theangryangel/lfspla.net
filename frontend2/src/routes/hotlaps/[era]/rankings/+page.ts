@@ -15,8 +15,8 @@ export const load: PageLoad = async ({ depends, params, fetch, parent }) => {
       rankings.map((ranking) => [
         ranking.id,
         {
-          completed: ranking.my_progress?.completed_combinations ?? 0,
-          total: ranking.my_progress?.total_combinations ?? 0,
+          completed: ranking.my_progress?.completed_charts ?? 0,
+          total: ranking.my_progress?.total_charts ?? 0,
         },
       ]),
     ),

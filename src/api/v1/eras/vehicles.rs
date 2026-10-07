@@ -19,12 +19,13 @@ use validator::Validate;
 const MAX_SEARCH_LIMIT: u32 = 100;
 
 /// Metadata for one canonical Live for Speed vehicle.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub(crate) struct VehicleSummary {
     code: String,
     name: String,
     license: String,
     /// Relative URL of a locally cached vehicle image, when available.
+    #[schema(required)]
     image_url: Option<String>,
 }
 
@@ -104,16 +105,25 @@ pub(crate) async fn list_for_era(
     Ok(Json(ListResponse::from(vehicles)))
 }
 
+impl VehicleSummary {
+    pub(crate) fn new(
+        code: crate::vehicle_id::VehicleId,
+        name: String,
+        license: String,
+        has_image: bool,
+    ) -> Self {
+        Self {
+            image_url: has_image.then(|| crate::api::v1::vehicles::image_url(&code.to_string())),
+            code: code.to_string(),
+            name,
+            license,
+        }
+    }
+}
+
 impl From<VehicleRecord> for VehicleSummary {
     fn from(vehicle: VehicleRecord) -> Self {
-        Self {
-            image_url: vehicle
-                .image_object_key
-                .is_some()
-                .then(|| crate::api::v1::vehicles::image_url(&vehicle.id.to_string())),
-            code: vehicle.id.to_string(),
-            name: vehicle.name,
-            license: vehicle.license,
-        }
+        let has_image = vehicle.available && vehicle.image_object_key.is_some();
+        Self::new(vehicle.id, vehicle.name, vehicle.license, has_image)
     }
 }

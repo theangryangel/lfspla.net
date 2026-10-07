@@ -19,7 +19,7 @@
 		RequestFailed,
 		send,
 		type EraSummary,
-		type ManagedHotlapResponse,
+		type Hotlap,
 		type HotlapState,
 	} from '$lib/api.js';
 	import { useSession } from '$lib/session.svelte.js';
@@ -46,7 +46,7 @@
 		retryable: boolean;
 		elsewhere: { id: string; title: string } | null;
 		eraId: string | null;
-		hotlap: ManagedHotlapResponse | null;
+		hotlap: Hotlap | null;
 	}
 
 	const session = useSession();
@@ -206,7 +206,7 @@
 		const body = new FormData();
 		body.append('spr', item.file, item.file.name);
 		try {
-			item.hotlap = await send<ManagedHotlapResponse>(
+			item.hotlap = await send<Hotlap>(
 				`/api/v1/eras/${encodeURIComponent(item.eraId ?? target.id)}/hotlaps`,
 				{ method: 'POST', csrf: session.me.csrf_token, body },
 			);
@@ -433,7 +433,7 @@
 										<p class="mt-0.5 text-xs text-muted-foreground">
 											{#if item.status === 'accepted' && item.hotlap}
 												{eraTitle(item.hotlap.era_id)} · {item.hotlap.track} · {item
-													.hotlap.vehicle ?? item.hotlap.raw_vehicle_name} · {lapTime(
+													.hotlap.vehicle ?? item.hotlap.submission?.raw_vehicle_name} · {lapTime(
 													item.hotlap.lap_time_ms,
 												)} ·
 												{hotlapStates[item.hotlap.state].label}

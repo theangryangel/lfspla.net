@@ -1,4 +1,4 @@
-import { getList, type CountrySummary } from "$lib/api.js";
+import { getList, type CodeNameSummary } from "$lib/api.js";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ fetch, parent }) => {
@@ -9,7 +9,7 @@ export const load: PageLoad = async ({ fetch, parent }) => {
       { label: "Personal settings", href: "/account/personal" },
     ],
     countries: me.authenticated
-      ? await getList<CountrySummary>(fetch, "/api/v1/countries")
+      ? await getList<CodeNameSummary>(fetch, "/api/v1/countries")
       : [],
   };
 };

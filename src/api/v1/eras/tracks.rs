@@ -17,7 +17,7 @@ use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 /// Canonical LFS track configuration metadata.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub(crate) struct TrackSummary {
     code: String,
     name: String,
@@ -35,7 +35,7 @@ pub(crate) struct TrackSearchQuery {
 }
 
 /// Stable code and display name for an LFS location.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub(crate) struct TrackLocationSummary {
     code: TrackLocation,
     name: String,
@@ -105,15 +105,33 @@ pub(crate) async fn list_for_era(
     )))
 }
 
+impl TrackSummary {
+    pub(crate) fn new(
+        code: crate::track_id::TrackId,
+        name: String,
+        location: TrackLocation,
+        reverse: bool,
+        open_configuration: bool,
+    ) -> Self {
+        Self {
+            code: code.to_string(),
+            name,
+            location: location.into(),
+            reverse,
+            open_configuration,
+        }
+    }
+}
+
 impl From<TrackRecord> for TrackSummary {
     fn from(track: TrackRecord) -> Self {
-        Self {
-            code: track.id.to_string(),
-            name: track.name,
-            location: track.location.into(),
-            reverse: track.reverse,
-            open_configuration: track.open_configuration,
-        }
+        Self::new(
+            track.id,
+            track.name,
+            track.location,
+            track.reverse,
+            track.open_configuration,
+        )
     }
 }
 

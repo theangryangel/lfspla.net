@@ -51,7 +51,7 @@ pub(crate) struct PlayerComparisonQuery {
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct ComparedPlayerResponse {
     player: PlayerSummary,
-    results: Vec<response::PlayerChartResultResponse>,
+    results: Vec<crate::api::v1::hotlaps::response::Hotlap>,
 }
 
 /// Current chart results for two LFS accounts.
@@ -153,14 +153,16 @@ pub(crate) async fn compare(
 
 impl From<PlayerComparison> for PlayerComparisonResponse {
     fn from(comparison: PlayerComparison) -> Self {
+        let left: PlayerSummary = comparison.left.player.into();
+        let right: PlayerSummary = comparison.right.player.into();
         Self {
             left: ComparedPlayerResponse {
-                player: comparison.left.player.into(),
-                results: response::chart_result_responses(comparison.left.results),
+                results: response::chart_result_responses(comparison.left.results, left.clone()),
+                player: left,
             },
             right: ComparedPlayerResponse {
-                player: comparison.right.player.into(),
-                results: response::chart_result_responses(comparison.right.results),
+                results: response::chart_result_responses(comparison.right.results, right.clone()),
+                player: right,
             },
         }
     }

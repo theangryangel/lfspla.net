@@ -1,8 +1,8 @@
-import { getList, type CountrySummary } from "$lib/api.js";
+import { getList, type CodeNameSummary } from "$lib/api.js";
 import type { LayoutLoad } from "./$types";
 
 export const load: LayoutLoad = async ({ fetch, parent }) => {
-  const countries = getList<CountrySummary>(fetch, "/api/v1/countries");
+  const countries = getList<CodeNameSummary>(fetch, "/api/v1/countries");
   const { breadcrumbs } = await parent();
   return {
     countries: await countries,

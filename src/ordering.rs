@@ -10,12 +10,3 @@ pub enum Ordering {
     Asc,
     Desc,
 }
-
-impl Ordering {
-    pub(crate) fn sql(self) -> &'static str {
-        match self {
-            Self::Asc => "ASC",
-            Self::Desc => "DESC",
-        }
-    }
-}

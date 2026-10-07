@@ -167,13 +167,15 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         results.len()
     );
     assert!(!era.list_podium_counts(&database).await?.is_empty());
-    let activity = crate::models::hotlap::HotlapActivity::load(
+    let activity = crate::models::Hotlap::list(
         &database,
-        HotlapEntity::find(),
-        crate::models::hotlap::HotlapListColumn::Submitted,
-        crate::ordering::Ordering::Desc,
-        0,
-        10,
+        crate::models::hotlap::HotlapListFilters::default(),
+        crate::models::hotlap::HotlapListPage {
+            column: crate::models::hotlap::HotlapListColumn::Submitted,
+            order: crate::ordering::Ordering::Desc,
+            offset: 0,
+            limit: 10,
+        },
     )
     .await?;
     assert_eq!(activity.total as usize, accumulated.len());

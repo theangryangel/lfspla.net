@@ -218,50 +218,34 @@ export interface RankingRules {
 }
 
 export interface RankingChart {
-  track: string;
-  vehicle: string;
-  my_hotlap: BestHotlapResponse | null;
+  chart: Chart;
+  my_hotlap: Hotlap | null;
 }
 
 export interface RankingProgressResponse {
-  total_combinations: number;
-  completed_combinations: number;
+  total_charts: number;
+  completed_charts: number;
 }
 
-export interface RankingDetailResponse {
-  id: string;
-  title: string;
-  description: string;
+export interface RankingDetailResponse extends RankingSummary {
   rules: RankingRules;
   charts: RankingChart[];
-  my_progress: RankingProgressResponse | null;
 }
 
-export interface PersonalRankingResponse {
-  ranking_id: string;
+export interface RankingStandings<T> {
+  id: string;
   title: string;
   total_charts: number;
-  entries: PersonalRankingEntry[];
+  entries: T[];
 }
 
 export interface PersonalRankingEntry {
   position: number;
-  player_id: number;
-  lfs_username: string;
-  display_name: string;
-  country_code: string | null;
-  flag_code: string | null;
+  player: PlayerSummary;
   completed_charts: number;
   total_charts: number;
   handicap_ms: number;
   badges: PlayerBadge[];
-}
-
-export interface NationRankingResponse {
-  ranking_id: string;
-  title: string;
-  total_charts: number;
-  entries: NationRankingEntry[];
 }
 
 export interface NationRankingEntry {
@@ -274,9 +258,7 @@ export interface NationRankingEntry {
 }
 
 export interface NationContribution {
-  player_id: number;
-  lfs_username: string;
-  display_name: string;
+  player: PlayerSummary;
   points: number;
   contributing_charts: number;
   handicap_ms: number;
@@ -305,7 +287,9 @@ export interface VehicleSummary {
   image_url: string | null;
 }
 
-export interface CombinationSummary {
+export interface Chart {
+  era_id: string;
+  era_title: string;
   track: TrackSummary;
   vehicle: VehicleSummary;
 }
@@ -316,31 +300,27 @@ export type CombinationRejection =
 /** Combination validation returns a reason instead of an error. */
 export interface CombinationCheck {
   valid: boolean;
-  combination: CombinationSummary | null;
+  chart: Chart | null;
   reason: CombinationRejection | null;
 }
 
 export type Ordering = "asc" | "desc";
 export type HotlapListColumn = "submitted" | "driver" | "rank" | "lap_time";
-export type BestHotlapColumn = "rank" | "driver" | "set";
 
-export interface HotlapChartResponse extends PaginatedResponse<BestHotlapResponse> {
-  era_id: string;
-  track: string;
-  vehicle: string;
+export interface HotlapChartResponse extends PaginatedResponse<Hotlap> {
+  chart: Chart;
   contributes_to: RankingContribution[];
 }
 
-export interface BestHotlapResponse {
-  position: number;
+export interface Hotlap {
   id: number;
-  spr_url: string | null;
-  player: PlayerSummary & { badges: PlayerBadge[] };
+  era_id: string;
   track: string;
   vehicle: string;
   lap_time_ms: number;
-  distance_to_benchmark_ms: number;
-  distance_to_world_record_ms: number;
+  created_at: string;
+  game_version: string;
+  replay_url: string | null;
   split_1_ms: number;
   split_2_ms: number;
   split_3_ms: number;
@@ -353,42 +333,26 @@ export interface BestHotlapResponse {
   automatic_clutch: boolean;
   driver_side: DriverSide;
   abs_enabled: boolean | null;
-  created_at: string;
-  game_version: string;
+  era_title: string;
+  player: HotlapPlayer;
+  state: HotlapState;
+  position: number | null;
+  distance_to_world_record_ms: number | null;
+  distance_to_benchmark_ms: number | null;
+  contributes_to: RankingContribution[] | null;
+  submission?: HotlapSubmission;
 }
 
-export interface ManagedHotlapResponse {
-  id: number;
-  player_id: number;
-  era_id: string;
-  era_title: string;
-  track: string;
-  vehicle: string;
+export interface HotlapPlayer extends PlayerSummary {
+  badges: PlayerBadge[] | null;
+}
+
+export interface HotlapSubmission {
   raw_vehicle_name: string;
   mod_version: number | null;
-  lap_time_ms: number;
-  position?: number | null;
-  distance_to_world_record_ms?: number | null;
-  contributes_to?: RankingContribution[];
-  split_1_ms: number;
-  split_2_ms: number;
-  split_3_ms: number;
-  split_4_ms: number;
   original_filename: string | null;
-  steering: SteeringInput;
-  brake_help_enabled: boolean;
-  automatic_gears: boolean;
-  manual_shifter: boolean | null;
-  axis_clutch: boolean;
-  automatic_clutch: boolean;
-  driver_side: DriverSide;
-  abs_enabled: boolean | null;
-  created_at: string;
-  game_version: string;
-  state: HotlapState;
   hlvc_result_code: number | null;
   error_detail: string | null;
-  replay_url: string | null;
 }
 
 export interface RankingContribution {
@@ -397,20 +361,6 @@ export interface RankingContribution {
 }
 
 export type PlayerSearchResponse = ListResponse<PlayerSummary>;
-
-export interface PlayerChartResultResponse {
-  hotlap_id: number;
-  spr_url: string | null;
-  era_id: string;
-  track: string;
-  vehicle: string;
-  lap_time_ms: number;
-  distance_to_world_record_ms: number;
-  position: number;
-  entries: number;
-  created_at: string;
-  game_version: string;
-}
 
 export interface PlayerStats {
   hotlaps: number;
@@ -435,50 +385,24 @@ export interface PlayerEraStats {
   badges: PlayerBadge[];
 }
 
-export interface PlayerResponse {
-  id: number;
-  lfs_username: string;
-  display_name: string;
-  country_code: string | null;
-  flag_code: string | null;
+export interface PlayerResponse extends PlayerSummary {
   stats: PlayerStats;
   eras: PlayerEraStats[];
-  highlights: PlayerChartResultResponse[];
+  highlights: Hotlap[];
 }
 
-export interface CountrySummary {
+export interface CodeNameSummary {
   code: string;
   name: string;
 }
 
-export interface HotlapActivityResponse {
-  submission?: ManagedHotlapResponse;
-  id: number;
-  player: PlayerSummary;
-  era_id: string;
-  track: string;
-  vehicle: string;
-  lap_time_ms: number;
-  position: number | null;
-  distance_to_world_record_ms: number | null;
-  contributes_to: RankingContribution[];
-  state: HotlapState;
-  created_at: string;
-}
-
 export interface PlayerComparisonResponse {
-  left: { player: PlayerSummary; results: PlayerChartResultResponse[] };
-  right: { player: PlayerSummary; results: PlayerChartResultResponse[] };
+  left: { player: PlayerSummary; results: Hotlap[] };
+  right: { player: PlayerSummary; results: Hotlap[] };
 }
 
 export interface ComboSpotlight {
-  era_id: string;
-  era_title: string;
-  track: string;
-  track_name: string;
-  vehicle: string;
-  vehicle_name: string;
-  vehicle_image_url: string | null;
+  chart: Chart;
   recent_uploads: number;
   leaders: {
     player: PlayerSummary;
@@ -557,9 +481,4 @@ export interface WebhookOptionsResponse {
     label: string;
     description: string;
   }[];
-}
-
-export interface FlagSummary {
-  code: string;
-  name: string;
 }

@@ -1,78 +1,71 @@
-//! Response types and conversions shared by player routes.
+//! Conversion of player chart results to the shared hotlap response.
 
-use crate::era_slug::EraSlug;
-
-use crate::milliseconds::Milliseconds;
-
+use crate::api::v1::{PlayerSummary, hotlaps::response::Hotlap};
 use crate::models::player::PlayerChartResult;
-use serde::Serialize;
-use utoipa::ToSchema;
-
-/// A high-ranking current personal best on an individual chart.
-#[derive(Debug, Serialize, ToSchema)]
-pub(in crate::api::v1) struct PlayerChartResultResponse {
-    hotlap_id: i64,
-    /// Relative URL of the original replay, absent when none is stored.
-    #[schema(required)]
-    spr_url: Option<String>,
-    era_id: EraSlug,
-    track: String,
-    vehicle: String,
-    lap_time_ms: Milliseconds,
-    distance_to_world_record_ms: Milliseconds,
-    position: i64,
-    entries: i64,
-    #[serde(with = "time::serde::rfc3339")]
-    #[schema(value_type = String, format = DateTime)]
-    created_at: time::OffsetDateTime,
-    game_version: String,
-}
 
 pub(in crate::api::v1) fn chart_result_responses(
     results: Vec<PlayerChartResult>,
-) -> Vec<PlayerChartResultResponse> {
+    player: PlayerSummary,
+) -> Vec<Hotlap> {
     results
         .into_iter()
-        .map(|result| PlayerChartResultResponse {
-            hotlap_id: result.hotlap_id,
-            spr_url: result
-                .downloadable
-                .then(|| crate::api::v1::hotlaps::replay::download_url(result.hotlap_id)),
-            era_id: result.era_slug,
-            track: result.track,
-            vehicle: result.vehicle,
-            lap_time_ms: result.lap_time_ms,
-            distance_to_world_record_ms: result.distance_to_world_record_ms,
-            position: result.position,
-            entries: result.entries,
-            created_at: result.created_at,
-            game_version: result.game_version,
-        })
+        .map(|result| Hotlap::from_chart_result(result, player.clone()))
         .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::milliseconds::Milliseconds;
 
     #[test]
     fn chart_results_serialize_the_public_era_slug() {
-        let results = chart_result_responses(vec![PlayerChartResult {
-            hotlap_id: 42,
-            downloadable: false,
-            era_id: 987,
-            era_slug: "2007-12-21".parse().unwrap(),
-            track: "BL1".to_owned(),
-            vehicle: "XFG".to_owned(),
-            lap_time_ms: Milliseconds::from_millis(90_000),
-            distance_to_world_record_ms: Milliseconds::from_millis(100),
-            position: 2,
-            entries: 10,
-            created_at: time::OffsetDateTime::UNIX_EPOCH,
-            game_version: "0.5Y".to_owned(),
-        }]);
+        let results = chart_result_responses(
+            vec![PlayerChartResult {
+                hotlap_id: 42,
+                downloadable: false,
+                era_id: 987,
+                era_slug: "2007-12-21".parse().unwrap(),
+                era_title: "Historical".to_owned(),
+                track: "BL1".to_owned(),
+                vehicle: "XFG".to_owned(),
+                lap_time_ms: Milliseconds::from_millis(90_000),
+                distance_to_world_record_ms: Milliseconds::from_millis(100),
+                position: 2,
+                created_at: time::OffsetDateTime::UNIX_EPOCH,
+                game_version: crate::game_version::GameVersionCode("0.5Y".parse().unwrap()),
+                split_1_ms: Milliseconds::from_millis(30_000),
+                split_2_ms: Milliseconds::from_millis(60_000),
+                split_3_ms: Milliseconds::from_millis(0),
+                split_4_ms: Milliseconds::from_millis(0),
+                player_flags: lfsplanet_spr::PlayerFlags::MOUSE.into(),
+                abs_enabled: None,
+            }],
+            PlayerSummary {
+                id: 7,
+                lfs_username: "driver".to_owned(),
+                display_name: "Driver".to_owned(),
+                country_code: None,
+                flag_code: None,
+            },
+        );
 
         let json = serde_json::to_value(results).unwrap();
         assert_eq!(json[0]["era_id"], "2007-12-21");
+        assert_eq!(json[0]["id"], 42);
+        assert_eq!(json[0]["player"]["id"], 7);
+        assert_eq!(json[0]["position"], 2);
+        assert!(json[0].get("entries").is_none());
+        assert!(json[0].get("submission").is_none());
+        assert_eq!(json[0]["split_1_ms"], 30_000);
+        assert_eq!(json[0]["split_2_ms"], 60_000);
+        assert_eq!(json[0]["steering"], "mouse");
+        assert_eq!(json[0]["abs_enabled"], serde_json::Value::Null);
+        assert_eq!(json[0]["manual_shifter"], false);
+        assert_eq!(json[0]["replay_url"], serde_json::Value::Null);
+        assert_eq!(json[0]["created_at"], "1970-01-01T00:00:00Z");
+        assert!(json[0].get("hotlap").is_none());
+        assert!(json[0].get("hotlap_id").is_none());
+        assert!(json[0].get("spr_url").is_none());
     }
 }
