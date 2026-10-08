@@ -1,4 +1,9 @@
-import { get, query, type HotlapChartResponse } from "$lib/api.js";
+import { NotFoundError } from "@lfsplanet/sdk/api";
+
+import { type CombinationRejection, createApi } from "$lib/api.js";
+import type { BestRequest } from "@lfsplanet/sdk/api";
+import { error } from "@sveltejs/kit";
+
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({
@@ -8,29 +13,63 @@ export const load: PageLoad = async ({
   fetch,
   parent,
 }) => {
+  const api = createApi(fetch);
   depends("app:hotlaps");
-  const { countries, track, vehicle } = await parent();
-  const era = encodeURIComponent(params.era);
+  const { countries, breadcrumbs } = await parent();
   const requestedCountry = url.searchParams.get("country");
   const country = requestedCountry ? match(countries, requestedCountry) : null;
 
-  const chart =
-    track && vehicle
-      ? await get<HotlapChartResponse>(
-          fetch,
-          `/api/v1/eras/${era}/charts/${encodeURIComponent(track.code)}/${encodeURIComponent(vehicle.code)}` +
-            query({
-              country: requestedCountry,
-              controller: url.searchParams.get("controller"),
-              page: url.searchParams.get("page"),
-              per_page: url.searchParams.get("per_page"),
-              column: url.searchParams.get("column"),
-              order: url.searchParams.get("order"),
-            }),
-        )
-      : null;
+  // The leaderboard supplies catalogue metadata even when its page is empty.
+  const chart = await api.charts
+    .best({
+      era: params.era,
+      track: params.track,
+      vehicle: params.vehicle,
+      country: requestedCountry || undefined,
+      controller: url.searchParams.get("controller") || undefined,
+      page: url.searchParams.get("page")
+        ? Number(url.searchParams.get("page"))
+        : undefined,
+      per_page: url.searchParams.get("per_page")
+        ? Number(url.searchParams.get("per_page"))
+        : undefined,
+      column: (url.searchParams.get("column") ||
+        undefined) as BestRequest["column"],
+      order: (url.searchParams.get("order") ||
+        undefined) as BestRequest["order"],
+    })
+    .catch((cause) => {
+      if (cause instanceof NotFoundError) return null;
+      throw cause;
+    });
+  let reason: CombinationRejection | null = null;
+  if (!chart) {
+    // Resolve the rejection reason only after the chart lookup misses.
+    const check = await api.eras.validateEraCombination({
+      era: params.era,
+      track: params.track,
+      vehicle: params.vehicle,
+    });
+    if (check.valid) error(404, "Chart not found");
+    reason = check.reason ?? "not_offered";
+  }
+  const track = chart?.chart.track ?? null;
+  const vehicle = chart?.chart.vehicle ?? null;
 
-  return { country, chart };
+  return {
+    country,
+    chart,
+    track,
+    vehicle,
+    reason,
+    breadcrumbs: [
+      ...breadcrumbs,
+      {
+        label: `${track?.code ?? params.track} / ${vehicle?.code ?? params.vehicle}`,
+        href: `/hotlaps/${params.era}/charts/${encodeURIComponent(params.track)}/${encodeURIComponent(params.vehicle)}`,
+      },
+    ],
+  };
 };
 
 /** The catalogue entry a code names, ignoring case as the API does. */

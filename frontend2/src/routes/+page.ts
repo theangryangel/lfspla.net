@@ -1,10 +1,10 @@
-import { get, type StatsResponse } from "$lib/api.js";
+import { createApi } from "$lib/api.js";
+
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ depends, fetch }) => {
+  const api = createApi(fetch);
   depends("app:hotlaps");
-  const stats = await get<StatsResponse>(fetch, "/api/v1/stats").catch(
-    () => null,
-  );
+  const stats = await api.stats.getStats().catch(() => null);
   return { stats };
 };

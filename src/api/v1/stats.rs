@@ -1,8 +1,10 @@
 //! Public homepage totals and activity spotlights.
 use crate::{
-    api::v1::PlayerSummary,
+    api::v1::{
+        PlayerSummary,
+        eras::{response::Chart, tracks::TrackSummary, vehicles::VehicleSummary},
+    },
     api::{ApiError, ApiState, ErrorResponse},
-    era_slug::EraSlug,
     milliseconds::Milliseconds,
     models::site_stats::SiteStats,
 };
@@ -34,14 +36,7 @@ pub(crate) struct StatsResponse {
 
 #[derive(Serialize, ToSchema)]
 pub(crate) struct ComboSpotlightResponse {
-    era_id: EraSlug,
-    era_title: String,
-    track: String,
-    track_name: String,
-    vehicle: String,
-    vehicle_name: String,
-    #[schema(required)]
-    vehicle_image_url: Option<String>,
+    chart: Chart,
     recent_uploads: i64,
     leaders: Vec<SpotlightBestResponse>,
 }
@@ -86,15 +81,23 @@ pub(crate) async fn get_stats(
         eras: totals.eras,
         spotlight_uploads: totals.spotlight_uploads,
         combo_spotlight: totals.combo_spotlight.map(|combo| ComboSpotlightResponse {
-            era_id: combo.era_id,
-            era_title: combo.era_title,
-            track: combo.track.to_string(),
-            track_name: combo.track_name,
-            vehicle: combo.vehicle.to_string(),
-            vehicle_name: combo.vehicle_name,
-            vehicle_image_url: combo
-                .vehicle_has_image
-                .then(|| crate::api::v1::vehicles::image_url(&combo.vehicle.to_string())),
+            chart: Chart::new(
+                combo.era_id,
+                combo.era_title,
+                TrackSummary::new(
+                    combo.track,
+                    combo.track_name,
+                    combo.track_location,
+                    combo.track_reverse,
+                    combo.track_open_configuration,
+                ),
+                VehicleSummary::new(
+                    combo.vehicle,
+                    combo.vehicle_name,
+                    combo.vehicle_license,
+                    combo.vehicle_has_image,
+                ),
+            ),
             recent_uploads: combo.recent_uploads,
             leaders: combo
                 .leaders

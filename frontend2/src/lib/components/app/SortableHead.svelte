@@ -35,7 +35,7 @@
 			? 'w-full justify-center'
 			: ''}"
 		aria-label={`Sort by ${label}, ${nextOrder === 'asc' ? 'ascending' : 'descending'}`}
-		onclick={() => setQuery({ column, order: nextOrder })}
+		onclick={() => setQuery({ column, order: nextOrder, page: '' })}
 	>
 		{shortLabel ?? label}
 		{#if !active}

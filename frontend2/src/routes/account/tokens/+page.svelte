@@ -1,22 +1,26 @@
 <script lang="ts">
 	import {
-		send,
+		apiErrorMessage,
+		useApi,
 		type CreatedPersonalAccessTokenResponse,
 		type PersonalAccessTokenResponse,
 	} from '$lib/api.js';
 	import { dateTime } from '$lib/format.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+
 	import { useSession } from '$lib/session.svelte.js';
 	import Panel from '$lib/components/app/Panel.svelte';
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+
 	import * as Table from '$lib/components/ui/table/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import type { PageProps } from './$types';
 
+	const api = useApi();
+
 	let { data }: PageProps = $props();
 	const session = useSession();
-	const endpoint = '/api/v1/me/personal-access-tokens';
 	let tokens = $derived(data.tokens);
 	let name = $state('');
 	let days = $state<number | undefined>(90);
@@ -37,10 +41,10 @@
 		notice = '';
 		copyMessage = '';
 		try {
-			const result = await send<CreatedPersonalAccessTokenResponse>(endpoint, {
-				method: 'POST',
-				csrf: session.me.csrf_token,
-				json: { name: name.trim(), expires_in_days: days },
+			const result = await api.personalAccessTokens.create({
+				'X-CSRF-Token': session.me.csrf_token,
+				name: name.trim(),
+				expires_in_days: days,
 			});
 			if (!result)
 				throw new Error(
@@ -52,7 +56,7 @@
 		} catch (cause) {
 			error =
 				cause instanceof Error
-					? cause.message
+					? apiErrorMessage(cause)
 					: 'The token could not be created.';
 		} finally {
 			pending = false;
@@ -73,9 +77,9 @@
 		revokeError = '';
 		const token = target;
 		try {
-			await send(`${endpoint}/${token.id}`, {
-				method: 'DELETE',
-				csrf: session.me.csrf_token,
+			await api.personalAccessTokens.revoke({
+				'X-CSRF-Token': session.me.csrf_token,
+				token: token.id,
 			});
 			tokens = tokens.map((item) =>
 				item.id === token.id
@@ -88,7 +92,7 @@
 		} catch (cause) {
 			revokeError =
 				cause instanceof Error
-					? cause.message
+					? apiErrorMessage(cause)
 					: 'The token could not be revoked.';
 		} finally {
 			pending = false;

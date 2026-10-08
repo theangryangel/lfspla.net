@@ -1,8 +1,11 @@
 import {
-  getOptional,
-  type NationRankingResponse,
-  type PersonalRankingResponse,
-} from "$lib/api.js";
+  UnauthorizedError,
+  NotFoundError,
+  ConflictError,
+} from "@lfsplanet/sdk/api";
+
+import { createApi } from "$lib/api.js";
+
 import type { PageLoad } from "./$types";
 
 /**
@@ -12,12 +15,31 @@ import type { PageLoad } from "./$types";
  * missing standing is an ordinary state the page reports rather than an error.
  */
 export const load: PageLoad = async ({ depends, params, fetch }) => {
+  const api = createApi(fetch);
   depends("app:hotlaps");
-  const base = `/api/v1/eras/${encodeURIComponent(params.era)}/rankings/${encodeURIComponent(params.rank)}`;
-  const absent = [401, 404, 409];
   const [players, nations] = await Promise.all([
-    getOptional<PersonalRankingResponse>(fetch, `${base}/players`, absent),
-    getOptional<NationRankingResponse>(fetch, `${base}/nations`, absent),
+    api.ranking
+      .players({ era: params.era, ranking: params.rank })
+      .catch((cause) => {
+        if (
+          cause instanceof UnauthorizedError ||
+          cause instanceof NotFoundError ||
+          cause instanceof ConflictError
+        )
+          return null;
+        throw cause;
+      }),
+    api.ranking
+      .nations({ era: params.era, ranking: params.rank })
+      .catch((cause) => {
+        if (
+          cause instanceof UnauthorizedError ||
+          cause instanceof NotFoundError ||
+          cause instanceof ConflictError
+        )
+          return null;
+        throw cause;
+      }),
   ]);
 
   return { players, nations };

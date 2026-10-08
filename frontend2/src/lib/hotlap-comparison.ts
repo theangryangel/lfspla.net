@@ -1,7 +1,7 @@
-import type { BestHotlapResponse } from "./api.js";
+import type { Hotlap } from "./api.js";
 
 export type ComparisonLap = Pick<
-  BestHotlapResponse,
+  Hotlap,
   "lap_time_ms" | "split_1_ms" | "split_2_ms" | "split_3_ms" | "split_4_ms"
 >;
 

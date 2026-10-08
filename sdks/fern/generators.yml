@@ -1,0 +1,17 @@
+api:
+  specs:
+    - openapi: ../../target/openapi.json
+groups:
+  typescript:
+    generators:
+      - name: fernapi/fern-typescript-sdk
+        # XXX: Pin before the 3.75.1 Headers iterator regression until the upstream fix ships.
+        # https://github.com/fern-api/fern/pull/17817
+        version: 3.75.0
+        output:
+          location: local-file-system
+          path: ../typescript/src
+        config:
+          fetchSupport: native
+          formDataSupport: Node18
+          omitFernHeaders: true

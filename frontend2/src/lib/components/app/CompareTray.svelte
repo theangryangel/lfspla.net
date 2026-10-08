@@ -6,19 +6,21 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Flag from './Flag.svelte';
 	import { useComparison } from '$lib/compare.svelte.js';
-	import { query } from '$lib/api.js';
+
 	const comparison = useComparison();
 	const visible = $derived(
 		comparison.drivers.length > 0 && page.url.pathname !== '/compare',
 	);
-	const href = $derived(
-		'/compare' +
-			query({
-				left: comparison.drivers[0]?.lfs_username,
-				right: comparison.drivers[1]?.lfs_username,
-				era: page.params.era ?? page.data.currentEraId,
-			}),
-	);
+	const href = $derived.by(() => {
+		const params = new URLSearchParams();
+		const left = comparison.drivers[0]?.lfs_username;
+		const right = comparison.drivers[1]?.lfs_username;
+		if (left) params.set('left', left);
+		if (right) params.set('right', right);
+		if (page.params.era) params.set('era', page.params.era);
+		const search = params.toString();
+		return `/compare${search ? `?${search}` : ''}`;
+	});
 </script>
 
 {#if visible}

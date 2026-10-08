@@ -178,8 +178,8 @@ impl RankingFilter for Select<Entity> {}
 #[derive(Debug, FromQueryResult)]
 pub(crate) struct PersonalRankingProgress {
     pub ranking_id: i64,
-    pub total_combinations: i64,
-    pub completed_combinations: i64,
+    pub total_charts: i64,
+    pub completed_charts: i64,
 }
 
 fn limit_parameter(limit: u64) -> i64 {
@@ -238,11 +238,10 @@ contributors AS (
     )
 }
 
-#[derive(Debug, sea_orm::FromQueryResult, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, sea_orm::FromQueryResult)]
 pub(crate) struct NationContribution {
-    pub player_id: i64,
-    pub lfs_username: String,
-    pub display_name: String,
+    #[sea_orm(nested)]
+    pub player: Player,
     pub points: i64,
     pub contributing_charts: i64,
     pub handicap_ms: Milliseconds,
@@ -305,6 +304,15 @@ mod tests {
             assert_eq!(nations[0].handicap_ms.as_millis(), expected_gap);
             let contributors = ranking.list_nation_contributions(&database, "GB").await?;
             assert_eq!(contributors[0].handicap_ms.as_millis(), expected_gap);
+            assert_eq!(contributors[0].player.id, personal[0].row.player_id);
+            assert_eq!(
+                contributors[0]
+                    .player
+                    .country_code
+                    .as_ref()
+                    .map(crate::country::CountryCode::as_str),
+                Some("GB")
+            );
         }
         Ok(())
     }
@@ -473,14 +481,14 @@ ORDER BY ranking_chart_membership.position
         let sql = format!(
             r#"
 {contributors}
-SELECT contributors.player_id, player.lfs_username, player.display_name,
+SELECT player.*,
        SUM({score_base} - chart_position)::BIGINT AS points,
        COUNT(DISTINCT chart_id)::BIGINT AS contributing_charts,
        SUM(lap_time_ms - {benchmark})::BIGINT AS handicap_ms
 FROM contributors
 JOIN player ON player.id = contributors.player_id
 WHERE contributors.country_code = $2
-GROUP BY contributors.player_id, player.lfs_username, player.display_name
+GROUP BY player.id
 ORDER BY points DESC, handicap_ms, player.lfs_username COLLATE "C"
 "#,
             contributors = nation_contributors_sql(rules),

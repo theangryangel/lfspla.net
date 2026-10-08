@@ -2,9 +2,10 @@
 
 use crate::era_slug::EraSlug;
 
-use super::response::{PlayerChartResultResponse, chart_result_responses};
+use super::response::chart_result_responses;
+use crate::api::v1::hotlaps::response::Hotlap;
 use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors as extract},
+    api::{ApiError, ApiState, ErrorResponse, extractors as extract, v1::PlayerSummary},
     models::{badge::PlayerBadge, player::PlayerProfile},
 };
 use axum::{Json, extract::State};
@@ -49,16 +50,11 @@ pub(crate) struct PlayerEraStatsResponse {
 /// Public profile and competitive record for one LFS account.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct PlayerResponse {
-    id: i64,
-    lfs_username: String,
-    display_name: String,
-    #[schema(required)]
-    country_code: Option<String>,
-    #[schema(required)]
-    flag_code: Option<String>,
+    #[serde(flatten)]
+    player: PlayerSummary,
     stats: PlayerStatsResponse,
     eras: Vec<PlayerEraStatsResponse>,
-    highlights: Vec<PlayerChartResultResponse>,
+    highlights: Vec<Hotlap>,
 }
 
 #[utoipa::path(
@@ -85,18 +81,24 @@ pub(crate) async fn detail(
 
 impl From<PlayerProfile> for PlayerResponse {
     fn from(profile: PlayerProfile) -> Self {
+        let player: PlayerSummary = profile.player.into();
+        let badges_by_era: std::collections::HashMap<_, _> = profile
+            .eras
+            .iter()
+            .map(|era| (era.id.clone(), era.badges.clone()))
+            .collect();
+        let highlights = chart_result_responses(profile.highlights, player.clone())
+            .into_iter()
+            .map(|hotlap| {
+                let badges = badges_by_era
+                    .get(&hotlap.era_id)
+                    .cloned()
+                    .unwrap_or_default();
+                hotlap.with_badges(badges)
+            })
+            .collect();
         PlayerResponse {
-            id: profile.player.id,
-            flag_code: profile
-                .player
-                .flag_code
-                .map(|code| code.as_str().to_owned()),
-            lfs_username: profile.player.lfs_username,
-            display_name: profile.player.display_name,
-            country_code: profile
-                .player
-                .country_code
-                .map(|country_code| country_code.as_str().to_owned()),
+            player,
             stats: PlayerStatsResponse {
                 hotlaps: profile.stats.hotlaps,
                 personal_bests: profile.stats.personal_bests,
@@ -122,7 +124,7 @@ impl From<PlayerProfile> for PlayerResponse {
                     badges: era.badges,
                 })
                 .collect(),
-            highlights: chart_result_responses(profile.highlights),
+            highlights,
         }
     }
 }

@@ -2,6 +2,7 @@
 
 mod detail;
 mod list;
+pub(super) mod query;
 mod remove;
 pub(super) mod replay;
 pub(super) mod response;

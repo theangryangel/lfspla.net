@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import PlayerBadge from '$lib/components/app/PlayerBadge.svelte';
@@ -12,7 +13,6 @@
 	import Flag from '$lib/components/app/Flag.svelte';
 	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import { delta, pageItems, relativeColor } from '$lib/format.js';
-	import { queryValue } from '$lib/query.js';
 	import { useSession } from '$lib/session.svelte.js';
 	import type { PageProps } from './$types';
 
@@ -20,12 +20,15 @@
 
 	const session = useSession();
 	const driverRows = $derived(
-		pageItems(data.players?.entries ?? [], Number(queryValue('page') || 1)),
+		pageItems(
+			data.players?.entries ?? [],
+			Number((page.url.searchParams.get('page') ?? '') || 1),
+		),
 	);
 	const nationRows = $derived(
 		pageItems(
 			data.nations?.entries ?? [],
-			Number(queryValue('nation_page') || 1),
+			Number((page.url.searchParams.get('nation_page') ?? '') || 1),
 		),
 	);
 </script>
@@ -111,9 +114,9 @@
 											</Table.Row>
 										{/each}
 									{:else}
-										{#each driverRows.items as row (row.player_id)}
+										{#each driverRows.items as row (row.player.id)}
 											<Table.Row
-												data-state={row.player_id === session.player?.id
+												data-state={row.player.id === session.player?.id
 													? 'selected'
 													: undefined}
 											>
@@ -125,22 +128,22 @@
 												<Table.Cell>
 													<div class="flex min-w-0 items-center gap-1">
 														<Flag
-															code={row.flag_code}
-															fallback={row.country_code}
+															code={row.player.flag_code}
+															fallback={row.player.country_code}
 														/>
 														<a
 															class="min-w-0 truncate hover:underline"
-															href="/drivers/{row.lfs_username}"
+															href="/drivers/{row.player.lfs_username}"
 														>
-															{row.display_name}
+															{row.player.display_name}
 														</a>
-														{#if row.player_id === session.player?.id}
+														{#if row.player.id === session.player?.id}
 															<Badge variant="secondary">You</Badge>
 														{/if}
 														{#each row.badges as playerBadge, i (i)}
 															<PlayerBadge badge={playerBadge} />
 														{/each}
-														<CompareButton driver={row} />
+														<CompareButton driver={row.player} />
 													</div>
 												</Table.Cell>
 												<Table.Cell class="tabular-nums">

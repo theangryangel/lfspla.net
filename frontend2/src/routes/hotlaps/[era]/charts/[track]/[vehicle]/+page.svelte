@@ -4,7 +4,6 @@
 	import GitCompare from '@lucide/svelte/icons/git-compare';
 	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import { hotlapPath } from '$lib/era.js';
 	import { mergeProps } from 'bits-ui';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import { intermediateSplits } from '$lib/hotlap-comparison.js';
@@ -31,13 +30,13 @@
 		steeringLabels,
 	} from '$lib/format.js';
 	import { page } from '$app/state';
-	import { queryValue, setQuery, updateQuery } from '$lib/query.js';
+	import { setQuery } from '$lib/query.js';
 	import { useSession } from '$lib/session.svelte.js';
 	import {
-		type BestHotlapColumn,
-		type BestHotlapResponse,
+		type HotlapListColumn,
+		type Hotlap,
 		type Ordering,
-		type CountrySummary,
+		type CodeNameSummary,
 	} from '$lib/api.js';
 	import type { PageProps } from './$types';
 
@@ -65,12 +64,22 @@
 	});
 
 	const filtered = $derived(
-		Boolean(queryValue('country') || queryValue('controller')),
+		Boolean(
+			(page.url.searchParams.get('country') ?? '') ||
+			(page.url.searchParams.get('controller') ?? ''),
+		),
 	);
-	const column = $derived((queryValue('column') || 'rank') as BestHotlapColumn);
-	const order = $derived((queryValue('order') || 'asc') as Ordering);
+	const requestedColumn = $derived(page.url.searchParams.get('column') ?? '');
+	const column = $derived(
+		(requestedColumn === 'set'
+			? 'submitted'
+			: requestedColumn || 'rank') as HotlapListColumn,
+	);
+	const order = $derived(
+		((page.url.searchParams.get('order') ?? '') || 'asc') as Ordering,
+	);
 	const record = $derived(
-		entries.length
+		entries.length && entries[0].distance_to_world_record_ms !== null
 			? entries[0].lap_time_ms - entries[0].distance_to_world_record_ms
 			: null,
 	);
@@ -78,7 +87,7 @@
 	const combination = $derived(
 		JSON.stringify([data.era.id, page.params.track, page.params.vehicle]),
 	);
-	let selection = $state<{ combination: string; laps: BestHotlapResponse[] }>({
+	let selection = $state<{ combination: string; laps: Hotlap[] }>({
 		combination: '',
 		laps: [],
 	});
@@ -89,7 +98,7 @@
 		if (selection.combination !== combination)
 			selection = { combination, laps: [] };
 	});
-	function toggleLap(lap: BestHotlapResponse) {
+	function toggleLap(lap: Hotlap) {
 		selection = {
 			combination,
 			laps: selectedLaps.some((entry) => entry.id === lap.id)
@@ -101,7 +110,7 @@
 	}
 
 	const ANY_NATION = { value: '', label: 'All nations' };
-	const countryOption = (c: CountrySummary) => ({
+	const countryOption = (c: CodeNameSummary) => ({
 		value: c.code,
 		label: c.name,
 		hint: c.code,
@@ -146,18 +155,18 @@
 		{#if chosen}
 			<SearchSelect
 				label="Nation"
-				value={queryValue('country')}
+				value={page.url.searchParams.get('country') ?? ''}
 				selectedLabel={data.country?.name ?? ''}
 				options={countryOptions}
 				search={searchCountries}
 				placeholder="Search nations..."
-				onValueChange={(v) => updateQuery('country', v)}
+				onValueChange={(v) => setQuery({ country: v, page: '' })}
 			/>
 			<ChoiceSelect
 				label="Controller"
-				value={queryValue('controller')}
+				value={page.url.searchParams.get('controller') ?? ''}
 				options={controllerOptions}
-				onValueChange={(v) => updateQuery('controller', v)}
+				onValueChange={(v) => setQuery({ controller: v, page: '' })}
 			/>
 			{#if data.chart}
 				<Dialog.Root bind:open={contributionsOpen}>
@@ -181,7 +190,7 @@
 							{#each data.chart.contributes_to as ranking (ranking.id)}
 								<Badge
 									variant="outline"
-									href={`${hotlapPath(data.era.id)}/rankings/${encodeURIComponent(ranking.id)}`}
+									href={`/hotlaps/${data.era.id}/rankings/${encodeURIComponent(ranking.id)}`}
 									onclick={() => (contributionsOpen = false)}
 									>{ranking.title}</Badge
 								>
@@ -193,7 +202,7 @@
 			{#if filtered}
 				<Button
 					variant="ghost"
-					onclick={() => setQuery({ country: '', controller: '' })}
+					onclick={() => setQuery({ country: '', controller: '', page: '' })}
 				>
 					Clear filters
 				</Button>
@@ -263,7 +272,7 @@
 								>
 								<Table.Head>Controls</Table.Head>
 								<SortableHead
-									column="set"
+									column="submitted"
 									activeColumn={column}
 									{order}
 									label="Set"
@@ -303,7 +312,7 @@
 											>
 												{entry.player.display_name}
 											</a>
-											{#each entry.player.badges as playerBadge, i (i)}
+											{#each entry.player.badges ?? [] as playerBadge, i (i)}
 												<PlayerBadge badge={playerBadge} />
 											{/each}
 											<CompareButton driver={entry.player} />
@@ -371,11 +380,11 @@
 										{dateTime(entry.created_at)} · {entry.game_version}
 									</Table.Cell>
 									<Table.Cell>
-										{#if entry.spr_url}
+										{#if entry.replay_url}
 											<Button
 												variant="ghost"
 												size="icon"
-												href={entry.spr_url}
+												href={entry.replay_url}
 												aria-label="Download {entry.player
 													.display_name}'s replay"
 											>

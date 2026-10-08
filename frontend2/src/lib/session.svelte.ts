@@ -1,6 +1,11 @@
+import {
+  apiErrorMessage,
+  type ApiClient,
+  type MeResponse,
+  type PlayerSummary,
+} from "$lib/api.js";
 import { getContext, setContext } from "svelte";
 import { invalidateAll } from "$app/navigation";
-import { send, type MeResponse, type PlayerSummary } from "$lib/api.js";
 
 const KEY = Symbol("lfsplanet.session");
 
@@ -18,7 +23,10 @@ export class Session {
   pending = $state(false);
   error = $state("");
 
-  constructor(me: () => MeResponse) {
+  constructor(
+    me: () => MeResponse,
+    private readonly api: ApiClient,
+  ) {
     this.#me = me;
   }
 
@@ -53,7 +61,9 @@ export class Session {
     this.pending = true;
     this.error = "";
     try {
-      await send("/auth/logout", { method: "POST", csrf: this.me.csrf_token });
+      await this.api.authentication.logout({
+        "X-CSRF-Token": this.me.csrf_token,
+      });
       try {
         await invalidateAll();
       } catch {
@@ -61,8 +71,7 @@ export class Session {
           "You signed out, but the page could not refresh. Please reload.";
       }
     } catch (cause) {
-      this.error =
-        cause instanceof Error ? cause.message : "You could not be signed out.";
+      this.error = apiErrorMessage(cause);
     } finally {
       this.pending = false;
     }
@@ -70,8 +79,8 @@ export class Session {
 }
 
 /** Publishes the session loaded by the root layout to the rest of the tree. */
-export function setSession(me: () => MeResponse) {
-  return setContext(KEY, new Session(me));
+export function setSession(me: () => MeResponse, api: ApiClient) {
+  return setContext(KEY, new Session(me, api));
 }
 
 export function useSession() {

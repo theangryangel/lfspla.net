@@ -1,13 +1,18 @@
 <script lang="ts">
-	import Info from '@lucide/svelte/icons/info';
 	import { mergeProps } from 'bits-ui';
-	import { getList, type NationContribution } from '$lib/api.js';
 	import { delta, relativeColor } from '$lib/format.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+
+	import { useApi, type NationContribution } from '$lib/api.js';
+
+	import Info from '@lucide/svelte/icons/info';
+
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import Flag from './Flag.svelte';
+
+	const api = useApi();
 
 	let {
 		era,
@@ -26,13 +31,14 @@
 
 	$effect(() => {
 		if (!open) return;
-		const path = `/api/v1/eras/${encodeURIComponent(era)}/rankings/${encodeURIComponent(ranking)}/nations/${encodeURIComponent(country)}/contributors`;
 		retry;
 		let active = true;
 		pending = true;
 		failed = false;
 		rows = [];
-		getList<NationContribution>(fetch, path)
+		api.ranking
+			.nationContributions({ era, ranking, country })
+			.then((response) => response.items)
 			.then((result) => {
 				if (active) rows = result;
 			})
@@ -111,13 +117,13 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each rows as row (row.player_id)}
+						{#each rows as row (row.player.id)}
 							<Table.Row>
 								<Table.Cell
 									><a
 										class="font-medium hover:underline"
-										href={`/drivers/${encodeURIComponent(row.lfs_username)}`}
-										onclick={() => (open = false)}>{row.display_name}</a
+										href={`/drivers/${encodeURIComponent(row.player.lfs_username)}`}
+										onclick={() => (open = false)}>{row.player.display_name}</a
 									></Table.Cell
 								>
 								<Table.Cell class="text-right tabular-nums"
@@ -126,8 +132,11 @@
 								<Table.Cell class="text-right tabular-nums"
 									>{row.contributing_charts.toLocaleString()}</Table.Cell
 								>
-								<Table.Cell class="text-right font-mono tabular-nums {relativeColor(row.handicap_ms, 0)}"
-									>{delta(row.handicap_ms)}</Table.Cell
+								<Table.Cell
+									class="text-right font-mono tabular-nums {relativeColor(
+										row.handicap_ms,
+										0,
+									)}">{delta(row.handicap_ms)}</Table.Cell
 								>
 							</Table.Row>
 						{/each}

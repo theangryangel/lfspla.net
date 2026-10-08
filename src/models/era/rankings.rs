@@ -13,8 +13,8 @@ impl Era {
             DbBackend::Postgres,
             r"
 SELECT ranking_chart_membership.ranking_id,
-       COUNT(*)::BIGINT AS total_combinations,
-       COUNT(hotlap_personal_best.hotlap_id)::BIGINT AS completed_combinations
+       COUNT(*)::BIGINT AS total_charts,
+       COUNT(hotlap_personal_best.hotlap_id)::BIGINT AS completed_charts
 FROM ranking_chart_membership
 LEFT JOIN hotlap_personal_best
   ON hotlap_personal_best.chart_id = ranking_chart_membership.chart_id

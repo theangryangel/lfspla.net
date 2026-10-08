@@ -1,7 +1,9 @@
-import { getList, type CountrySummary } from "$lib/api.js";
+import { createApi } from "$lib/api.js";
+
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ fetch, parent }) => {
+  const api = createApi(fetch);
   const { me, breadcrumbs } = await parent();
   return {
     breadcrumbs: [
@@ -9,7 +11,7 @@ export const load: PageLoad = async ({ fetch, parent }) => {
       { label: "Personal settings", href: "/account/personal" },
     ],
     countries: me.authenticated
-      ? await getList<CountrySummary>(fetch, "/api/v1/countries")
+      ? await api.countries.listCountries().then((response) => response.items)
       : [],
   };
 };

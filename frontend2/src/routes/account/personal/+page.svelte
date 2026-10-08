@@ -1,18 +1,23 @@
 <script lang="ts">
+	import { apiErrorMessage, useApi, type CodeNameSummary } from '$lib/api.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+
 	import { invalidate } from '$app/navigation';
-	import { getList, send, type FlagSummary } from '$lib/api.js';
+
 	import { useSession } from '$lib/session.svelte.js';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import Panel from '$lib/components/app/Panel.svelte';
 	import SearchSelect from '$lib/components/app/SearchSelect.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+
 	import type { PageProps } from './$types';
+
+	const api = useApi();
 
 	let { data }: PageProps = $props();
 	const session = useSession();
 	let country = $derived(session.player?.country_code ?? '');
 	let flag = $derived(session.player?.flag_code ?? '');
-	let flags = $state<FlagSummary[]>([]);
+	let flags = $state<CodeNameSummary[]>([]);
 	let loadingFlags = $state(false);
 	let flagError = $state('');
 	let retry = $state(0);
@@ -24,10 +29,9 @@
 		flagError = '';
 		loadingFlags = !!code;
 		if (code) {
-			getList<FlagSummary>(
-				fetch,
-				`/api/v1/countries/${encodeURIComponent(code)}/flags`,
-			)
+			api.countries
+				.listCountryFlags({ code })
+				.then((response) => response.items)
 				.then((choices) => {
 					if (!cancelled) flags = choices;
 				})
@@ -57,10 +61,10 @@
 		error = '';
 		saved = false;
 		try {
-			await send('/api/v1/me', {
-				method: 'PATCH',
-				csrf: session.me.csrf_token,
-				json: { country_code: country || null, flag_code: flag || null },
+			await api.authentication.update({
+				'X-CSRF-Token': session.me.csrf_token,
+				country_code: country || null,
+				flag_code: flag || null,
 			});
 			saved = true;
 			try {
@@ -72,7 +76,7 @@
 		} catch (cause) {
 			error =
 				cause instanceof Error
-					? cause.message
+					? apiErrorMessage(cause)
 					: 'Your settings could not be saved.';
 		} finally {
 			pending = false;

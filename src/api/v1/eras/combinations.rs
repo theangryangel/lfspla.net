@@ -1,16 +1,11 @@
 //! The actual pairs offered by an era, including pairs with no uploaded laps.
-use super::{tracks::TrackSummary, vehicles::VehicleSummary};
+use super::response::Chart;
 use crate::{
     api::{
         ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
         extractors as extract,
     },
-    models::{
-        Chart,
-        chart::Column as ChartColumn,
-        track::{Column as TrackColumn, Entity as TrackEntity},
-        vehicle::{Column as VehicleColumn, Entity as VehicleEntity},
-    },
+    models::chart::Column as ChartColumn,
 };
 use axum::{
     Json,
@@ -18,11 +13,10 @@ use axum::{
 };
 use insim_core::{track::Track, vehicle::Vehicle};
 use sea_orm::{
-    AccessMode, ColumnTrait, EntityTrait, IsolationLevel, PaginatorTrait, QueryFilter, QuerySelect,
+    AccessMode, ColumnTrait, IsolationLevel, PaginatorTrait, QueryFilter, QuerySelect,
     TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 #[derive(Debug, Deserialize, IntoParams)]
@@ -32,13 +26,6 @@ pub(crate) struct CombinationQuery {
     track: Option<String>,
     /// Exact canonical vehicle code.
     vehicle: Option<String>,
-}
-
-/// A track and vehicle pair offered by an era, identified by their codes.
-#[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct CombinationSummary {
-    track: TrackSummary,
-    vehicle: VehicleSummary,
 }
 
 pub(super) fn router() -> OpenApiRouter<ApiState> {
@@ -52,7 +39,7 @@ pub(super) fn router() -> OpenApiRouter<ApiState> {
     operation_id = "list_era_combinations", tag = "eras",
     params(("era" = String, Path, description = "Era slug"), CombinationQuery, PaginationQuery),
     responses(
-        (status = 200, description = "Defined combinations, ordered by track and vehicle code", body = PaginatedResponse<CombinationSummary>),
+        (status = 200, description = "Defined combinations, ordered by track and vehicle code", body = PaginatedResponse<Chart>),
         (status = 400, description = "Invalid pagination", body = ErrorResponse),
         (status = 404, description = "Era not found", body = ErrorResponse)
     )
@@ -62,7 +49,7 @@ pub(crate) async fn list(
     State(state): State<ApiState>,
     Query(query): Query<CombinationQuery>,
     Query(pagination): Query<PaginationQuery>,
-) -> Result<Json<PaginatedResponse<CombinationSummary>>, ApiError> {
+) -> Result<Json<PaginatedResponse<Chart>>, ApiError> {
     let offset = pagination.offset()?;
     let transaction = state
         .database
@@ -90,7 +77,7 @@ pub(crate) async fn list(
         .all(&transaction)
         .await
         .map_err(ApiError::database)?;
-    let items = hydrate(&transaction, pairs).await?;
+    let items = Chart::load(&transaction, &era, &pairs).await?;
     transaction.commit().await.map_err(ApiError::database)?;
     Ok(Json(PaginatedResponse {
         items,
@@ -122,13 +109,13 @@ pub(crate) enum CombinationRejection {
     NotOffered,
 }
 
-/// Whether an era offers a pair, and the pair itself when it does.
+/// Whether an era offers a pair, and the resolved chart when it does.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct CombinationCheck {
     valid: bool,
-    /// The offered combination; absent whenever `valid` is false.
+    /// The resolved chart; null whenever `valid` is false.
     #[schema(required)]
-    combination: Option<CombinationSummary>,
+    chart: Option<Chart>,
     /// Why the pair was rejected; absent whenever `valid` is true.
     #[schema(required)]
     reason: Option<CombinationRejection>,
@@ -165,18 +152,18 @@ pub(crate) async fn validate(
         };
         return Ok(Json(rejected(reason)));
     };
-    // `hydrate` returns an error if track or vehicle metadata is missing.
-    let combination = hydrate(&state.database, vec![pair])
+    // The shared loader rejects missing catalogue metadata.
+    let chart = Chart::load(&state.database, &era, &[pair])
         .await?
         .pop()
         .ok_or_else(|| {
             ApiError::database(sea_orm::DbErr::RecordNotFound(
-                "hydrated combination missing".into(),
+                "hydrated chart missing".into(),
             ))
         })?;
     Ok(Json(CombinationCheck {
         valid: true,
-        combination: Some(combination),
+        chart: Some(chart),
         reason: None,
     }))
 }
@@ -203,46 +190,9 @@ fn rankable_pair(track: &str, vehicle: &str) -> Result<(Track, Vehicle), Combina
 fn rejected(reason: CombinationRejection) -> CombinationCheck {
     CombinationCheck {
         valid: false,
-        combination: None,
+        chart: None,
         reason: Some(reason),
     }
-}
-
-/// Loads track and vehicle metadata in two queries for the whole page.
-async fn hydrate(
-    database: &impl sea_orm::ConnectionTrait,
-    pairs: Vec<Chart>,
-) -> Result<Vec<CombinationSummary>, ApiError> {
-    let (tracks, vehicles) = tokio::try_join!(
-        TrackEntity::find()
-            .filter(TrackColumn::Id.is_in(pairs.iter().map(|p| p.track_id)))
-            .all(database),
-        VehicleEntity::find()
-            .filter(VehicleColumn::Id.is_in(pairs.iter().map(|p| p.vehicle_id)))
-            .all(database),
-    )
-    .map_err(ApiError::database)?;
-    let tracks: HashMap<_, _> = tracks.into_iter().map(|t| (t.id, t)).collect();
-    let vehicles: HashMap<_, _> = vehicles.into_iter().map(|v| (v.id, v)).collect();
-    pairs
-        .into_iter()
-        .map(|p| {
-            let track = tracks.get(&p.track_id).ok_or_else(|| {
-                ApiError::database(sea_orm::DbErr::RecordNotFound(
-                    "combination track missing".into(),
-                ))
-            })?;
-            let vehicle = vehicles.get(&p.vehicle_id).ok_or_else(|| {
-                ApiError::database(sea_orm::DbErr::RecordNotFound(
-                    "combination vehicle missing".into(),
-                ))
-            })?;
-            Ok(CombinationSummary {
-                track: track.clone().into(),
-                vehicle: vehicle.clone().into(),
-            })
-        })
-        .collect()
 }
 
 #[cfg(test)]
@@ -310,7 +260,7 @@ mod tests {
             .await?;
             assert_eq!(check.valid, reason.is_none());
             assert_eq!(check.reason, reason);
-            assert_eq!(check.combination.is_some(), reason.is_none());
+            assert_eq!(check.chart.is_some(), reason.is_none());
         }
         Ok(())
     }

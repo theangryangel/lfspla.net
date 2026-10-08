@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Pagination from '$lib/components/ui/pagination/index.js';
-	import { updateQuery } from '$lib/query.js';
+	import { setQuery } from '$lib/query.js';
 	import type { Pagination as PaginationMetadata } from '$lib/api.js';
 
 	let {
@@ -15,7 +15,7 @@
 
 	function changePage(page: number) {
 		const target = Math.max(1, Math.min(page, pagination.total_pages));
-		void updateQuery(pageKey, String(target));
+		void setQuery({ [pageKey]: String(target) });
 	}
 </script>
 

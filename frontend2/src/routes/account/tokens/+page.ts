@@ -1,7 +1,9 @@
-import { getList, type PersonalAccessTokenResponse } from "$lib/api.js";
+import { createApi } from "$lib/api.js";
+
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ fetch, parent }) => {
+  const api = createApi(fetch);
   const { me, breadcrumbs } = await parent();
   return {
     breadcrumbs: [
@@ -9,10 +11,9 @@ export const load: PageLoad = async ({ fetch, parent }) => {
       { label: "Personal access tokens", href: "/account/tokens" },
     ],
     tokens: me.authenticated
-      ? await getList<PersonalAccessTokenResponse>(
-          fetch,
-          "/api/v1/me/personal-access-tokens",
-        )
+      ? await api.personalAccessTokens
+          .listPersonalAccessTokens()
+          .then((response) => response.items)
       : [],
   };
 };

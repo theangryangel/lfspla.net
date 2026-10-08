@@ -15,20 +15,14 @@ use std::collections::HashSet;
 
 use sea_orm::{Select, UpdateMany};
 
-use crate::ordering::Ordering;
-
-use sea_orm::{
-    ExprTrait, Order, QueryOrder, QueryTrait,
-    sea_query::{Alias, Expr, JoinType, NullOrdering},
-};
-
 use serde::{Deserialize, Serialize};
 
 use utoipa::ToSchema;
 
-mod activity;
-pub(crate) use activity::{
-    ActivityError, HotlapActivity, HotlapActivityEntry, HotlapActivityFilter, RankingContribution,
+mod list;
+pub(crate) use list::{
+    HotlapListEntry, HotlapListError, HotlapListFilters, HotlapListPage, HotlapPage,
+    RankingContribution,
 };
 mod controls;
 mod lifecycle;
@@ -204,67 +198,11 @@ impl HotlapFilter for UpdateMany<Entity> {}
 #[serde(rename_all = "snake_case")]
 pub(crate) enum HotlapListColumn {
     #[default]
+    #[serde(alias = "set")]
     Submitted,
     Driver,
     Rank,
     LapTime,
-}
-
-/// Collection ordering supported by hotlap select queries.
-pub(crate) trait HotlapOrder: Sized {
-    fn ordered(self, column: HotlapListColumn, order: Ordering) -> Self;
-}
-
-impl HotlapOrder for Select<Entity> {
-    fn ordered(mut self, column: HotlapListColumn, order: Ordering) -> Self {
-        let order = match order {
-            Ordering::Asc => Order::Asc,
-            Ordering::Desc => Order::Desc,
-        };
-        // Join sort keys once across the candidate set, rather than running a scalar
-        // subquery for every upload. Aliases avoid the related-player loading join.
-        match column {
-            HotlapListColumn::Rank => {
-                QueryTrait::query(&mut self).join_as(
-                    JoinType::LeftJoin,
-                    Alias::new("hotlap_personal_best"),
-                    Alias::new("sort_rank"),
-                    Expr::col((Alias::new("sort_rank"), Alias::new("hotlap_id")))
-                        .equals((Entity, Column::Id))
-                        .and(
-                            Expr::col((Alias::new("sort_rank"), Alias::new("era_id")))
-                                .equals((Entity, Column::EraId)),
-                        ),
-                );
-            }
-            HotlapListColumn::Driver => {
-                QueryTrait::query(&mut self).join_as(
-                    JoinType::LeftJoin,
-                    crate::models::player::Entity,
-                    Alias::new("sort_player"),
-                    Expr::col((Alias::new("sort_player"), Alias::new("id")))
-                        .equals((Entity, Column::PlayerId)),
-                );
-            }
-            _ => {}
-        }
-        let query = match column {
-            HotlapListColumn::Submitted => self.order_by(Column::CreatedAt, order),
-            HotlapListColumn::LapTime => self.order_by(Column::LapTimeMs, order),
-            HotlapListColumn::Driver => self.order_by(
-                Expr::cust("LOWER(sort_player.display_name) COLLATE \"C\""),
-                order,
-            ),
-            HotlapListColumn::Rank => self.order_by_with_nulls(
-                Expr::cust("sort_rank.position"),
-                order,
-                NullOrdering::Last,
-            ),
-        };
-        query
-            .order_by_desc(Column::CreatedAt)
-            .order_by_desc(Column::Id)
-    }
 }
 
 #[cfg(test)]

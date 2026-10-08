@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { beforeNavigate } from '$app/navigation';
 	import { onDestroy } from 'svelte';
 	import CompareButton from '$lib/components/app/CompareButton.svelte';
@@ -8,12 +9,12 @@
 	import Empty from '$lib/components/app/Empty.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
-	import { queryValue, updateQuery } from '$lib/query.js';
+	import { setQuery } from '$lib/query.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	let draft = $state<string | null>(null);
-	const search = $derived(draft ?? queryValue('q'));
+	const search = $derived(draft ?? page.url.searchParams.get('q') ?? '');
 	const searches = new Set<string>();
 	let searchError = $state('');
 	let timer: ReturnType<typeof setTimeout> | undefined;
@@ -38,7 +39,7 @@
 		timer = setTimeout(() => {
 			// Keep newer typing local while an older search is loading.
 			searches.add(value);
-			void updateQuery('q', value, true)
+			void setQuery({ q: value, page: '' }, true)
 				.catch(() => {
 					searchError = 'Could not search drivers. Please try again.';
 				})

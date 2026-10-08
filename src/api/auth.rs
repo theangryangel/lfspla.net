@@ -1,19 +1,19 @@
 //! Browser authentication and session lifecycle routes.
 
 use crate::api::{
-    ApiError, ApiState,
+    ApiError, ApiState, ErrorResponse,
     extractors::{browser_player, login, reset_csrf_token, secrets_match, verify_csrf},
 };
 use crate::models::Player;
 use axum::{
-    Router,
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Redirect, Response},
-    routing::{get, post},
+    routing::get,
 };
 use serde::Deserialize;
 use tower_sessions::Session;
+use utoipa_axum::{router::OpenApiRouter, routes};
 const OAUTH_STATE_KEY: &str = "oauth_state";
 
 #[derive(Debug, Deserialize)]
@@ -22,11 +22,11 @@ struct CallbackQuery {
     state: String,
 }
 
-pub(crate) fn router() -> Router<ApiState> {
-    Router::new()
+pub(crate) fn router() -> OpenApiRouter<ApiState> {
+    OpenApiRouter::new()
         .route("/auth/lfs", get(start))
         .route("/auth/lfs/callback", get(callback))
-        .route("/auth/logout", post(logout))
+        .routes(routes!(logout))
 }
 
 /// Redirects the browser to LFS authorization.
@@ -103,6 +103,19 @@ async fn callback(
 }
 
 /// Clears an API client's authenticated session.
+#[utoipa::path(
+    post,
+    path = "/auth/logout",
+    operation_id = "logout",
+    tag = "authentication",
+    security(("cookie_session" = [])),
+    params(("X-CSRF-Token" = String, Header, description = "Session CSRF token")),
+    responses(
+        (status = 204, description = "Session cleared"),
+        (status = 403, description = "CSRF token is missing or invalid", body = ErrorResponse),
+        (status = 500, description = "Session or database failure", body = ErrorResponse)
+    )
+)]
 async fn logout(
     State(state): State<ApiState>,
     headers: HeaderMap,

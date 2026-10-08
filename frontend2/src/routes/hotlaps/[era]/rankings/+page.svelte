@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -7,13 +8,13 @@
 	import Progress from '$lib/components/app/Progress.svelte';
 	import { useSession } from '$lib/session.svelte.js';
 	import Empty from '$lib/components/app/Empty.svelte';
-	import { queryValue, updateQuery } from '$lib/query.js';
+	import { setQuery } from '$lib/query.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	const base = $derived(`/hotlaps/${data.era.id}/rankings`);
-	const search = $derived(queryValue('q'));
+	const search = $derived(page.url.searchParams.get('q') ?? '');
 	type Participation = 'all' | 'participating' | 'missed';
 
 	const session = useSession();
@@ -46,7 +47,7 @@
 		aria-label="Search rankings"
 		placeholder="Search rankings..."
 		value={search}
-		oninput={(e) => updateQuery('q', e.currentTarget.value)}
+		oninput={(e) => setQuery({ q: e.currentTarget.value, page: '' })}
 	/>
 	<ToggleGroup.Root
 		type="single"

@@ -48,6 +48,11 @@ Generate track outlines with `just track-gen ~/LFS/data/pth/*.pth`. See the
 See [configuration](configuration.md) for config details and
 [contributing](../CONTRIBUTING.md) for checks.
 
+## API SDKs
+
+After changing API routes or schemas, run `just generate-sdks` and commit the
+generated source with the Rust changes. This requires Docker; see [SDK usage](../sdks/README.md).
+
 ## Demo data
 
 After `just setup` (or `just migrate` for an existing setup), run `just demo` to

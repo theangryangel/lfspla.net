@@ -1,16 +1,15 @@
 <script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
-	import SearchIcon from '@lucide/svelte/icons/search';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
 	import { CARD } from '$lib/components/app/picker.js';
-	import {
-		getList,
-		query,
-		type TrackSummary,
-		type VehicleSummary,
-	} from '$lib/api.js';
+	import { type TrackSummary, type VehicleSummary, useApi } from '$lib/api.js';
+
+	import { onMount, type Snippet } from 'svelte';
+	import SearchIcon from '@lucide/svelte/icons/search';
+
+	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
+
+	const api = useApi();
 
 	let {
 		era,
@@ -57,11 +56,14 @@
 		const token = ++latest;
 		pending = true;
 		try {
-			const found = await getList<VehicleSummary>(
-				fetch,
-				`/api/v1/eras/${encodeURIComponent(era)}/vehicles` +
-					query({ track: track?.code, q: search, limit: CAP }),
-			);
+			const found = await api.vehicles
+				.listEraVehicles({
+					era: era,
+					track: track?.code,
+					q: search,
+					limit: CAP,
+				})
+				.then((response) => response.items);
 			if (token !== latest) return;
 			vehicles = found;
 			// Search remotely when the full set exceeds the cap.

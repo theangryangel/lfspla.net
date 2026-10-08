@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import type { EraSummary } from '$lib/api.js';
-	import { hotlapPath } from '$lib/era.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import type { Session } from '$lib/session.svelte.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
@@ -69,10 +68,10 @@
 						<div class="mt-1 border-l pl-3">
 							{#each group.eras as era (era.id)}
 								<a
-									class={`block rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${isActive(hotlapPath(era.id)) ? 'bg-accent text-accent-foreground' : ''}`}
-									href={hotlapPath(era.id)}
+									class={`block rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${isActive(`/hotlaps/${era.id}`) ? 'bg-accent text-accent-foreground' : ''}`}
+									href={`/hotlaps/${era.id}`}
 									onclick={closeMobileMenu}
-									aria-current={isActive(hotlapPath(era.id))
+									aria-current={isActive(`/hotlaps/${era.id}`)
 										? 'page'
 										: undefined}
 								>

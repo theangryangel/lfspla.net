@@ -37,8 +37,12 @@ pub(crate) struct ComboSpotlight {
     pub era_title: String,
     pub track: TrackId,
     pub track_name: String,
+    pub track_location: crate::models::track::TrackLocation,
+    pub track_reverse: bool,
+    pub track_open_configuration: bool,
     pub vehicle: VehicleId,
     pub vehicle_name: String,
+    pub vehicle_license: String,
     pub vehicle_has_image: bool,
     pub recent_uploads: i64,
     #[sea_orm(skip)]
@@ -98,7 +102,9 @@ impl SiteStats {
 )
 SELECT chart.id AS chart_id, era.slug AS era_id, era.title AS era_title,
        chart.track_id AS track, track.name AS track_name,
-       chart.vehicle_id AS vehicle, vehicle.name AS vehicle_name,
+       track.location AS track_location, track.reverse AS track_reverse,
+       track.open_configuration AS track_open_configuration,
+       chart.vehicle_id AS vehicle, vehicle.name AS vehicle_name, vehicle.license AS vehicle_license,
        (vehicle.available AND vehicle.image_object_key IS NOT NULL) AS vehicle_has_image,
        selected.recent_uploads
 FROM selected

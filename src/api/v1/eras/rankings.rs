@@ -2,11 +2,12 @@
 
 use crate::milliseconds::Milliseconds;
 
-use super::charts::BestHotlapResponse;
+use super::response::Chart;
+use crate::api::v1::hotlaps::response::Hotlap;
 use crate::{
     api::{
         ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract,
-        extractors::AuthenticatedPlayer,
+        extractors::AuthenticatedPlayer, v1::PlayerSummary,
     },
     models::{
         badge::PlayerBadge,
@@ -48,36 +49,31 @@ impl From<crate::models::Ranking> for RankingSummary {
 
 /// One required track and vehicle combination in a ranking.
 #[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct RankingCombinationResponse {
-    track: String,
-    vehicle: String,
+pub(crate) struct RankingChart {
+    chart: Chart,
     /// The signed-in player's fastest validated lap for this combination.
     #[schema(required)]
-    my_hotlap: Option<BestHotlapResponse>,
+    my_hotlap: Option<Hotlap>,
 }
 
-impl RankingCombinationResponse {
-    fn new(chart: &crate::models::Chart, my_hotlap: Option<BestHotlapResponse>) -> Self {
-        Self {
-            track: chart.track_id.to_string(),
-            vehicle: chart.vehicle_id.to_string(),
-            my_hotlap,
-        }
+impl RankingChart {
+    fn new(chart: Chart, my_hotlap: Option<Hotlap>) -> Self {
+        Self { chart, my_hotlap }
     }
 }
 
-/// Completion of the required combinations by the signed-in player.
+/// Completion of the required charts by the signed-in player.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub(crate) struct RankingProgressResponse {
-    total_combinations: usize,
-    completed_combinations: usize,
+    total_charts: usize,
+    completed_charts: usize,
 }
 
 impl RankingProgressResponse {
-    fn new(total_combinations: i64, completed_combinations: i64) -> Self {
+    fn new(total_charts: i64, completed_charts: i64) -> Self {
         Self {
-            total_combinations: usize::try_from(total_combinations).unwrap_or(usize::MAX),
-            completed_combinations: usize::try_from(completed_combinations).unwrap_or(usize::MAX),
+            total_charts: usize::try_from(total_charts).unwrap_or(usize::MAX),
+            completed_charts: usize::try_from(completed_charts).unwrap_or(usize::MAX),
         }
     }
 }
@@ -85,27 +81,17 @@ impl RankingProgressResponse {
 /// Complete metadata for one configured ranking instance.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct RankingDetailResponse {
-    id: String,
-    title: String,
-    description: String,
+    #[serde(flatten)]
+    ranking: RankingSummary,
     rules: RankingRules,
-    charts: Vec<RankingCombinationResponse>,
-    /// Present only for authenticated requests.
-    #[schema(required)]
-    my_progress: Option<RankingProgressResponse>,
+    charts: Vec<RankingChart>,
 }
 
 /// One row in a personal benchmark-handicap ranking.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct PersonalRankingEntryResponse {
     position: i64,
-    player_id: i64,
-    lfs_username: String,
-    display_name: String,
-    #[schema(required)]
-    country_code: Option<String>,
-    #[schema(required)]
-    flag_code: Option<String>,
+    player: PlayerSummary,
     completed_charts: i64,
     total_charts: usize,
     /// Sum of lap time minus the configured benchmark for each chart.
@@ -113,13 +99,13 @@ pub(crate) struct PersonalRankingEntryResponse {
     badges: Vec<PlayerBadge>,
 }
 
-/// Personal standings for one configured ranking instance.
+/// Standings for one configured ranking instance, with a typed entry collection.
 #[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct PersonalRankingResponse {
-    ranking_id: String,
+pub(crate) struct RankingStandings<T> {
+    id: String,
     title: String,
     total_charts: usize,
-    entries: Vec<PersonalRankingEntryResponse>,
+    entries: Vec<T>,
 }
 
 /// One row in a national points ranking.
@@ -133,13 +119,24 @@ pub(crate) struct NationRankingEntryResponse {
     contributing_charts: i64,
 }
 
-/// National standings for one configured ranking instance.
+/// A player's contribution to a country's score in one ranking.
 #[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct NationRankingResponse {
-    ranking_id: String,
-    title: String,
-    total_charts: usize,
-    entries: Vec<NationRankingEntryResponse>,
+pub(crate) struct NationContributionResponse {
+    player: PlayerSummary,
+    points: i64,
+    contributing_charts: i64,
+    handicap_ms: Milliseconds,
+}
+
+impl From<ranking::NationContribution> for NationContributionResponse {
+    fn from(contribution: ranking::NationContribution) -> Self {
+        Self {
+            player: contribution.player.into(),
+            points: contribution.points,
+            contributing_charts: contribution.contributing_charts,
+            handicap_ms: contribution.handicap_ms,
+        }
+    }
 }
 
 /// Builds era-scoped ranking routes.
@@ -185,10 +182,7 @@ pub(crate) async fn list(
             .map(|progress| {
                 (
                     progress.ranking_id,
-                    RankingProgressResponse::new(
-                        progress.total_combinations,
-                        progress.completed_combinations,
-                    ),
+                    RankingProgressResponse::new(progress.total_charts, progress.completed_charts),
                 )
             })
             .collect::<std::collections::HashMap<_, _>>(),
@@ -236,14 +230,14 @@ pub(crate) async fn detail(
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("ranking_not_found", "Ranking"))?;
     let rules = ranking.definition.rules();
-    let (mut personal_bests, completed_combinations) = match player.as_ref() {
+    let (mut personal_bests, completed_charts) = match player.as_ref() {
         Some(player) => {
             let personal_bests = ranking
                 .definition
                 .list_personal_chart_bests(&state.database, player)
                 .await
                 .map_err(ApiError::database)?;
-            let completed_combinations = personal_bests.len();
+            let completed_charts = personal_bests.len();
             let badges = era
                 .list_badges_for_players(&state.database, [player.id])
                 .await
@@ -254,7 +248,7 @@ pub(crate) async fn detail(
                 .into_iter()
                 .map(|best| {
                     let key = best.hotlap.chart_id;
-                    let response = BestHotlapResponse::from_best(
+                    let response = Hotlap::from_best(
                         BestHotlap {
                             position: best.position,
                             hotlap: best.hotlap,
@@ -263,29 +257,35 @@ pub(crate) async fn detail(
                             distance_to_world_record_ms: best.distance_to_world_record_ms,
                         },
                         badges.clone(),
+                        &era,
                     );
                     (key, response)
                 })
                 .collect::<std::collections::HashMap<_, _>>();
-            (personal_bests, completed_combinations)
+            (personal_bests, completed_charts)
         }
         None => (std::collections::HashMap::new(), 0),
     };
 
+    let chart_responses = Chart::load(&state.database, &era, &ranking.charts).await?;
+
     Ok(Json(RankingDetailResponse {
-        id: ranking.definition.slug.to_string(),
-        title: ranking.definition.title,
-        description: ranking.definition.description,
+        ranking: RankingSummary {
+            id: ranking.definition.slug.to_string(),
+            title: ranking.definition.title,
+            description: ranking.definition.description,
+            my_progress: player.map(|_| RankingProgressResponse {
+                total_charts: ranking.charts.len(),
+                completed_charts,
+            }),
+        },
         rules,
         charts: ranking
             .charts
             .iter()
-            .map(|chart| RankingCombinationResponse::new(chart, personal_bests.remove(&chart.id)))
+            .zip(chart_responses)
+            .map(|(chart, response)| RankingChart::new(response, personal_bests.remove(&chart.id)))
             .collect(),
-        my_progress: player.map(|_| RankingProgressResponse {
-            total_combinations: ranking.charts.len(),
-            completed_combinations,
-        }),
     }))
 }
 
@@ -298,7 +298,7 @@ pub(crate) async fn detail(
         ("ranking" = String, Path, description = "Ranking identifier")
     ),
     responses(
-        (status = 200, description = "Personal ranking standings", body = PersonalRankingResponse),
+        (status = 200, description = "Personal ranking standings", body = RankingStandings<PersonalRankingEntryResponse>),
         (status = 404, description = "Era or ranking not found", body = ErrorResponse),
         (status = 409, description = "Ranking chart selection is not configured", body = ErrorResponse)
     )
@@ -306,7 +306,7 @@ pub(crate) async fn detail(
 pub(crate) async fn players(
     Path((era_id, ranking_id)): Path<(String, String)>,
     State(state): State<ApiState>,
-) -> Result<Json<PersonalRankingResponse>, ApiError> {
+) -> Result<Json<RankingStandings<PersonalRankingEntryResponse>>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
     let ranking = crate::models::Ranking::find(&state.database, era.id, &ranking_id)
         .await
@@ -324,8 +324,8 @@ pub(crate) async fn players(
         .await
         .map_err(ApiError::database)?;
 
-    Ok(Json(PersonalRankingResponse {
-        ranking_id: ranking.slug.to_string(),
+    Ok(Json(RankingStandings {
+        id: ranking.slug.to_string(),
         title: ranking.title,
         total_charts,
         entries: rows
@@ -334,11 +334,13 @@ pub(crate) async fn players(
                 let row = standing.row;
                 PersonalRankingEntryResponse {
                     position: row.position,
-                    player_id: row.player_id,
-                    lfs_username: row.lfs_username,
-                    display_name: row.display_name,
-                    country_code: row.country_code.map(|code| code.as_str().to_owned()),
-                    flag_code: row.flag_code.map(|code| code.as_str().to_owned()),
+                    player: PlayerSummary {
+                        id: row.player_id,
+                        lfs_username: row.lfs_username,
+                        display_name: row.display_name,
+                        country_code: row.country_code.map(|code| code.as_str().to_owned()),
+                        flag_code: row.flag_code.map(|code| code.as_str().to_owned()),
+                    },
                     completed_charts: row.completed_charts,
                     total_charts,
                     handicap_ms: row.handicap_ms,
@@ -358,7 +360,7 @@ pub(crate) async fn players(
         ("ranking" = String, Path, description = "Ranking identifier")
     ),
     responses(
-        (status = 200, description = "National ranking standings", body = NationRankingResponse),
+        (status = 200, description = "National ranking standings", body = RankingStandings<NationRankingEntryResponse>),
         (status = 404, description = "Era or ranking not found", body = ErrorResponse),
         (status = 409, description = "Ranking chart selection is not configured", body = ErrorResponse)
     )
@@ -366,7 +368,7 @@ pub(crate) async fn players(
 pub(crate) async fn nations(
     Path((era_id, ranking_id)): Path<(String, String)>,
     State(state): State<ApiState>,
-) -> Result<Json<NationRankingResponse>, ApiError> {
+) -> Result<Json<RankingStandings<NationRankingEntryResponse>>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
     let ranking = crate::models::Ranking::find(&state.database, era.id, &ranking_id)
         .await
@@ -385,8 +387,8 @@ pub(crate) async fn nations(
         .await
         .map_err(ApiError::database)?;
 
-    Ok(Json(NationRankingResponse {
-        ranking_id: ranking.slug.to_string(),
+    Ok(Json(RankingStandings {
+        id: ranking.slug.to_string(),
         title: ranking.title,
         total_charts,
         entries: rows
@@ -421,7 +423,7 @@ fn ranking_not_configured() -> ApiError {
         ("country" = String, Path, description = "Country code")
     ),
     responses(
-        (status = 200, description = "Scoring contributions by player", body = ListResponse<ranking::NationContribution>),
+        (status = 200, description = "Scoring contributions by player", body = ListResponse<NationContributionResponse>),
         (status = 404, description = "Era or ranking not found", body = ErrorResponse),
         (status = 409, description = "Ranking chart selection is not configured", body = ErrorResponse)
     )
@@ -429,7 +431,7 @@ fn ranking_not_configured() -> ApiError {
 pub(crate) async fn nation_contributions(
     Path((era_id, ranking_id, country)): Path<(String, String, String)>,
     State(state): State<ApiState>,
-) -> Result<Json<ListResponse<ranking::NationContribution>>, ApiError> {
+) -> Result<Json<ListResponse<NationContributionResponse>>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
     let ranking = crate::models::Ranking::find(&state.database, era.id, &ranking_id)
         .await
@@ -446,5 +448,86 @@ pub(crate) async fn nation_contributions(
         .list_nation_contributions(&state.database, &country.to_ascii_uppercase())
         .await
         .map_err(ApiError::database)?;
-    Ok(Json(ListResponse::from(rows)))
+    Ok(Json(ListResponse::from(
+        rows.into_iter()
+            .map(NationContributionResponse::from)
+            .collect::<Vec<_>>(),
+    )))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn standings_and_contributors_serialize_a_shared_nested_player() {
+        let player = PlayerSummary {
+            id: 7,
+            lfs_username: "driver".to_owned(),
+            display_name: "Driver".to_owned(),
+            country_code: Some("GB".to_owned()),
+            flag_code: None,
+        };
+        let standings = RankingStandings {
+            id: "nutter".to_owned(),
+            title: "Nutter".to_owned(),
+            total_charts: 3,
+            entries: vec![PersonalRankingEntryResponse {
+                position: 1,
+                player: player.clone(),
+                completed_charts: 2,
+                total_charts: 3,
+                handicap_ms: Milliseconds::ZERO,
+                badges: vec![],
+            }],
+        };
+        let contributor = NationContributionResponse {
+            player: player.clone(),
+            points: 10,
+            contributing_charts: 2,
+            handicap_ms: Milliseconds::ZERO,
+        };
+        let standings = serde_json::to_value(standings).unwrap();
+        let contributor = serde_json::to_value(contributor).unwrap();
+        let expected = serde_json::to_value(player).unwrap();
+        assert_eq!(standings["id"], "nutter");
+        assert!(standings.get("ranking_id").is_none());
+        for row in [&standings["entries"][0], &contributor] {
+            assert_eq!(row["player"], expected);
+            for old in [
+                "player_id",
+                "lfs_username",
+                "display_name",
+                "country_code",
+                "flag_code",
+            ] {
+                assert!(row.get(old).is_none());
+            }
+        }
+    }
+
+    #[test]
+    fn ranking_detail_keeps_flat_metadata_and_chart_progress() {
+        let response = RankingDetailResponse {
+            ranking: RankingSummary {
+                id: "nutter".to_owned(),
+                title: "Nutter".to_owned(),
+                description: "Complete all charts".to_owned(),
+                my_progress: Some(RankingProgressResponse::new(3, 2)),
+            },
+            rules: RankingRules {
+                benchmark_percent: 103,
+                nation_max_points: 10,
+                nation_driver_limit: 3,
+            },
+            charts: vec![],
+        };
+        let json = serde_json::to_value(response).unwrap();
+        assert_eq!(json["id"], "nutter");
+        assert!(json.get("ranking").is_none());
+        assert_eq!(
+            json["my_progress"],
+            serde_json::json!({ "total_charts": 3, "completed_charts": 2 })
+        );
+    }
 }

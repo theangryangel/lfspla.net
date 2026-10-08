@@ -4,6 +4,27 @@ session := "lfs-planet"
 default:
     @just --list
 
+# Regenerate checked-in SDKs from the Rust OpenAPI document (requires Docker).
+generate-sdks: generate-openapi generate-sdks-from-openapi
+
+# Export the Rust API contract without starting the backend or database.
+generate-openapi:
+    mkdir -p target
+    cargo run --locked -- openapi > target/openapi.json
+
+# Generate SDKs from target/openapi.json (requires Docker).
+generate-sdks-from-openapi:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    test -s target/openapi.json
+    cd sdks
+    npx --yes fern-api@5.148.2 check
+    npx --yes fern-api@5.148.2 generate --group typescript --local --no-prompt --force
+    cd ..
+    # Two passes stabilize nested file types with the pinned Prettier version.
+    frontend2/node_modules/.bin/prettier --write sdks/typescript/src
+    frontend2/node_modules/.bin/prettier --write sdks/typescript/src
+
 # Remove build outputs and frontend caches.
 clean:
     cargo clean
