@@ -8,11 +8,10 @@
 	import { navigationTextClass } from '$lib/components/app/navigation.js';
 	import HotlapUpload from '$lib/components/app/HotlapUpload.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { hotlapPath } from '$lib/era.js';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps & { children: Snippet } = $props();
-	const base = $derived(hotlapPath(data.era.id));
+	const base = $derived(`/hotlaps/${data.era.id}`);
 	const navigation = $derived([
 		{ label: 'Overview', to: base, exact: true },
 		{ key: 'charts', label: 'Charts', content: chartsButton },

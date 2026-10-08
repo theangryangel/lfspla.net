@@ -2,7 +2,6 @@
 	import { page } from '$app/state';
 	import { navigationTextClass } from './navigation.js';
 	import type { EraSummary } from '$lib/api.js';
-	import { hotlapPath } from '$lib/era.js';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
@@ -38,7 +37,7 @@
 							{...props}
 							variant="ghost"
 							data-active={isActive('/hotlaps') ? '' : undefined}
-			class={`${navigationTextClass} !cursor-pointer`}
+							class={`${navigationTextClass} !cursor-pointer`}
 						>
 							Hotlaps
 							<ChevronDownIcon class="size-4" />
@@ -58,14 +57,16 @@
 								{#each group.eras as era, eraIndex (era.id)}
 									<DropdownMenu.Item
 										class={`!cursor-pointer data-active:bg-accent data-active:text-accent-foreground ${groupIndex === eraGroups.length - 1 && eraIndex === group.eras.length - 1 ? 'mb-1' : ''}`}
-										data-active={isActive(hotlapPath(era.id)) ? '' : undefined}
+										data-active={isActive(`/hotlaps/${era.id}`)
+											? ''
+											: undefined}
 									>
 										{#snippet child({ props })}
 											<a
 												{...props}
 												class={`${props.class ?? ''} !cursor-pointer`}
-												href={hotlapPath(era.id)}
-												aria-current={isActive(hotlapPath(era.id))
+												href={`/hotlaps/${era.id}`}
+												aria-current={isActive(`/hotlaps/${era.id}`)
 													? 'page'
 													: undefined}
 											>

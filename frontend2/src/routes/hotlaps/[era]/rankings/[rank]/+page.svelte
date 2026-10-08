@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import PlayerBadge from '$lib/components/app/PlayerBadge.svelte';
@@ -12,7 +13,6 @@
 	import Flag from '$lib/components/app/Flag.svelte';
 	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import { delta, pageItems, relativeColor } from '$lib/format.js';
-	import { queryValue } from '$lib/query.js';
 	import { useSession } from '$lib/session.svelte.js';
 	import type { PageProps } from './$types';
 
@@ -20,12 +20,15 @@
 
 	const session = useSession();
 	const driverRows = $derived(
-		pageItems(data.players?.entries ?? [], Number(queryValue('page') || 1)),
+		pageItems(
+			data.players?.entries ?? [],
+			Number((page.url.searchParams.get('page') ?? '') || 1),
+		),
 	);
 	const nationRows = $derived(
 		pageItems(
 			data.nations?.entries ?? [],
-			Number(queryValue('nation_page') || 1),
+			Number((page.url.searchParams.get('nation_page') ?? '') || 1),
 		),
 	);
 </script>

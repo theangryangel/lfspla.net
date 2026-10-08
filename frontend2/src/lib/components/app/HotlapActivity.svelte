@@ -1,26 +1,31 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import {
+		type Hotlap,
+		type EraSummary,
+		type HotlapListColumn,
+		type Ordering,
+		type PaginatedResponseHotlap,
+		useApi,
+	} from '$lib/api.js';
+	import { dateTime, lapTime } from '$lib/format.js';
+
+	import type { ListHotlapsRequest } from '@lfsplanet/sdk/api';
 	import CompareButton from '$lib/components/app/CompareButton.svelte';
 	import Empty from '$lib/components/app/Empty.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import SortableHead from '$lib/components/app/SortableHead.svelte';
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import { Badge } from '$lib/components/ui/badge/index.js';
+
 	import * as Table from '$lib/components/ui/table/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
-	import {
-		get,
-		query,
-		type EraSummary,
-		type Hotlap,
-		type HotlapListColumn,
-		type Ordering,
-		type PaginatedResponse,
-	} from '$lib/api.js';
+
 	import { useSession } from '$lib/session.svelte.js';
-	import { setQuery, queryValue } from '$lib/query.js';
-	import { dateTime, lapTime } from '$lib/format.js';
-	import { hotlapPath } from '$lib/era.js';
+	import { setQuery } from '$lib/query.js';
+
+	const api = useApi();
 
 	type View = 'all' | 'world_records' | 'mine';
 
@@ -41,14 +46,16 @@
 	} = $props();
 
 	const session = useSession();
-	let response = $state<PaginatedResponse<Hotlap> | null>(null);
+	let response = $state<PaginatedResponseHotlap | null>(null);
 	let loading = $state(true);
 	let unavailable = $state(false);
 	let requestId = 0;
 
 	const requestedView = $derived(
-		(queryValue('view') ||
-			(queryValue('mine') === 'true' ? 'mine' : 'all')) as View,
+		((page.url.searchParams.get('view') ?? '') ||
+			((page.url.searchParams.get('mine') ?? '') === 'true'
+				? 'mine'
+				: 'all')) as View,
 	);
 	const view = $derived(
 		views.includes(requestedView) &&
@@ -57,46 +64,46 @@
 			: 'all',
 	);
 	const column = $derived(
-		(queryValue('column') || 'submitted') as HotlapListColumn,
+		((page.url.searchParams.get('column') ?? '') ||
+			'submitted') as HotlapListColumn,
 	);
-	const order = $derived((queryValue('order') || 'desc') as Ordering);
-	const endpoint = $derived(
-		'/api/v1/hotlaps' +
-			query({
-				era_id: eraId,
-				lfs_username: lfsUsername,
-				state: view === 'mine' ? undefined : 'valid',
-				mine: view === 'mine' ? 'true' : undefined,
-				rank: view === 'world_records' ? 1 : undefined,
-				page: queryValue('page') || 1,
-				per_page: perPage,
-				column,
-				order,
-			}),
+	const order = $derived(
+		((page.url.searchParams.get('order') ?? '') || 'desc') as Ordering,
 	);
+	const filters: ListHotlapsRequest = $derived({
+		era_id: eraId,
+		lfs_username: lfsUsername,
+		state: view === 'mine' ? undefined : 'valid',
+		mine: view === 'mine' ? true : undefined,
+		rank: view === 'world_records' ? 1 : undefined,
+		page: Number((page.url.searchParams.get('page') ?? '') || 1),
+		per_page: perPage,
+		column,
+		order,
+	});
 
 	$effect(() => {
-		if (requestedView !== view || queryValue('mine') === 'true') {
+		if (
+			requestedView !== view ||
+			(page.url.searchParams.get('mine') ?? '') === 'true'
+		) {
 			void setQuery({ view, mine: '', page: '' }, true);
 		}
 	});
 
 	$effect(() => {
 		const refresh = refreshKey;
-		const url = endpoint;
-		void load(url, refresh);
+		const params = filters;
+		void load(params, refresh);
 	});
 
-	async function load(url: string, _refresh: unknown) {
+	async function load(params: ListHotlapsRequest, _refresh: unknown) {
 		const id = ++requestId;
 		loading = true;
 		unavailable = false;
 		response = null;
 		try {
-			const result = await get<PaginatedResponse<Hotlap>>(
-				fetch,
-				url,
-			);
+			const result = await api.hotlaps.listHotlaps(params);
 			if (id === requestId) response = result;
 		} catch {
 			if (id === requestId) {
@@ -224,7 +231,7 @@
 									</div>
 								</Table.Cell>
 								<Table.Cell>
-									<a class="hover:underline" href={hotlapPath(lap.era_id)}>
+									<a class="hover:underline" href={`/hotlaps/${lap.era_id}`}>
 										<Badge variant="secondary"
 											>{eras.find((era) => era.id === lap.era_id)?.title ??
 												lap.era_id}</Badge
@@ -235,7 +242,7 @@
 									{#if lap.vehicle}
 										<a
 											class="hover:underline"
-											href={`${hotlapPath(lap.era_id)}/charts/${encodeURIComponent(lap.track)}/${encodeURIComponent(lap.vehicle)}`}
+											href={`/hotlaps/${lap.era_id}/charts/${encodeURIComponent(lap.track)}/${encodeURIComponent(lap.vehicle)}`}
 											>{lap.track} / {lap.vehicle}</a
 										>
 									{:else}{lap.track} / -{/if}
@@ -249,7 +256,7 @@
 										{#each lap.contributes_to as ranking (ranking.id)}
 											<Badge
 												variant="outline"
-												href={`${hotlapPath(lap.era_id)}/rankings/${encodeURIComponent(ranking.id)}`}
+												href={`/hotlaps/${lap.era_id}/rankings/${encodeURIComponent(ranking.id)}`}
 												>{ranking.title}</Badge
 											>
 										{:else}<span class="text-muted-foreground">-</span>{/each}

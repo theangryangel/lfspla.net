@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
@@ -9,7 +10,7 @@
 	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import Progress from '$lib/components/app/Progress.svelte';
 	import { dateTime, delta, lapTime, pageItems } from '$lib/format.js';
-	import { queryValue, updateQuery } from '$lib/query.js';
+	import { setQuery } from '$lib/query.js';
 	import { useSession } from '$lib/session.svelte.js';
 	import type { PageProps } from './$types';
 
@@ -18,9 +19,11 @@
 	const rules = $derived(data.ranking.rules);
 	const session = useSession();
 	const base = $derived(`/hotlaps/${data.era.id}`);
-	const search = $derived(queryValue('q'));
+	const search = $derived(page.url.searchParams.get('q') ?? '');
 	const status = $derived(
-		session.signedIn ? queryValue('status') || 'All' : 'All',
+		session.signedIn
+			? (page.url.searchParams.get('status') ?? '') || 'All'
+			: 'All',
 	);
 
 	const rows = $derived(
@@ -64,7 +67,9 @@
 						: row.lapTimeMs !== null)),
 		),
 	);
-	const paged = $derived(pageItems(filtered, Number(queryValue('page') || 1)));
+	const paged = $derived(
+		pageItems(filtered, Number((page.url.searchParams.get('page') ?? '') || 1)),
+	);
 </script>
 
 <div class="space-y-6">
@@ -89,14 +94,14 @@
 			aria-label="Search combinations"
 			placeholder="Search combinations..."
 			value={search}
-			oninput={(e) => updateQuery('q', e.currentTarget.value)}
+			oninput={(e) => setQuery({ q: e.currentTarget.value, page: '' })}
 		/>
 		{#if session.signedIn}
 			<Choices
 				label="Completion"
 				value={status}
 				options={['All', 'Missing', 'Completed']}
-				onValueChange={(v) => updateQuery('status', v)}
+				onValueChange={(v) => setQuery({ status: v, page: '' })}
 			/>
 			<div class="sm:ml-auto">
 				<Progress value={completed} total={rows.length} />

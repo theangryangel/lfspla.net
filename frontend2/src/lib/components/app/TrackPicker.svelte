@@ -1,19 +1,29 @@
+<script module lang="ts">
+	import type { TrackSummary } from '$lib/api.js';
+
+	// Share catalogue requests across picker instances and dialog reopenings.
+	const requests = new Map<string, Promise<TrackSummary[]>>();
+</script>
+
 <script lang="ts">
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import { CARD } from '$lib/components/app/picker.js';
+
 	import { onMount, type Snippet } from 'svelte';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import SearchIcon from '@lucide/svelte/icons/search';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+
 	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
 	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
-	import { getEraTracks } from '$lib/combinations.js';
-	import { CARD } from '$lib/components/app/picker.js';
-	import type {
-		TrackLocation,
-		TrackLocationCode,
-		TrackSummary,
-		VehicleSummary,
+	import {
+		useApi,
+		type TrackLocation,
+		type TrackLocationCode,
+		type VehicleSummary,
 	} from '$lib/api.js';
+
+	const api = useApi();
 
 	let {
 		era,
@@ -78,7 +88,19 @@
 		let active = true;
 		tracks = null;
 		failed = false;
-		getEraTracks(era, vehicle)
+		const key = JSON.stringify([era, vehicle || null]);
+		let request = requests.get(key);
+		if (!request) {
+			request = api.tracks
+				.listEraTracks({ era, vehicle: vehicle || undefined })
+				.then((response) => response.items)
+				.catch((cause) => {
+					requests.delete(key);
+					throw cause;
+				});
+			requests.set(key, request);
+		}
+		request
 			.then((found) => {
 				if (active) tracks = found;
 			})

@@ -76,7 +76,9 @@ async fn shutdown_signal() {
 
 /// Builds the public routes and their OpenAPI document.
 fn parts(max_spr_upload_bytes: usize) -> (Router<ApiState>, utoipa::openapi::OpenApi) {
-    let (v1_router, mut openapi) = v1::router(max_spr_upload_bytes).split_for_parts();
+    let (v1_router, mut openapi) = v1::router(max_spr_upload_bytes)
+        .merge(auth::router())
+        .split_for_parts();
     let router = Router::new().merge(v1_router);
 
     openapi.info.title = "lfspla.net API".into();
@@ -149,7 +151,6 @@ pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow:
         .with_expiry(Expiry::OnInactivity(Duration::days(7)))
         .with_private(Key::from(settings.web.session_key.as_slice()));
     let app = router(settings.hotlaps.max_spr_upload_bytes())
-        .merge(auth::router())
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .layer(
@@ -235,6 +236,35 @@ mod tests {
             }
         }
     }
+    #[test]
+    fn hotlap_upload_describes_a_required_multipart_replay_file() {
+        let document = serde_json::to_value(openapi()).unwrap();
+        let body = &document["paths"]["/api/v1/eras/{era}/hotlaps"]["post"]["requestBody"];
+        assert_eq!(body["required"], true);
+        let schema = &body["content"]["multipart/form-data"]["schema"];
+        assert_eq!(schema["type"], "object");
+        assert_eq!(schema["required"], serde_json::json!(["spr"]));
+        assert_eq!(schema["additionalProperties"], false);
+        assert_eq!(schema["properties"]["spr"]["type"], "string");
+        assert_eq!(schema["properties"]["spr"]["format"], "binary");
+    }
+
+    #[test]
+    fn logout_describes_the_browser_session_contract() {
+        let document = serde_json::to_value(openapi()).unwrap();
+        let operation = &document["paths"]["/auth/logout"]["post"];
+        assert_eq!(operation["operationId"], "logout");
+        assert_eq!(
+            operation["security"],
+            serde_json::json!([{ "cookie_session": [] }])
+        );
+        assert_eq!(operation["parameters"][0]["name"], "X-CSRF-Token");
+        assert_eq!(operation["parameters"][0]["required"], true);
+        assert!(operation["responses"]["204"]["content"].is_null());
+        assert!(document["paths"].get("/auth/lfs").is_none());
+        assert!(document["paths"].get("/auth/lfs/callback").is_none());
+    }
+
     #[test]
     fn hotlap_endpoints_use_one_content_schema_with_separate_private_metadata() {
         let document = serde_json::to_value(openapi()).unwrap();

@@ -1,13 +1,17 @@
 <script lang="ts">
-	import DownloadIcon from '@lucide/svelte/icons/download';
-	import Trash2Icon from '@lucide/svelte/icons/trash-2';
-	import { invalidate } from '$app/navigation';
+	import { page } from '$app/state';
+	import { LfsplanetApiError } from '@lfsplanet/sdk';
+	import {
+		apiErrorMessage,
+		useApi,
+		type Hotlap,
+		type EraSummary,
+		type PaginatedResponseHotlap,
+		type HotlapListColumn,
+		type Ordering,
+	} from '$lib/api.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import Empty from '$lib/components/app/Empty.svelte';
 	import {
 		dateTime,
 		delta,
@@ -15,24 +19,28 @@
 		lapTime,
 		steeringLabels,
 	} from '$lib/format.js';
-	import { queryValue } from '$lib/query.js';
+
+	import DownloadIcon from '@lucide/svelte/icons/download';
+	import Trash2Icon from '@lucide/svelte/icons/trash-2';
+	import { invalidate } from '$app/navigation';
+
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import TableFrame from '$lib/components/app/TableFrame.svelte';
+	import * as Table from '$lib/components/ui/table/index.js';
+	import Empty from '$lib/components/app/Empty.svelte';
+
 	import { useSession } from '$lib/session.svelte.js';
-	import { RequestFailed, send, type Hotlap } from '$lib/api.js';
-	import type { EraSummary } from '$lib/api.js';
+
 	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import SortableHead from '$lib/components/app/SortableHead.svelte';
-	import type {
-		PaginatedResponse,
-		HotlapListColumn,
-		Ordering,
-	} from '$lib/api.js';
-	import { hotlapPath } from '$lib/era.js';
+
+	const api = useApi();
 
 	let {
 		hotlaps: submissions,
 		era,
 	}: {
-		hotlaps: PaginatedResponse<Hotlap> | null;
+		hotlaps: PaginatedResponseHotlap | null;
 		era?: EraSummary;
 	} = $props();
 
@@ -53,9 +61,9 @@
 		validateError = '';
 		refreshError = '';
 		try {
-			await send(`/api/v1/hotlaps/${hotlap.id}/validate`, {
-				method: 'POST',
-				csrf: session.me.csrf_token,
+			await api.hotlaps.validateForTesting({
+				'X-CSRF-Token': session.me.csrf_token,
+				hotlap: hotlap.id,
 			});
 			try {
 				await invalidate('app:hotlaps');
@@ -65,8 +73,8 @@
 			}
 		} catch (error) {
 			validateError =
-				error instanceof RequestFailed
-					? error.message
+				error instanceof LfsplanetApiError
+					? apiErrorMessage(error)
 					: 'The submission could not be validated.';
 		} finally {
 			validating = null;
@@ -90,9 +98,9 @@
 		removeError = '';
 		refreshError = '';
 		try {
-			await send(`/api/v1/hotlaps/${hotlap.id}`, {
-				method: 'DELETE',
-				csrf: session.me.csrf_token,
+			await api.hotlaps.remove({
+				'X-CSRF-Token': session.me.csrf_token,
+				hotlap: hotlap.id,
 			});
 			confirmOpen = false;
 			removeTarget = null;
@@ -104,8 +112,8 @@
 			}
 		} catch (error) {
 			removeError =
-				error instanceof RequestFailed
-					? error.message
+				error instanceof LfsplanetApiError
+					? apiErrorMessage(error)
 					: 'The submission could not be removed.';
 		} finally {
 			removing = null;
@@ -114,9 +122,12 @@
 
 	const hotlaps = $derived(submissions?.items ?? []);
 	const column = $derived(
-		(queryValue('column') || 'submitted') as HotlapListColumn,
+		((page.url.searchParams.get('column') ?? '') ||
+			'submitted') as HotlapListColumn,
 	);
-	const order = $derived((queryValue('order') || 'desc') as Ordering);
+	const order = $derived(
+		((page.url.searchParams.get('order') ?? '') || 'desc') as Ordering,
+	);
 </script>
 
 {#if refreshError}<p role="alert" class="text-destructive">
@@ -180,15 +191,16 @@
 									></Table.Cell
 								>
 								{#if !era}<Table.Cell
-										><a class="hover:underline" href={hotlapPath(hotlap.era_id)}
-											>{hotlap.era_title}</a
+										><a
+											class="hover:underline"
+											href={`/hotlaps/${hotlap.era_id}`}>{hotlap.era_title}</a
 										></Table.Cell
 									>{/if}
 								<Table.Cell>
 									{#if hotlap.vehicle}
 										<a
 											class="hover:underline"
-											href={`${hotlapPath(hotlap.era_id)}/charts/${encodeURIComponent(hotlap.track)}/${encodeURIComponent(hotlap.vehicle)}`}
+											href={`/hotlaps/${hotlap.era_id}/charts/${encodeURIComponent(hotlap.track)}/${encodeURIComponent(hotlap.vehicle)}`}
 										>
 											{hotlap.track} / {hotlap.vehicle}
 										</a>
@@ -207,7 +219,7 @@
 										{#each hotlap.contributes_to ?? [] as ranking (ranking.id)}
 											<Badge
 												variant="outline"
-												href={`${hotlapPath(hotlap.era_id)}/rankings/${encodeURIComponent(ranking.id)}`}
+												href={`/hotlaps/${hotlap.era_id}/rankings/${encodeURIComponent(ranking.id)}`}
 												>{ranking.title}</Badge
 											>
 										{:else}

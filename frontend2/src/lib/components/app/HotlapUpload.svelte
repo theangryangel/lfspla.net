@@ -1,4 +1,18 @@
 <script lang="ts">
+	import { LfsplanetApiError } from '@lfsplanet/sdk';
+	import {
+		apiErrorMessage,
+		apiErrorBody,
+		apiErrorRetryable,
+		type HotlapState,
+		type EraSummary,
+		type Hotlap,
+		useApi,
+	} from '$lib/api.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { hotlapStates, lapTime, fileSize } from '$lib/format.js';
+
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleCheckBigIcon from '@lucide/svelte/icons/circle-check-big';
 	import FileUpIcon from '@lucide/svelte/icons/file-up';
@@ -9,20 +23,15 @@
 	import XIcon from '@lucide/svelte/icons/x';
 	import { invalidate } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import ChoiceSelect from '$lib/components/app/ChoiceSelect.svelte';
-	import { fileSize, hotlapStates, lapTime } from '$lib/format.js';
+
 	import { readSprHeader, type SprSummary } from '$lib/spr.js';
-	import {
-		RequestFailed,
-		send,
-		type EraSummary,
-		type Hotlap,
-		type HotlapState,
-	} from '$lib/api.js';
+
 	import { useSession } from '$lib/session.svelte.js';
+
+	const api = useApi();
 
 	let {
 		era,
@@ -71,15 +80,14 @@
 	async function refreshPending() {
 		const pending = pendingUploads();
 		const results = await Promise.all(
-		pending.map(async (item) => {
-			try {
-				const detail = await send<{ state: HotlapState }>(
-					`/api/v1/hotlaps/${item.hotlap!.id}`,
-					{ method: 'GET', csrf: session.me.csrf_token },
-				);
-				if (!detail) return false;
-				if (item.hotlap) item.hotlap.state = detail.state;
-				return detail.state !== 'pending';
+			pending.map(async (item) => {
+				try {
+					const detail = await api.hotlaps.getHotlap({
+						hotlap: item.hotlap!.id,
+					});
+					if (!detail) return false;
+					if (item.hotlap) item.hotlap.state = detail.state;
+					return detail.state !== 'pending';
 				} catch {
 					// Keep the current state and try again on the next refresh.
 					return false;
@@ -186,10 +194,10 @@
 	}
 
 	function elsewhere(
-		failure: RequestFailed,
+		failure: LfsplanetApiError,
 	): { id: string; title: string } | null {
-		if (failure.code !== 'wrong_era') return null;
-		const details = failure.details as
+		if (apiErrorBody(failure)?.code !== 'wrong_era') return null;
+		const details = apiErrorBody(failure)?.details as
 			{ era_id?: string; era_title?: string } | undefined;
 		if (!details?.era_id) return null;
 		return { id: details.era_id, title: details.era_title ?? details.era_id };
@@ -203,23 +211,22 @@
 		item.retryable = false;
 		item.elsewhere = null;
 
-		const body = new FormData();
-		body.append('spr', item.file, item.file.name);
 		try {
-			item.hotlap = await send<Hotlap>(
-				`/api/v1/eras/${encodeURIComponent(item.eraId ?? target.id)}/hotlaps`,
-				{ method: 'POST', csrf: session.me.csrf_token, body },
-			);
+			item.hotlap = await api.hotlaps.uploadHotlap({
+				'X-CSRF-Token': session.me.csrf_token,
+				era: item.eraId ?? target.id,
+				spr: item.file,
+			});
 			item.status = 'accepted';
 		} catch (failure) {
 			item.status = 'failed';
 			item.error =
-				failure instanceof RequestFailed
-					? failure.message
+				failure instanceof LfsplanetApiError
+					? apiErrorMessage(failure)
 					: 'The replay could not be uploaded.';
-			item.retryable = failure instanceof RequestFailed && failure.retryable;
+			item.retryable = apiErrorRetryable(failure);
 			item.elsewhere =
-				failure instanceof RequestFailed ? elsewhere(failure) : null;
+				failure instanceof LfsplanetApiError ? elsewhere(failure) : null;
 		}
 	}
 
@@ -433,7 +440,8 @@
 										<p class="mt-0.5 text-xs text-muted-foreground">
 											{#if item.status === 'accepted' && item.hotlap}
 												{eraTitle(item.hotlap.era_id)} · {item.hotlap.track} · {item
-													.hotlap.vehicle ?? item.hotlap.submission?.raw_vehicle_name} · {lapTime(
+													.hotlap.vehicle ??
+													item.hotlap.submission?.raw_vehicle_name} · {lapTime(
 													item.hotlap.lap_time_ms,
 												)} ·
 												{hotlapStates[item.hotlap.state].label}

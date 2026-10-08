@@ -1,14 +1,15 @@
-import { get, type RankingDetailResponse } from "$lib/api.js";
-import { hotlapPath } from "$lib/era.js";
+import { createApi } from "$lib/api.js";
+
 import type { LayoutLoad } from "./$types";
 
 /** Loads the ranking's rules and the charts it requires. */
 export const load: LayoutLoad = async ({ depends, params, fetch, parent }) => {
+  const api = createApi(fetch);
   depends("app:hotlaps");
-  const ranking = await get<RankingDetailResponse>(
-    fetch,
-    `/api/v1/eras/${encodeURIComponent(params.era)}/rankings/${encodeURIComponent(params.rank)}`,
-  );
+  const ranking = await api.ranking.getEraRanking({
+    era: params.era,
+    ranking: params.rank,
+  });
   const { breadcrumbs } = await parent();
   return {
     ranking,
@@ -16,7 +17,7 @@ export const load: LayoutLoad = async ({ depends, params, fetch, parent }) => {
       ...breadcrumbs,
       {
         label: ranking.title,
-        href: `${hotlapPath(params.era)}/rankings/${ranking.id}`,
+        href: `/hotlaps/${params.era}/rankings/${ranking.id}`,
       },
     ],
   };

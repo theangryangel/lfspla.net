@@ -151,6 +151,10 @@
 						: 'Neither driver has a personal best for these filters. Try another era or clear the track and vehicle.'}
 				</p></Empty
 			>{/if}
+	{:else if data.left && data.right && !data.era}
+		<Empty title="Choose an era">
+			<p>Select an era above to compare these drivers.</p>
+		</Empty>
 	{:else}
 		<Empty title="Choose two drivers"
 			><p>

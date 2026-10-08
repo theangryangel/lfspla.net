@@ -1,16 +1,20 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+
 	import {
-		getList,
-		query,
+		useApi,
 		type EraSummary,
 		type TrackSummary,
 		type VehicleSummary,
 	} from '$lib/api.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+
+	import { goto } from '$app/navigation';
+
 	import Panel from './Panel.svelte';
 	import SearchSelect, { type SearchOption } from './SearchSelect.svelte';
+
+	const api = useApi();
 
 	let {
 		eras,
@@ -67,10 +71,9 @@
 		tracks = [];
 		trackProblem = '';
 		if (selectedEra) {
-			getList<TrackSummary>(
-				fetch,
-				`/api/v1/eras/${encodeURIComponent(selectedEra)}/tracks`,
-			)
+			api.tracks
+				.listEraTracks({ era: selectedEra })
+				.then((response) => response.items)
 				.then((items) => {
 					if (active) tracks = items;
 				})
@@ -91,11 +94,13 @@
 		vehicleLabels = {};
 		vehicleProblem = '';
 		if (selectedEra) {
-			getList<VehicleSummary>(
-				fetch,
-				`/api/v1/eras/${encodeURIComponent(selectedEra)}/vehicles` +
-					query({ track: selectedTrack, limit: 100 }),
-			)
+			api.vehicles
+				.listEraVehicles({
+					era: selectedEra,
+					track: selectedTrack || undefined,
+					limit: 100,
+				})
+				.then((response) => response.items)
 				.then((items) => {
 					if (active) vehicles = items;
 				})
@@ -112,11 +117,14 @@
 	async function searchVehicles(term: string) {
 		const selectedEra = era;
 		const selectedTrack = track;
-		const items = await getList<VehicleSummary>(
-			fetch,
-			`/api/v1/eras/${encodeURIComponent(selectedEra)}/vehicles` +
-				query({ track: selectedTrack, q: term, limit: 100 }),
-		);
+		const items = await api.vehicles
+			.listEraVehicles({
+				era: selectedEra,
+				track: selectedTrack || undefined,
+				q: term,
+				limit: 100,
+			})
+			.then((response) => response.items);
 		if (era === selectedEra && track === selectedTrack) {
 			vehicleLabels = {
 				...vehicleLabels,
@@ -132,17 +140,14 @@
 		pending = true;
 		problem = '';
 		try {
-			await goto(
-				'/compare' +
-					query({
-						left: left.trim(),
-						right: right.trim(),
-						era,
-						track,
-						vehicle,
-						shared: sharedOnly ? '' : '0',
-					}),
-			);
+			const params = new URLSearchParams();
+			params.set('left', left.trim());
+			params.set('right', right.trim());
+			params.set('era', era);
+			if (track) params.set('track', track);
+			if (vehicle) params.set('vehicle', vehicle);
+			if (!sharedOnly) params.set('shared', '0');
+			await goto(`/compare?${params}`);
 		} catch {
 			problem = 'Could not load the comparison. Please try again.';
 		} finally {
@@ -218,7 +223,7 @@
 							vehicles.find((item) => item.code === vehicle)?.name ??
 							vehicle}
 						options={vehicleOptions(vehicles)}
-						search={searchVehicles}
+						search={era ? searchVehicles : undefined}
 						placeholder="Search vehicles..."
 						onValueChange={(value) => {
 							vehicle = value;

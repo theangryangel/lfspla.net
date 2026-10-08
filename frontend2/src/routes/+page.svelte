@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
 	import { delta, lapTime } from '$lib/format.js';
-	import { hotlapPath } from '$lib/era.js';
 	import HotlapActivity from '$lib/components/app/HotlapActivity.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import PageHeading from '$lib/components/app/PageHeading.svelte';
@@ -53,9 +52,10 @@
 						{#if combo}
 							<a
 								class="hover:underline"
-								href={`${hotlapPath(encodeURIComponent(combo.chart.era_id))}/charts/${encodeURIComponent(combo.chart.track.code)}/${encodeURIComponent(combo.chart.vehicle.code)}`}
+								href={`/hotlaps/${encodeURIComponent(combo.chart.era_id)}/charts/${encodeURIComponent(combo.chart.track.code)}/${encodeURIComponent(combo.chart.vehicle.code)}`}
 							>
-								{combo.chart.era_title} / {combo.chart.track.code} / {combo.chart.vehicle.code}
+								{combo.chart.era_title} / {combo.chart.track.code} / {combo
+									.chart.vehicle.code}
 							</a>
 						{:else}
 							Most popular among recent uploads

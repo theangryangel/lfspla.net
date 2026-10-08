@@ -1,16 +1,18 @@
 <script lang="ts">
+	import { mode, ModeWatcher, toggleMode } from 'mode-watcher';
+	import { Button } from '$lib/components/ui/button/index.js';
+
 	import '../app.css';
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import SunIcon from '@lucide/svelte/icons/sun';
-	import { onMount } from 'svelte';
-	import { mode, ModeWatcher, toggleMode } from 'mode-watcher';
+	import { onMount, type Snippet } from 'svelte';
+
 	import { setComparison } from '$lib/compare.svelte.js';
 	import { setFloatingPanels } from '$lib/floating-panels.svelte.js';
 	import FloatingPanelStack from '$lib/components/app/FloatingPanelStack.svelte';
 	import CompareTray from '$lib/components/app/CompareTray.svelte';
-	import type { Snippet } from 'svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import UserRoundIcon from '@lucide/svelte/icons/user-round';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -19,6 +21,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import MobileNavigation from '$lib/components/app/MobileNavigation.svelte';
 	import Wordmark from '$lib/components/app/Wordmark.svelte';
+	import { setApi } from '$lib/api.js';
 	import { setSession } from '$lib/session.svelte.js';
 	import type { LayoutProps } from './$types';
 
@@ -32,7 +35,8 @@
 		return () => window.removeEventListener('storage', comparison.storage);
 	});
 
-	const session = setSession(() => data.me);
+	const api = setApi();
+	const session = setSession(() => data.me, api);
 </script>
 
 <svelte:head>

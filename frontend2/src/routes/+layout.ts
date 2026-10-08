@@ -1,5 +1,5 @@
-import { get, getList, type EraSummary, type MeResponse } from "$lib/api.js";
-import { currentEra } from "$lib/era.js";
+import { createApi } from "$lib/api.js";
+
 import type { Crumb } from "$lib/breadcrumbs.js";
 import type { LayoutLoad } from "./$types";
 
@@ -15,11 +15,12 @@ export const prerender = false;
  * after a sign-out refreshes the whole tree in one pass.
  */
 export const load: LayoutLoad = async ({ fetch }) => {
+  const api = createApi(fetch);
   const [me, eras] = await Promise.all([
-    get<MeResponse>(fetch, "/api/v1/me"),
-    getList<EraSummary>(fetch, "/api/v1/eras"),
+    api.authentication.get(),
+    api.eras.listEras().then((response) => response.items),
   ]);
 
   const breadcrumbs: Crumb[] = [];
-  return { me, eras, currentEraId: currentEra(eras)?.id ?? null, breadcrumbs };
+  return { me, eras, breadcrumbs };
 };

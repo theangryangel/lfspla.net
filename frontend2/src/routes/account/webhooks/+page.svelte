@@ -1,25 +1,30 @@
 <script lang="ts">
 	import {
-		send,
+		apiErrorMessage,
+		useApi,
 		type WebhookNotificationResponse,
 		type WebhookResponse,
 	} from '$lib/api.js';
-	import { useSession } from '$lib/session.svelte.js';
 	import { dateTime } from '$lib/format.js';
-	import Panel from '$lib/components/app/Panel.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
+
+	import { useSession } from '$lib/session.svelte.js';
+
+	import Panel from '$lib/components/app/Panel.svelte';
+	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
+
 	import * as Select from '$lib/components/ui/select/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import type { PageProps } from './$types';
 
+	const api = useApi();
+
 	let { data }: PageProps = $props();
 	const session = useSession();
-	const endpoint = '/api/v1/me/webhooks';
 	let webhooks = $derived(data.webhooks);
-	let format = $state('');
-	let eventKind = $state('');
+	let format = $state<WebhookResponse['format'] | ''>('');
+	let eventKind = $state<WebhookResponse['event_kind'] | ''>('');
 	$effect(() => {
 		if (!format) format = data.options?.formats[0]?.value ?? '';
 		if (!eventKind) eventKind = data.options?.events[0]?.value ?? '';
@@ -52,15 +57,12 @@
 		error = '';
 		notice = '';
 		try {
-			const webhook = await send<WebhookResponse>(endpoint, {
-				method: 'POST',
-				csrf: session.me.csrf_token,
-				json: {
-					name: name.trim(),
-					url: url.trim(),
-					format,
-					event_kind: eventKind,
-				},
+			const webhook = await api.webhooks.createWebhook({
+				'X-CSRF-Token': session.me.csrf_token,
+				name: name.trim(),
+				url: url.trim(),
+				format,
+				event_kind: eventKind,
 			});
 			if (!webhook)
 				throw new Error(
@@ -71,7 +73,10 @@
 			url = '';
 			notice = 'Webhook added.';
 		} catch (cause) {
-			error = cause instanceof Error ? cause.message : 'Could not add webhook.';
+			error =
+				cause instanceof Error
+					? apiErrorMessage(cause)
+					: 'Could not add webhook.';
 		} finally {
 			pending = false;
 		}
@@ -82,10 +87,10 @@
 		error = '';
 		notice = '';
 		try {
-			const updated = await send<WebhookResponse>(`${endpoint}/${webhook.id}`, {
-				method: 'PATCH',
-				csrf: session.me.csrf_token,
-				json: { enabled: !webhook.enabled },
+			const updated = await api.webhooks.updateWebhook({
+				'X-CSRF-Token': session.me.csrf_token,
+				enabled: !webhook.enabled,
+				webhook: webhook.id,
 			});
 			if (!updated) throw new Error('Could not update webhook.');
 			webhooks = webhooks.map((item) =>
@@ -94,7 +99,9 @@
 			notice = `${updated.name} ${updated.enabled ? 'resumed' : 'paused'}.`;
 		} catch (cause) {
 			error =
-				cause instanceof Error ? cause.message : 'Could not update webhook.';
+				cause instanceof Error
+					? apiErrorMessage(cause)
+					: 'Could not update webhook.';
 		} finally {
 			pending = false;
 		}
@@ -105,16 +112,18 @@
 		error = '';
 		notice = '';
 		try {
-			await send(`${endpoint}/${target.id}`, {
-				method: 'DELETE',
-				csrf: session.me.csrf_token,
+			await api.webhooks.deleteWebhook({
+				'X-CSRF-Token': session.me.csrf_token,
+				webhook: target.id,
 			});
 			webhooks = webhooks.filter((item) => item.id !== target?.id);
 			notice = 'Webhook deleted.';
 			confirmOpen = false;
 		} catch (cause) {
 			error =
-				cause instanceof Error ? cause.message : 'Could not delete webhook.';
+				cause instanceof Error
+					? apiErrorMessage(cause)
+					: 'Could not delete webhook.';
 		} finally {
 			pending = false;
 		}
@@ -138,7 +147,10 @@
 					<Select.Root
 						type="single"
 						value={format}
-						onValueChange={(value) => (format = value ?? '')}
+						onValueChange={(value) =>
+							(format =
+								data.options?.formats.find((option) => option.value === value)
+									?.value ?? '')}
 					>
 						<Select.Trigger
 							id="webhook-format"
@@ -161,7 +173,10 @@
 					<Select.Root
 						type="single"
 						value={eventKind}
-						onValueChange={(value) => (eventKind = value ?? '')}
+						onValueChange={(value) =>
+							(eventKind =
+								data.options?.events.find((option) => option.value === value)
+									?.value ?? '')}
 					>
 						<Select.Trigger
 							id="webhook-event"

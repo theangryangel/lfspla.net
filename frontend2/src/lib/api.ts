@@ -1,484 +1,62 @@
-/** API response types and request helpers. */
-import { error } from "@sveltejs/kit";
+import { getContext, setContext } from "svelte";
+import { LfsplanetApiClient, LfsplanetApiError } from "@lfsplanet/sdk";
+import type { ErrorBody, ErrorResponse } from "@lfsplanet/sdk/types";
+export type * from "@lfsplanet/sdk/types";
+export type {
+  NationContributionResponse as NationContribution,
+  NationRankingEntryResponse as NationRankingEntry,
+  PersonalRankingEntryResponse as PersonalRankingEntry,
+  TrackLocation as TrackLocationCode,
+  TrackLocationSummary as TrackLocation,
+} from "@lfsplanet/sdk/types";
+export type {
+  ListHotlapsRequestColumn as HotlapListColumn,
+  ListHotlapsRequestOrder as Ordering,
+} from "@lfsplanet/sdk/api";
 
 export type Fetch = typeof globalThis.fetch;
+export type ApiClient = LfsplanetApiClient;
 
-export interface ApiErrorBody {
-  error: { code: string; message: string; details?: unknown };
-}
-
-/** GET an endpoint. */
-export async function get<T>(fetch: Fetch, path: string): Promise<T> {
-  const response = await fetch(path, {
-    headers: { accept: "application/json" },
+/** Load functions supply their fetch to preserve SvelteKit invalidation. */
+export function createApi(fetch?: Fetch): ApiClient {
+  return new LfsplanetApiClient({
+    environment: "/",
+    auth: false,
+    maxRetries: 0,
+    fetch,
   });
-  if (!response.ok) throw error(response.status, await message(response));
-  return (await response.json()) as T;
 }
 
-/** Return null for expected absent statuses. */
-export async function getOptional<T>(
-  fetch: Fetch,
-  path: string,
-  absent: number[] = [401, 404],
-): Promise<T | null> {
-  const response = await fetch(path, {
-    headers: { accept: "application/json" },
-  });
-  if (absent.includes(response.status)) return null;
-  if (!response.ok) throw error(response.status, await message(response));
-  return (await response.json()) as T;
+const API_CONTEXT = Symbol("lfsplanet.api");
+
+export function setApi(api: ApiClient = createApi()): ApiClient {
+  return setContext(API_CONTEXT, api);
 }
 
-export interface Pagination {
-  page: number;
-  per_page: number;
-  total_items: number;
-  total_pages: number;
+export function useApi(): ApiClient {
+  return getContext<ApiClient>(API_CONTEXT);
 }
 
-export interface ListResponse<T> {
-  items: T[];
+export function apiErrorBody(cause: unknown): ErrorBody | undefined {
+  if (!(cause instanceof LfsplanetApiError)) return undefined;
+  return (cause.body as Partial<ErrorResponse> | undefined)?.error;
 }
 
-export interface PaginatedResponse<T> extends ListResponse<T> {
-  pagination: Pagination;
-}
-
-export async function getList<T>(fetch: Fetch, path: string): Promise<T[]> {
-  return (await get<ListResponse<T>>(fetch, path)).items;
-}
-
-export async function getOptionalList<T>(
-  fetch: Fetch,
-  path: string,
-  absent: number[] = [401, 404],
-): Promise<T[] | null> {
+/** Show the backend's message rather than Fern's status-class name. */
+export function apiErrorMessage(cause: unknown): string {
   return (
-    (await getOptional<ListResponse<T>>(fetch, path, absent))?.items ?? null
+    apiErrorBody(cause)?.message ??
+    (cause instanceof LfsplanetApiError && cause.statusCode == null
+      ? "The request could not be sent."
+      : cause instanceof Error
+        ? cause.message
+        : "The request failed.")
   );
 }
 
-/** A failed API request. Status 0 means it never reached the API. */
-export class RequestFailed extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-    readonly details?: unknown,
-  ) {
-    super(message);
-    this.name = "RequestFailed";
-  }
-
-  get retryable(): boolean {
-    return (
-      this.status === 0 ||
-      this.status === 408 ||
-      this.status === 429 ||
-      this.status >= 500
-    );
-  }
-}
-
-/** Send an authenticated API request. */
-export async function send<T>(
-  path: string,
-  {
-    method,
-    csrf,
-    body,
-    json,
-  }: { method: string; csrf: string; body?: BodyInit; json?: unknown },
-): Promise<T | null> {
-  let response: Response;
-  try {
-    response = await fetch(path, {
-      method,
-      headers: {
-        accept: "application/json",
-        "X-CSRF-Token": csrf,
-        ...(json !== undefined ? { "Content-Type": "application/json" } : {}),
-      },
-      body: json !== undefined ? JSON.stringify(json) : body,
-    });
-  } catch {
-    throw new RequestFailed(
-      0,
-      "network_error",
-      "The request could not be sent.",
-    );
-  }
-  if (!response.ok) throw await failure(response);
-  return response.status === 204 ? null : ((await response.json()) as T);
-}
-
-async function failure(response: Response): Promise<RequestFailed> {
-  let code = "request_failed";
-  let text =
-    response.statusText || `Request failed with status ${response.status}`;
-  let details: unknown;
-  try {
-    const body = (await response.json()) as ApiErrorBody;
-    if (body?.error?.code) code = body.error.code;
-    if (body?.error?.message) text = body.error.message;
-    details = body?.error?.details;
-  } catch {
-    // The response was not an API error.
-  }
-  return new RequestFailed(response.status, code, text, details);
-}
-
-async function message(response: Response): Promise<string> {
-  return (await failure(response)).message;
-}
-
-export function query(
-  params: Record<string, string | number | undefined | null>,
-): string {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "")
-      search.set(key, String(value));
-  }
-  const encoded = search.toString();
-  return encoded ? `?${encoded}` : "";
-}
-
-export interface PlayerSummary {
-  id: number;
-  lfs_username: string;
-  display_name: string;
-  country_code: string | null;
-  flag_code: string | null;
-}
-
-export type SteeringInput =
-  "wheel" | "mouse" | "keyboard" | "keyboard_stabilised";
-export type DriverSide = "left" | "right";
-export type HotlapState = "pending" | "valid" | "invalid";
-export type PodiumLevel = "gold" | "silver" | "bronze";
-
-export type PlayerBadge =
-  | {
-      kind: "ranking";
-      ranking_id: string;
-      label: string;
-      title: string;
-      ranking_position: number;
-    }
-  | {
-      kind: "ranking_completion";
-      ranking_id: string;
-      label: string;
-      title: string;
-    }
-  | {
-      kind: "world_record_podium";
-      level: PodiumLevel;
-      firsts: number;
-      seconds: number;
-      thirds: number;
-    }
-  | {
-      kind: "world_record_leader";
-      leader_position: number;
-      world_records: number;
-    }
-  | { kind: "newbie" };
-
-export interface MeResponse {
-  authenticated: boolean;
-  player: PlayerSummary | null;
-  csrf_token: string;
-  allow_test_validation: boolean;
-  allow_uploads: boolean;
-  max_spr_upload_bytes: number;
-}
-
-export interface EraSummary {
-  id: string;
-  title: string;
-  open: boolean;
-  version_requirement: string;
-  rankings: RankingSummary[];
-}
-
-export interface RankingSummary {
-  id: string;
-  title: string;
-  description: string;
-  my_progress: RankingProgressResponse | null;
-}
-
-export interface RankingRules {
-  benchmark_percent: number;
-  nation_max_points: number;
-  nation_driver_limit: number;
-}
-
-export interface RankingChart {
-  chart: Chart;
-  my_hotlap: Hotlap | null;
-}
-
-export interface RankingProgressResponse {
-  total_charts: number;
-  completed_charts: number;
-}
-
-export interface RankingDetailResponse extends RankingSummary {
-  rules: RankingRules;
-  charts: RankingChart[];
-}
-
-export interface RankingStandings<T> {
-  id: string;
-  title: string;
-  total_charts: number;
-  entries: T[];
-}
-
-export interface PersonalRankingEntry {
-  position: number;
-  player: PlayerSummary;
-  completed_charts: number;
-  total_charts: number;
-  handicap_ms: number;
-  badges: PlayerBadge[];
-}
-
-export interface NationRankingEntry {
-  position: number;
-  country_code: string;
-  points: number;
-  handicap_ms: number;
-  contributing_laps: number;
-  contributing_charts: number;
-}
-
-export interface NationContribution {
-  player: PlayerSummary;
-  points: number;
-  contributing_charts: number;
-  handicap_ms: number;
-}
-
-export interface TrackSummary {
-  code: string;
-  name: string;
-  location: TrackLocation;
-  reverse: boolean;
-  open_configuration: boolean;
-}
-
-export interface TrackLocation {
-  code: TrackLocationCode;
-  name: string;
-}
-
-export type TrackLocationCode =
-  "BL" | "SO" | "FE" | "KY" | "AS" | "WE" | "RO" | "OTHER";
-
-export interface VehicleSummary {
-  code: string;
-  name: string;
-  license: string;
-  image_url: string | null;
-}
-
-export interface Chart {
-  era_id: string;
-  era_title: string;
-  track: TrackSummary;
-  vehicle: VehicleSummary;
-}
-
-export type CombinationRejection =
-  "unknown_track" | "open_configuration" | "unknown_vehicle" | "not_offered";
-
-/** Combination validation returns a reason instead of an error. */
-export interface CombinationCheck {
-  valid: boolean;
-  chart: Chart | null;
-  reason: CombinationRejection | null;
-}
-
-export type Ordering = "asc" | "desc";
-export type HotlapListColumn = "submitted" | "driver" | "rank" | "lap_time";
-
-export interface HotlapChartResponse extends PaginatedResponse<Hotlap> {
-  chart: Chart;
-  contributes_to: RankingContribution[];
-}
-
-export interface Hotlap {
-  id: number;
-  era_id: string;
-  track: string;
-  vehicle: string;
-  lap_time_ms: number;
-  created_at: string;
-  game_version: string;
-  replay_url: string | null;
-  split_1_ms: number;
-  split_2_ms: number;
-  split_3_ms: number;
-  split_4_ms: number;
-  steering: SteeringInput;
-  brake_help_enabled: boolean;
-  automatic_gears: boolean;
-  manual_shifter: boolean | null;
-  axis_clutch: boolean;
-  automatic_clutch: boolean;
-  driver_side: DriverSide;
-  abs_enabled: boolean | null;
-  era_title: string;
-  player: HotlapPlayer;
-  state: HotlapState;
-  position: number | null;
-  distance_to_world_record_ms: number | null;
-  distance_to_benchmark_ms: number | null;
-  contributes_to: RankingContribution[] | null;
-  submission?: HotlapSubmission;
-}
-
-export interface HotlapPlayer extends PlayerSummary {
-  badges: PlayerBadge[] | null;
-}
-
-export interface HotlapSubmission {
-  raw_vehicle_name: string;
-  mod_version: number | null;
-  original_filename: string | null;
-  hlvc_result_code: number | null;
-  error_detail: string | null;
-}
-
-export interface RankingContribution {
-  id: string;
-  title: string;
-}
-
-export type PlayerSearchResponse = ListResponse<PlayerSummary>;
-
-export interface PlayerStats {
-  hotlaps: number;
-  personal_bests: number;
-  world_records: number;
-  podiums: number;
-  eras: number;
-  first_hotlap_at: string | null;
-  latest_hotlap_at: string | null;
-}
-
-export interface PlayerEraStats {
-  id: string;
-  title: string;
-  hotlaps: number;
-  personal_bests: number;
-  firsts: number;
-  seconds: number;
-  thirds: number;
-  first_hotlap_at: string;
-  latest_hotlap_at: string;
-  badges: PlayerBadge[];
-}
-
-export interface PlayerResponse extends PlayerSummary {
-  stats: PlayerStats;
-  eras: PlayerEraStats[];
-  highlights: Hotlap[];
-}
-
-export interface CodeNameSummary {
-  code: string;
-  name: string;
-}
-
-export interface PlayerComparisonResponse {
-  left: { player: PlayerSummary; results: Hotlap[] };
-  right: { player: PlayerSummary; results: Hotlap[] };
-}
-
-export interface ComboSpotlight {
-  chart: Chart;
-  recent_uploads: number;
-  leaders: {
-    player: PlayerSummary;
-    position: number;
-    lap_time_ms: number;
-    distance_to_world_record_ms: number;
-  }[];
-}
-
-export interface DriverSpotlight {
-  player: PlayerSummary;
-  recent_personal_bests: number;
-}
-
-export interface StatsResponse {
-  validated_hotlaps: number;
-  drivers: number;
-  combinations: number;
-  eras: number;
-  spotlight_uploads: number;
-  combo_spotlight: ComboSpotlight | null;
-  driver_spotlight: DriverSpotlight | null;
-}
-
-export interface PersonalAccessTokenResponse {
-  id: number;
-  name: string;
-  token_hint: string;
-  created_at: string;
-  expires_at: string;
-  last_used_at: string | null;
-  revoked_at: string | null;
-}
-
-export interface CreatedPersonalAccessTokenResponse {
-  token: string;
-  credential: PersonalAccessTokenResponse;
-}
-
-export interface WorldRecordHolderResponse {
-  position: number;
-  player: PlayerSummary;
-  world_records: number;
-}
-
-export interface WebhookResponse {
-  id: number;
-  name: string;
-  format: "discord";
-  event_kind: "hotlap_validated" | "world_record_set";
-  enabled: boolean;
-}
-
-export interface WebhookNotificationResponse {
-  id: number;
-  webhook_name: string;
-  event_kind: WebhookResponse["event_kind"];
-  status: "pending" | "delivered" | "failed";
-  attempt_count: number;
-  created_at: string;
-  next_attempt_at: string | null;
-  delivered_at: string | null;
-  failed_at: string | null;
-  error_detail: string | null;
-}
-
-export interface WebhookOptionsResponse {
-  formats: {
-    value: WebhookResponse["format"];
-    label: string;
-    url_placeholder: string;
-    url_help: string;
-  }[];
-  events: {
-    value: WebhookResponse["event_kind"];
-    label: string;
-    description: string;
-  }[];
+/** The browser client disables automatic retries; the upload UI decides when to offer one. */
+export function apiErrorRetryable(cause: unknown): boolean {
+  if (!(cause instanceof LfsplanetApiError)) return false;
+  const status = cause.statusCode;
+  return status == null || status === 408 || status === 429 || status >= 500;
 }

@@ -1,0 +1,11 @@
+{
+  "name": "@lfsplanet/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/api/types/index.ts",
+    "./api": "./src/api/index.ts"
+  }
+}

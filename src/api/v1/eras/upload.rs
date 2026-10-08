@@ -60,6 +60,15 @@ struct UploadedSpr {
     bytes: Bytes,
 }
 
+#[derive(utoipa::ToSchema)]
+#[serde(deny_unknown_fields)]
+#[allow(dead_code, reason = "describes the multipart body extracted by axum")]
+struct UploadHotlapForm {
+    /// Non-empty SPR file with a safe `.spr` filename.
+    #[schema(value_type = String, format = Binary)]
+    spr: Vec<u8>,
+}
+
 #[utoipa::path(
     post,
     path = "/api/v1/eras/{era}/hotlaps",
@@ -72,6 +81,10 @@ struct UploadedSpr {
     params(
         ("era" = String, Path, description = "Era the replay is claimed to belong to"),
         ("X-CSRF-Token" = String, Header, description = "Required with cookie-session authentication")
+    ),
+    request_body(
+        content = inline(UploadHotlapForm),
+        content_type = "multipart/form-data"
     ),
     responses(
         (status = 202, description = "Hotlap created and awaiting delayed validation", body = Hotlap,

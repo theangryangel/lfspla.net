@@ -1,25 +1,21 @@
-import {
-  get,
-  getList,
-  query,
-  type PaginatedResponse,
-  type WebhookNotificationResponse,
-  type WebhookResponse,
-  type WebhookOptionsResponse,
-} from "$lib/api.js";
+import { createApi } from "$lib/api.js";
+
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ fetch, parent, url }) => {
+  const api = createApi(fetch);
   const { me, breadcrumbs } = await parent();
   const [webhooks, options, notifications] = me.authenticated
     ? await Promise.all([
-        getList<WebhookResponse>(fetch, "/api/v1/me/webhooks"),
-        get<WebhookOptionsResponse>(fetch, "/api/v1/me/webhooks/options"),
-        get<PaginatedResponse<WebhookNotificationResponse>>(
-          fetch,
-          "/api/v1/me/webhooks/notifications" +
-            query({ page: url.searchParams.get("page") ?? 1, per_page: 20 }),
-        ),
+        api.webhooks.listWebhooks().then((response) => response.items),
+        api.webhooks.webhookOptions(),
+        api.webhooks.listWebhookNotifications({
+          page:
+            (url.searchParams.get("page")
+              ? Number(url.searchParams.get("page"))
+              : undefined) ?? 1,
+          per_page: 20,
+        }),
       ])
     : [[], null, null];
   return {
