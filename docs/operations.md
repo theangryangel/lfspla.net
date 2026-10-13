@@ -91,8 +91,9 @@ and deletion still attempt an immediate refresh. Calculation and replacement
 hold the catalogue rebuild lock, briefly pausing admissions and other published
 result changes while badges are calculated. `run-all` includes this retry task.
 
-`storage-gc` reports replay objects and cached Vehicle Mod covers that are no
-longer retained by their database records and are at least 24 hours old. It
+`storage-gc` reports unreferenced SPRs, RAFs, vehicle images, and other objects
+in the configured attachment store that are at least 24 hours old. Files shared
+by several records remain retained until every reference is removed. It
 streams object listings in bounded batches, so it does not load every stored
 key into memory. It never deletes unless asked:
 
@@ -101,7 +102,7 @@ lfsplanet maintenance storage-gc --older-than-hours 24
 lfsplanet maintenance storage-gc --delete
 ```
 
-`run-all` runs every maintenance task once. Its `--delete` flag affects only
+`run-all` runs the routine maintenance tasks once. Its `--delete` flag affects only
 eligible storage objects; it attempts all tasks and reports failures together.
 
 ## Player restrictions

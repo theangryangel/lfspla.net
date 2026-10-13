@@ -159,7 +159,7 @@
 			<Thumbnail
 				kind={holding.kind}
 				code={holding.of.code}
-				src={holding.kind === 'vehicle' ? holding.of.image_url : null}
+				src={holding.kind === 'vehicle' ? holding.of.image?.url : null}
 				class="w-10 shrink-0 rounded-sm ring-1 ring-border"
 			/>
 			<span

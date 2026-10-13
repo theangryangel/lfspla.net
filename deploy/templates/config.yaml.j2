@@ -9,7 +9,7 @@ web:
   site_notice: "This is a test site; data and features may change. Consider all uploads to be lost and deleted at anytime."
 
 storage:
-  object_store_root: {{ (state_dir ~ "/spr") | tojson }}
+  object_store_root: {{ object_store_root | tojson }}
 
 hotlaps:
   allow_test_validation: false

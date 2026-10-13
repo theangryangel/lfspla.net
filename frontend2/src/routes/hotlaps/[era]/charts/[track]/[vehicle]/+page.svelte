@@ -380,11 +380,11 @@
 										{dateTime(entry.created_at)} · {entry.game_version}
 									</Table.Cell>
 									<Table.Cell>
-										{#if entry.replay_url}
+										{#if entry.spr?.url}
 											<Button
 												variant="ghost"
 												size="icon"
-												href={entry.replay_url}
+												href={entry.spr.url}
 												aria-label="Download {entry.player
 													.display_name}'s replay"
 											>
@@ -392,6 +392,14 @@
 											</Button>
 										{:else}
 											<span class="text-muted-foreground">-</span>
+										{/if}
+										{#if entry.raf}
+											<Button
+												variant="ghost"
+												size="sm"
+												href={entry.raf.url}
+												aria-label="Download RAF telemetry">RAF</Button
+											>
 										{/if}
 									</Table.Cell>
 								</Table.Row>

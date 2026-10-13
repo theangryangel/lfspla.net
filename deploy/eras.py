@@ -7,6 +7,8 @@ Set replace_existing_eras in inventory only when reviewed era replacements are
 intended. New eras never require that flag.
 """
 
+from object_storage import storage_configuration
+
 from pyinfra import host
 from pyinfra.operations import files, server
 
@@ -15,6 +17,7 @@ app_user = host.data.app_user
 app_group = host.data.app_group
 app_root = host.data.app_root
 config_dir = host.data.config_dir
+_, storage_environment = storage_configuration(host.data)
 replace_existing_eras = host.data.get("replace_existing_eras", False)
 apply_confirmation = "--yes " if replace_existing_eras else ""
 
@@ -50,6 +53,7 @@ server.shell(
         f"--standard-vehicle-images-dir {config_dir}/builtin-vehicles"
     ],
     _sudo_user=app_user,
+    _env=storage_environment,
 )
 
 server.shell(
@@ -60,4 +64,5 @@ server.shell(
     ],
     _if=era_sync.did_change,
     _sudo_user=app_user,
+    _env=storage_environment,
 )

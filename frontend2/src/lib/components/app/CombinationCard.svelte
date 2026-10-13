@@ -68,6 +68,6 @@
 		'vehicle',
 		vehicle?.code,
 		vehicle?.name,
-		vehicle?.image_url ?? null,
+		vehicle?.image?.url ?? null,
 	)}
 </div>

@@ -2,6 +2,7 @@
 
 mod command;
 mod install;
+mod raf;
 mod validate;
 
 pub use install::install;

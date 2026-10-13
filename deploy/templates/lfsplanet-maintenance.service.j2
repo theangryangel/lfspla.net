@@ -9,6 +9,7 @@ User={{ host.data.app_user }}
 Group={{ host.data.app_group }}
 WorkingDirectory={{ host.data.state_dir }}
 Environment=RUST_LOG=warn,lfsplanet=info
+EnvironmentFile={{ host.data.config_dir }}/storage.env
 ExecStart={{ host.data.app_root }}/lfsplanet --config {{ host.data.config_dir }}/config.yaml maintenance run-all --delete
 UMask=0027
 NoNewPrivileges=true

@@ -39,12 +39,12 @@ export namespace PaginatedResponseHotlap {
       player: LfsplanetApi.HotlapPlayer;
       /** Current chart position; null when unranked or chart data has not been loaded. */
       position: number | null;
-      /** Relative download URL; null when no replay is stored. */
-      replay_url: string | null;
+      raf: LfsplanetApi.Attachment | null;
       split_1_ms: LfsplanetApi.Milliseconds;
       split_2_ms: LfsplanetApi.Milliseconds;
       split_3_ms: LfsplanetApi.Milliseconds;
       split_4_ms: LfsplanetApi.Milliseconds;
+      spr: LfsplanetApi.Attachment | null;
       state: LfsplanetApi.HotlapState;
       steering: LfsplanetApi.SteeringInput;
       submission?: (LfsplanetApi.HotlapSubmission | null) | undefined;

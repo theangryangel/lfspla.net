@@ -30,7 +30,7 @@ lfsplanet lfs path 0.8
 
 To diagnose one local replay without uploading or storing it, run it through
 the same HLVC sandbox directly. The command prints runner and runtime exit
-codes plus captured stdout and stderr:
+codes plus captured stdout and stderr, and the number of RAF bytes captured:
 
 ```sh
 lfsplanet hotlap validate 0.8 /path/to/replay.spr
@@ -84,6 +84,22 @@ The worker validates replays in an ephemeral Bubblewrap overlay, except for the
 installation's `mods/` and `cache/` directories. LFS may retain downloaded
 Vehicle Mods and cached data there for later validations. Other installation
 and Wine-prefix writes disappear with the mount namespace.
+
+Each invocation also gets an empty, temporary `data/raf` directory. The validator
+captures the first regular `.raf` file there, regardless of its name, and checks
+its signature, version, block layout, and completeness. RAF output is limited to
+64 MiB. When a lap is published, its RAF is stored at its content-hash path and referenced by
+`hotlap.raf_attachment_id` through the `attachment` table. Missing, malformed, or unstorable RAF output is logged
+without changing the HLVC verdict.
+
+Hotlap responses include a nullable `raf` attachment containing its public UUID
+and download URL. `GET /api/v1/attachments/{uuid}` serves SPR, RAF, and vehicle
+images. Anyone with the attachment UUID can download it.
+Deleting a hotlap removes its attachment references; storage GC collects files
+when no remaining hotlap or vehicle references them. See [attachments](attachments.md)
+for the schema and storage cutover procedure. Existing uploads, imports, and test-validated laps have
+no RAF unless they subsequently pass through LFS validation. No backfill is run
+automatically.
 
 `hotlaps.allow_test_validation` exposes an owner-scoped test endpoint that
 publishes a replay without HLVC. It is useful for ranking development but must

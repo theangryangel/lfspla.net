@@ -33,9 +33,8 @@ pub struct NewHotlap<'a> {
     pub mod_version: Option<u16>,
     pub lap_time: Duration,
     pub split_times: [Duration; 4],
-    pub original_filename: &'a str,
     pub fingerprint: &'a str,
-    pub spr_object_key: &'a str,
+    pub spr_attachment_id: i64,
     /// `None` when the replay's version could not report ABS.
     pub abs_enabled: Option<bool>,
     /// Raw 16-bit player flags for steering, driving aids, and driver side.
@@ -171,7 +170,7 @@ LIMIT 1
     }
 
     pub async fn insert(
-        database: &DatabaseConnection,
+        database: &(impl ConnectionTrait + TransactionTrait<Transaction = sea_orm::DatabaseTransaction>),
         new: NewHotlap<'_>,
         max_outstanding: u64,
     ) -> Result<Hotlap, InsertError> {
@@ -213,8 +212,8 @@ LIMIT 1
             split_4_ms: Set(Milliseconds::try_from(new.split_times[3]).map_err(|_| {
                 sea_orm::DbErr::Type("duration exceeds BIGINT milliseconds".to_owned())
             })?),
-            original_filename: Set(Some(new.original_filename.to_owned())),
-            spr_object_key: Set(Some(new.spr_object_key.to_owned())),
+            spr_attachment_id: Set(Some(new.spr_attachment_id)),
+            raf_attachment_id: Set(None),
             source: Set(SOURCE_UPLOAD.to_owned()),
             fingerprint: Set(new.fingerprint.to_owned()),
             // Materialised from the same bits the row stores, purely so the chart
@@ -307,7 +306,7 @@ LIMIT 1
         database: &DatabaseConnection,
         hotlap_id: i64,
         player_id: i64,
-    ) -> Result<Option<(String, i64, bool)>, sea_orm::DbErr> {
+    ) -> Result<Option<(i64, bool)>, sea_orm::DbErr> {
         let transaction = database.begin().await?;
         crate::db::lock_admission(&transaction).await?;
         let Some(hotlap) = HotlapEntity::find_by_id(hotlap_id)
@@ -338,10 +337,7 @@ LIMIT 1
             hotlap.refresh_personal_best(&transaction).await?;
         }
         transaction.commit().await?;
-        let object_key = hotlap.spr_object_key.ok_or_else(|| {
-            sea_orm::DbErr::Type(format!("uploaded hotlap {hotlap_id} has no replay object"))
-        })?;
-        Ok(Some((object_key, era_id, published)))
+        Ok(Some((era_id, published)))
     }
 
     pub async fn validate_owned_for_testing(

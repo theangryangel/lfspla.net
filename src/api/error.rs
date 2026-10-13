@@ -73,14 +73,6 @@ impl ApiError {
         Self::new(StatusCode::NOT_FOUND, code, format!("{noun} was not found"))
     }
 
-    pub(crate) fn replay_not_available() -> Self {
-        Self::new(
-            StatusCode::NOT_FOUND,
-            "replay_not_available",
-            "A replay is not available for this hotlap",
-        )
-    }
-
     pub(crate) fn invalid_upload(message: &'static str) -> Self {
         Self::new(StatusCode::BAD_REQUEST, "invalid_upload", message)
     }
@@ -146,12 +138,8 @@ impl ApiError {
         Self::new(StatusCode::INTERNAL_SERVER_ERROR, "storage_error", message)
     }
 
-    pub(crate) fn object_store(error: object_store::Error) -> Self {
-        Self::storage(&error, "The replay could not be stored")
-    }
-
     pub(crate) fn object_store_read(error: object_store::Error) -> Self {
-        Self::storage(&error, "The replay could not be retrieved")
+        Self::storage(&error, "The attachment could not be retrieved")
     }
 }
 

@@ -48,7 +48,7 @@
 				: [],
 			createdAt: chart.my_hotlap?.created_at ?? null,
 			gameVersion: chart.my_hotlap?.game_version ?? null,
-			sprUrl: chart.my_hotlap?.replay_url ?? null,
+			sprUrl: chart.my_hotlap?.spr?.url ?? null,
 		})),
 	);
 	const completed = $derived(

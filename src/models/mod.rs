@@ -2,6 +2,7 @@
 //!
 //! HTTP and CLI concerns remain in their respective entrypoint modules.
 
+pub(crate) mod attachment;
 pub(crate) mod badge;
 pub(crate) mod era;
 pub(crate) mod hotlap;

@@ -40,7 +40,7 @@ impl Chart {
         }
     }
 
-    /// Loads catalogue metadata in two queries for all charts, retaining input order.
+    /// Loads catalogue metadata and attachment identities in batches for all charts, retaining input order.
     pub(crate) async fn load(
         database: &impl ConnectionTrait,
         era: &Era,
@@ -67,9 +67,19 @@ impl Chart {
             .into_iter()
             .map(|track| (track.id, TrackSummary::from(track)))
             .collect();
+        let attachments = crate::api::v1::attachments::load(
+            database,
+            vehicles.iter().filter_map(|v| v.image_attachment_id),
+        )
+        .await?;
         let vehicles: HashMap<_, _> = vehicles
             .into_iter()
-            .map(|vehicle| (vehicle.id, VehicleSummary::from(vehicle)))
+            .map(|vehicle| {
+                (
+                    vehicle.id,
+                    VehicleSummary::from_record(vehicle, &attachments),
+                )
+            })
             .collect();
         charts
             .iter()

@@ -23,7 +23,10 @@ mod tests {
         let results = chart_result_responses(
             vec![PlayerChartResult {
                 hotlap_id: 42,
-                downloadable: false,
+                raf_public_id: None,
+                spr_public_id: None,
+                spr_original_filename: None,
+                raf_original_filename: None,
                 era_id: 987,
                 era_slug: "2007-12-21".parse().unwrap(),
                 era_title: "Historical".to_owned(),
@@ -62,7 +65,7 @@ mod tests {
         assert_eq!(json[0]["steering"], "mouse");
         assert_eq!(json[0]["abs_enabled"], serde_json::Value::Null);
         assert_eq!(json[0]["manual_shifter"], false);
-        assert_eq!(json[0]["replay_url"], serde_json::Value::Null);
+        assert_eq!(json[0]["spr"], serde_json::Value::Null);
         assert_eq!(json[0]["created_at"], "1970-01-01T00:00:00Z");
         assert!(json[0].get("hotlap").is_none());
         assert!(json[0].get("hotlap_id").is_none());

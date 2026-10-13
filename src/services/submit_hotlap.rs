@@ -1,16 +1,16 @@
 //! Replay parsing, vehicle resolution, object storage, and submission admission.
 use crate::{
+    models::attachment::Model as Attachment,
     models::{
         Era, Hotlap, Player,
-        hotlap::{self, Entity as HotlapEntity, InsertError, NewHotlap},
+        hotlap::{self, InsertError, NewHotlap},
     },
     settings::HotlapSettings,
-    storage::Storage,
 };
 use axum::body::Bytes;
 use insim_core::game_version::GameVersion;
-use object_store::{ObjectStore, ObjectStoreExt, PutPayload};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use object_store::ObjectStore;
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, TransactionTrait};
 use sha2::{Digest, Sha256};
 use std::{io::Cursor, time::Duration};
 #[derive(Debug, thiserror::Error)]
@@ -33,7 +33,7 @@ pub(crate) enum SubmitError {
     #[error(transparent)]
     Database(#[from] sea_orm::DbErr),
     #[error(transparent)]
-    ObjectStore(#[from] object_store::Error),
+    Attachment(#[from] anyhow::Error),
     #[error(transparent)]
     Admission(#[from] InsertError),
 }
@@ -100,15 +100,20 @@ pub(crate) async fn submit(
     }
 
     let digest = hex::encode(Sha256::digest(&bytes));
-    let object_key = HotlapEntity::store(
+    let transaction = database.begin().await?;
+    crate::db::lock_admission(&transaction).await?;
+    let attachment = Attachment::store(
+        &transaction,
         object_store,
-        &replay_object_suffix(&digest),
-        PutPayload::from(bytes),
+        bytes.to_vec(),
+        "spr",
+        "application/octet-stream",
+        Some(filename),
     )
     .await?;
 
     let hotlap = crate::models::Hotlap::insert(
-        database,
+        &transaction,
         NewHotlap {
             player_id: player.id,
             era_id: era.id,
@@ -118,9 +123,8 @@ pub(crate) async fn submit(
             mod_version,
             lap_time,
             split_times: header.split_times,
-            original_filename: filename,
             fingerprint: &digest,
-            spr_object_key: &object_key,
+            spr_attachment_id: attachment.id,
             abs_enabled: hotlap::resolve_abs(header.abs_enabled, &header.lfs_version),
             player_flags: header.player_flags.bits(),
             game_version: &header.lfs_version,
@@ -128,24 +132,9 @@ pub(crate) async fn submit(
         settings.max_queued_per_player.get(),
     )
     .await;
-    // Clean up definite refusals only. A database error can mean COMMIT
-    // succeeded but its response was lost; GC must resolve that uncertainty.
-    if hotlap.is_err()
-        && !matches!(&hotlap, Err(InsertError::Database(_)))
-        && let Err(error) = object_store
-            .delete(&object_store::path::Path::from(object_key.as_str()))
-            .await
-    {
-        tracing::warn!(?error, %object_key, "failed to clean up refused replay upload");
-    }
-    Ok(hotlap?)
-}
-
-fn replay_object_suffix(digest: &str) -> String {
-    // A deletion of an earlier submission must never delete a re-upload's bytes.
-    // The fingerprint still deduplicates submissions in PostgreSQL.
-    let identity = hex::encode(rand::random::<[u8; 32]>());
-    format!("{}/{digest}-{identity}.spr", &digest[..2])
+    let hotlap = hotlap?;
+    transaction.commit().await?;
+    Ok(hotlap)
 }
 
 fn replay_lap_time(header: &lfsplanet_spr::SprHeader) -> Result<Duration, SubmitError> {
@@ -171,35 +160,6 @@ fn validate_replay_username(
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[tokio::test]
-    async fn deleting_an_earlier_upload_preserves_identical_reuploaded_bytes() {
-        use object_store::memory::InMemory;
-        use object_store::path::Path;
-
-        let store = InMemory::new();
-        let bytes = Bytes::from_static(b"same replay");
-        let digest = hex::encode(Sha256::digest(&bytes));
-        let first =
-            HotlapEntity::store(&store, &replay_object_suffix(&digest), bytes.clone().into())
-                .await
-                .unwrap();
-        let second =
-            HotlapEntity::store(&store, &replay_object_suffix(&digest), bytes.clone().into())
-                .await
-                .unwrap();
-        store.delete(&Path::from(first)).await.unwrap();
-        assert_eq!(
-            store
-                .get(&Path::from(second))
-                .await
-                .unwrap()
-                .bytes()
-                .await
-                .unwrap(),
-            bytes
-        );
-    }
-
     #[test]
     fn replay_username_must_match_unless_enforcement_is_disabled() {
         assert!(validate_replay_username(true, "example", "example").is_ok());

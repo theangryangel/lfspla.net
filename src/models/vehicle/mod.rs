@@ -8,13 +8,7 @@ use sea_orm::{
     sea_query::{Expr, OnConflict},
 };
 
-use crate::storage::Storage;
-
-use object_store::ObjectMeta;
-
-use sea_orm::{QuerySelect, entity::prelude::*};
-
-use std::collections::HashSet;
+use sea_orm::entity::prelude::*;
 
 use crate::db::escaped_like::EscapedLike;
 
@@ -46,8 +40,7 @@ pub struct Model {
     pub metadata: Option<Json>,
     pub fetched_at: Option<TimeDateTimeWithTimeZone>,
     pub last_seen_at: Option<TimeDateTimeWithTimeZone>,
-    pub image_object_key: Option<String>,
-    pub image_content_type: Option<String>,
+    pub image_attachment_id: Option<i64>,
     pub image_fetched_at: Option<TimeDateTimeWithTimeZone>,
     /// Mod revision whose cover was successfully cached; independent of metadata.
     pub image_version: Option<i16>,
@@ -105,8 +98,7 @@ impl Model {
                     metadata: Set(None),
                     fetched_at: Set(None),
                     last_seen_at: Set(None),
-                    image_object_key: Set(None),
-                    image_content_type: Set(None),
+                    image_attachment_id: Set(None),
                     image_fetched_at: Set(None),
                     image_version: Set(None),
                 }
@@ -158,35 +150,6 @@ impl Model {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
-
-impl Storage for Entity {
-    const PREFIX: &'static str = "vehicle-images";
-
-    async fn should_gc(
-        database: &DatabaseConnection,
-        objects: &[ObjectMeta],
-    ) -> Result<Vec<ObjectMeta>, DbErr> {
-        let candidates = objects
-            .iter()
-            .map(|object| object.location.to_string())
-            .collect::<Vec<_>>();
-        let retained = Entity::find()
-            .select_only()
-            .column(Column::ImageObjectKey)
-            .filter(Column::Available.eq(true))
-            .filter(Column::ImageObjectKey.is_in(candidates))
-            .into_tuple::<String>()
-            .all(database)
-            .await?
-            .into_iter()
-            .collect::<HashSet<_>>();
-        Ok(objects
-            .iter()
-            .filter(|object| !retained.contains(object.location.as_ref()))
-            .cloned()
-            .collect())
-    }
-}
 
 /// The `kind` value carried by vehicles that ship with the game.
 pub(crate) const KIND_STANDARD: &str = "standard";

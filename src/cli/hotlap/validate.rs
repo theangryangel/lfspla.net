@@ -38,6 +38,11 @@ pub(super) async fn run(
         String::from_utf8_lossy(&diagnostic.output.stderr)
     );
 
+    println!(
+        "RAF captured: {}",
+        diagnostic.raf.as_ref().map_or(0, |raf| raf.bytes.len())
+    );
+
     let result = diagnostic
         .result()
         .context("could not obtain a complete HLVC result")?;

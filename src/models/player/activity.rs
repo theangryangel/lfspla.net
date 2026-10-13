@@ -27,7 +27,10 @@ pub(crate) struct PlayerEraStats {
 #[derive(Debug, Clone, PartialEq, Eq, FromQueryResult)]
 pub(crate) struct PlayerChartResult {
     pub hotlap_id: i64,
-    pub downloadable: bool,
+    pub spr_original_filename: Option<String>,
+    pub raf_original_filename: Option<String>,
+    pub spr_public_id: Option<sea_orm::prelude::Uuid>,
+    pub raf_public_id: Option<sea_orm::prelude::Uuid>,
     pub era_id: i64,
     pub era_slug: EraSlug,
     pub era_title: String,
@@ -115,7 +118,10 @@ ORDER BY activity.era_id DESC
         let sql = r"
 SELECT
     hotlap.id AS hotlap_id,
-    (hotlap.spr_object_key IS NOT NULL) AS downloadable,
+    spr.public_id AS spr_public_id,
+    spr.original_filename AS spr_original_filename,
+    raf.original_filename AS raf_original_filename,
+    raf.public_id AS raf_public_id,
     chart.era_id,
     era.slug AS era_slug,
     era.title AS era_title,
@@ -136,6 +142,8 @@ FROM hotlap_personal_best pb
 JOIN chart ON chart.id = pb.chart_id
 JOIN era ON era.id = chart.era_id
 JOIN hotlap ON hotlap.id = pb.hotlap_id
+LEFT JOIN attachment spr ON spr.id = hotlap.spr_attachment_id
+LEFT JOIN attachment raf ON raf.id = hotlap.raf_attachment_id
 JOIN hotlap_personal_best leader
   ON leader.chart_id = pb.chart_id AND leader.position = 1
 JOIN hotlap record ON record.id = leader.hotlap_id

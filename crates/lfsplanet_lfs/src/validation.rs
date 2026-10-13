@@ -3,9 +3,18 @@
 use crate::HlvcResult;
 use std::process::Output;
 
+/// Captured telemetry with its original output filename.
+#[derive(Debug, PartialEq)]
+pub struct RafFile {
+    pub filename: String,
+    pub bytes: Vec<u8>,
+}
+
 /// Raw diagnostics remain available even when no complete verdict was produced.
 pub struct ValidationDiagnostic {
     pub output: Output,
+    /// Complete RAF output, when available. Capture failures do not affect the verdict.
+    pub raf: Option<RafFile>,
     pub(crate) verdict: anyhow::Result<ValidationResult>,
 }
 

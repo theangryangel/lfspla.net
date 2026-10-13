@@ -189,10 +189,23 @@ pub(crate) async fn list(
     )
     .await
     .map_err(ApiError::from)?;
+    let attachments = crate::api::v1::attachments::load(
+        &state.database,
+        page.entries.iter().flat_map(|entry| {
+            [
+                entry.hotlap.spr_attachment_id,
+                entry.hotlap.raf_attachment_id,
+            ]
+            .into_iter()
+            .flatten()
+        }),
+    )
+    .await?;
     Ok(Json(list_response(
         page,
         &pagination,
         query.mine.then_some(viewer_id).flatten(),
+        &attachments,
     )))
 }
 

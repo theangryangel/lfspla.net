@@ -24,9 +24,9 @@ pub(crate) struct VehicleSummary {
     code: String,
     name: String,
     license: String,
-    /// Relative URL of a locally cached vehicle image, when available.
+    /// Stored vehicle image, when available.
     #[schema(required)]
-    image_url: Option<String>,
+    image: Option<crate::api::v1::attachments::Attachment>,
 }
 
 /// Search and pagination for the era vehicle catalogue.
@@ -98,10 +98,16 @@ pub(crate) async fn list_for_era(
         .limit(u64::from(limit))
         .all(&state.database)
         .await
-        .map_err(ApiError::database)?
+        .map_err(ApiError::database)?;
+    let attachments = crate::api::v1::attachments::load(
+        &state.database,
+        vehicles.iter().filter_map(|v| v.image_attachment_id),
+    )
+    .await?;
+    let vehicles = vehicles
         .into_iter()
-        .map(VehicleSummary::from)
-        .collect();
+        .map(|v| VehicleSummary::from_record(v, &attachments))
+        .collect::<Vec<_>>();
     Ok(Json(ListResponse::from(vehicles)))
 }
 
@@ -110,10 +116,10 @@ impl VehicleSummary {
         code: crate::vehicle_id::VehicleId,
         name: String,
         license: String,
-        has_image: bool,
+        image: Option<crate::api::v1::attachments::Attachment>,
     ) -> Self {
         Self {
-            image_url: has_image.then(|| crate::api::v1::vehicles::image_url(&code.to_string())),
+            image,
             code: code.to_string(),
             name,
             license,
@@ -121,9 +127,19 @@ impl VehicleSummary {
     }
 }
 
-impl From<VehicleRecord> for VehicleSummary {
-    fn from(vehicle: VehicleRecord) -> Self {
-        let has_image = vehicle.available && vehicle.image_object_key.is_some();
-        Self::new(vehicle.id, vehicle.name, vehicle.license, has_image)
+impl VehicleSummary {
+    pub(crate) fn from_record(
+        vehicle: VehicleRecord,
+        attachments: &std::collections::HashMap<i64, crate::api::v1::attachments::Attachment>,
+    ) -> Self {
+        let image = vehicle
+            .available
+            .then(|| {
+                vehicle
+                    .image_attachment_id
+                    .and_then(|id| attachments.get(&id).cloned())
+            })
+            .flatten();
+        Self::new(vehicle.id, vehicle.name, vehicle.license, image)
     }
 }

@@ -72,7 +72,7 @@ oauth2 = { workspace = true }
 object_store = "0.14"
 rand = "0.10"
 reqwest = { workspace = true, features = ["json", "rustls", "stream"] }
-sea-orm = { workspace = true, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-json", "with-time"] }
+sea-orm = { workspace = true, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-json", "with-time", "with-uuid"] }
 serde = { workspace = true, features = ["derive"] }
 serde-saphyr = "1.1"
 serde_json = { workspace = true }

@@ -15,6 +15,8 @@ API, so a frontend change no longer needs the binary rebuilt and swapped.
 import hashlib
 from pathlib import Path
 
+from object_storage import quote_environment, storage_configuration
+
 from pyinfra import host
 from pyinfra.operations import files, server, systemd, postgres
 
@@ -50,6 +52,7 @@ app_group = host.data.app_group
 app_root = host.data.app_root
 config_dir = host.data.config_dir
 state_dir = host.data.state_dir
+object_store_root, storage_environment = storage_configuration(host.data)
 release_binary = required("release_binary")
 site_domain = required("site_domain")
 alternate_domains = host.data.get("alternate_domains", [])
@@ -104,10 +107,21 @@ files.template(
     session_key=session_key,
     site_domain=site_domain,
     state_dir=state_dir,
+    object_store_root=object_store_root,
     max_spr_upload_bytes=host.data.max_spr_upload_bytes,
     webhook_workers=host.data.webhook_workers,
     oauth_client_id=oauth_client_id,
     oauth_client_secret=oauth_client_secret,
+)
+
+files.template(
+    name="Render object storage environment for all lfsplanet services",
+    src="templates/storage.env.j2",
+    dest=f"{config_dir}/storage.env",
+    user="root",
+    group=app_group,
+    mode="0640",
+    storage_environment={key: quote_environment(value) for key, value in storage_environment.items()},
 )
 
 for unit in (

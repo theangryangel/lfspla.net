@@ -21,6 +21,7 @@ const SANDBOX_PREFIX: &str = "/sandbox/.wine";
 const SANDBOX_SETUP_PATH: &str = "/setup.exe";
 const SANDBOX_REPLAY_PATH: &str = "/sandbox/LFS/data/spr/lfsplanet_validator.spr";
 const SANDBOX_BATCH_PATH: &str = "/sandbox/LFS/lfsplanet-validator.bat";
+const SANDBOX_RAF_DIR: &str = "/sandbox/LFS/data/raf";
 const SANDBOX_RESULT_PATH: &str = "/sandbox/lfsplanet-hlvc-result";
 
 const HOST_RUNTIME_PATHS: [&str; 4] = ["/usr", "/bin", "/lib", "/lib64"];
@@ -75,6 +76,7 @@ pub(super) enum Command<'a> {
         replay: &'a Path,
         batch: &'a Path,
         result: &'a Path,
+        raf_dir: &'a Path,
     },
 }
 
@@ -196,6 +198,7 @@ impl Command<'_> {
                 replay,
                 batch,
                 result,
+                raf_dir,
             } => {
                 add_network_access(&mut arguments, mode);
                 option(&mut arguments, "--json-status-fd", ["1"]);
@@ -234,6 +237,12 @@ impl Command<'_> {
                     &mut arguments,
                     "--bind",
                     [result.as_os_str(), OsStr::new(SANDBOX_RESULT_PATH)],
+                );
+                option(&mut arguments, "--dir", [SANDBOX_RAF_DIR]);
+                option(
+                    &mut arguments,
+                    "--bind",
+                    [raf_dir.as_os_str(), OsStr::new(SANDBOX_RAF_DIR)],
                 );
                 option(&mut arguments, "--chdir", [SANDBOX_LFS_DIR]);
                 program(
@@ -500,6 +509,7 @@ mod tests {
             replay: Path::new("/tmp/replay.spr"),
             batch: Path::new("/tmp/validate.bat"),
             result: Path::new("/tmp/result"),
+            raf_dir: Path::new("/tmp/raf"),
         };
         let arguments = command.arguments(Path::new("/usr/bin/wine"));
         let arguments = strings(&arguments);
@@ -531,6 +541,7 @@ mod tests {
             &arguments,
             &["--bind", "/tmp/result", SANDBOX_RESULT_PATH]
         ));
+        assert!(has(&arguments, &["--bind", "/tmp/raf", SANDBOX_RAF_DIR]));
         assert!(has(&arguments, &["--json-status-fd", "1"]));
         assert!(arguments.contains(&"--share-net"));
         assert!(has(

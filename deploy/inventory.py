@@ -20,6 +20,13 @@ lfsplanet = [
             # Set both values to enable LFS OAuth, or omit both to disable it.
             "oauth_client_id": os.environ["LFSPLANET_OAUTH_CLIENT_ID"],
             "oauth_client_secret": os.environ["LFSPLANET_OAUTH_CLIENT_SECRET"],
+            # Set all four to use S3-compatible storage; leave all unset for local files.
+            "bucket_name": os.environ.get("LFSPLANET_BUCKET_NAME"),
+            "bucket_host": os.environ.get("LFSPLANET_BUCKET_HOST"),
+            "bucket_access_key_id": os.environ.get("LFSPLANET_BUCKET_ACCESS_KEY_ID"),
+            "bucket_secret_access_key": os.environ.get("LFSPLANET_BUCKET_SECRET_ACCESS_KEY"),
+            # Override when the provider requires a different signing region.
+            "bucket_region": os.environ.get("LFSPLANET_BUCKET_REGION", "us-east-1"),
             # Set true only after reviewing replacements to existing eras.
             "replace_existing_eras": False,
         },

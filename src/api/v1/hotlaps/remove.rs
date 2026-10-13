@@ -8,7 +8,6 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use object_store::{ObjectStoreExt, path::Path as ObjectPath};
 
 #[utoipa::path(
     delete,
@@ -34,7 +33,7 @@ pub(crate) async fn remove(
     State(state): State<ApiState>,
     AuthenticatedPlayer(player): AuthenticatedPlayer,
 ) -> Result<StatusCode, ApiError> {
-    let (object_key, era_id, published) =
+    let (era_id, published) =
         crate::models::Hotlap::delete_owned(&state.database, hotlap_id, player.id)
             .await
             .map_err(ApiError::database)?
@@ -42,14 +41,6 @@ pub(crate) async fn remove(
 
     if published {
         rebuild_published_badges(&state.database, era_id).await;
-    }
-
-    if let Err(error) = state
-        .object_store
-        .delete(&ObjectPath::from(object_key.as_str()))
-        .await
-    {
-        tracing::error!(?error, %object_key, hotlap_id, "failed to remove replay object");
     }
 
     Ok(StatusCode::NO_CONTENT)
