@@ -1,5 +1,6 @@
 //! Version 1 HTTP routes and boundary models.
 
+pub mod attachments;
 pub mod countries;
 pub mod eras;
 pub mod hotlaps;
@@ -7,7 +8,6 @@ pub mod me;
 pub mod player_comparison;
 pub mod players;
 pub mod stats;
-pub mod vehicles;
 
 use crate::api::ApiState;
 use serde::Serialize;
@@ -43,6 +43,7 @@ impl From<crate::models::Player> for PlayerSummary {
 /// Builds the version 1 API routes.
 pub(crate) fn router(max_spr_upload_bytes: usize) -> OpenApiRouter<ApiState> {
     OpenApiRouter::new()
+        .merge(attachments::router())
         .merge(countries::router())
         .merge(eras::router(max_spr_upload_bytes))
         .merge(hotlaps::router())
@@ -50,5 +51,4 @@ pub(crate) fn router(max_spr_upload_bytes: usize) -> OpenApiRouter<ApiState> {
         .merge(players::router())
         .merge(stats::router())
         .merge(player_comparison::router())
-        .merge(vehicles::router())
 }

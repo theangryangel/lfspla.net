@@ -4,7 +4,6 @@ mod detail;
 mod list;
 pub(super) mod query;
 mod remove;
-pub(super) mod replay;
 pub(super) mod response;
 mod validate;
 
@@ -18,7 +17,6 @@ pub(super) fn router() -> OpenApiRouter<ApiState> {
     OpenApiRouter::new()
         .routes(routes!(list::list))
         .routes(routes!(detail::detail))
-        .merge(replay::router())
         .routes(routes!(remove::remove))
         .routes(routes!(validate::validate_for_testing))
 }

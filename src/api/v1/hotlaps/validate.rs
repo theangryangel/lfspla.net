@@ -58,8 +58,15 @@ pub(crate) async fn validate_for_testing(
     // Rebuild badges after publishing, as the background validator does.
     rebuild_published_badges(&state.database, hotlap.era_id).await;
 
+    let attachments = crate::api::v1::attachments::load(
+        &state.database,
+        [hotlap.spr_attachment_id, hotlap.raf_attachment_id]
+            .into_iter()
+            .flatten(),
+    )
+    .await?;
     Ok(Json(
-        Hotlap::new(&hotlap, &era, player.into()).with_submission(&hotlap),
+        Hotlap::new(&hotlap, &era, player.into(), &attachments).with_submission(&hotlap),
     ))
 }
 
@@ -91,6 +98,7 @@ mod tests {
             database,
             oauth: None,
             object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+            download_signer: None,
             hotlaps: crate::settings::HotlapSettings {
                 allow_test_validation: true,
                 ..Default::default()

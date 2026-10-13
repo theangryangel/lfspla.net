@@ -29,7 +29,7 @@ pub(crate) enum MaintenanceCommand {
         #[arg(long, value_name = "DIR")]
         standard_vehicle_images_dir: Option<PathBuf>,
     },
-    /// Find replay objects not referenced by hotlaps.
+    /// Find replay, RAF telemetry, and vehicle image objects without references.
     StorageGc {
         /// Delete eligible objects instead of only reporting them.
         #[arg(long)]
@@ -38,7 +38,7 @@ pub(crate) enum MaintenanceCommand {
         #[arg(long, value_name = "HOURS", default_value_t = 24)]
         older_than_hours: u64,
     },
-    /// Run every maintenance task once.
+    /// Run routine maintenance tasks once.
     RunAll {
         /// Delete eligible storage objects instead of only reporting them.
         #[arg(long)]

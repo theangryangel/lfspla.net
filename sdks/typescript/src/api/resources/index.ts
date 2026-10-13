@@ -1,3 +1,5 @@
+export * as attachments from "./attachments/index.js";
+export * from "./attachments/client/requests/index.js";
 export * as authentication from "./authentication/index.js";
 export * from "./authentication/client/requests/index.js";
 export * as charts from "./charts/index.js";
@@ -16,8 +18,6 @@ export * as players from "./players/index.js";
 export * from "./players/client/requests/index.js";
 export * as ranking from "./ranking/index.js";
 export * from "./ranking/client/requests/index.js";
-export * as replays from "./replays/index.js";
-export * from "./replays/client/requests/index.js";
 export * as stats from "./stats/index.js";
 export * as tracks from "./tracks/index.js";
 export * from "./tracks/client/requests/index.js";

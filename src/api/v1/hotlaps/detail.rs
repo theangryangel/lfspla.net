@@ -84,15 +84,28 @@ pub(crate) async fn detail(
         )))
     })?;
 
-    Ok(Json(response(hotlap, player, &era, owner)))
+    let attachments = crate::api::v1::attachments::load(
+        &state.database,
+        [hotlap.spr_attachment_id, hotlap.raf_attachment_id]
+            .into_iter()
+            .flatten(),
+    )
+    .await?;
+    Ok(Json(response(hotlap, player, &era, owner, &attachments)))
 }
 
 fn hotlap_not_found() -> ApiError {
     ApiError::not_found("hotlap_not_found", "Hotlap")
 }
 
-fn response(hotlap: HotlapModel, player: crate::models::Player, era: &Era, owner: bool) -> Hotlap {
-    let response = Hotlap::new(&hotlap, era, player.into());
+fn response(
+    hotlap: HotlapModel,
+    player: crate::models::Player,
+    era: &Era,
+    owner: bool,
+    attachments: &std::collections::HashMap<i64, crate::api::v1::attachments::Attachment>,
+) -> Hotlap {
+    let response = Hotlap::new(&hotlap, era, player.into(), attachments);
     if owner {
         response.with_submission(&hotlap)
     } else {
@@ -125,8 +138,8 @@ mod tests {
             split_2_ms: zero,
             split_3_ms: zero,
             split_4_ms: zero,
-            original_filename: Some("private.spr".to_owned()),
-            spr_object_key: Some("private/object/key".to_owned()),
+            spr_attachment_id: Some(1),
+            raf_attachment_id: Some(2),
             source: "upload".to_owned(),
             fingerprint: "private-fingerprint".to_owned(),
             steering: SteeringInput::Wheel,
@@ -162,28 +175,61 @@ mod tests {
             version_requirement: ">=0.5Y,<0.8".parse().unwrap(),
             open: false,
         };
-        let public =
-            serde_json::to_value(response(hotlap.clone(), player.clone(), &era, false)).unwrap();
-        let owner =
-            serde_json::to_value(response(hotlap.clone(), player.clone(), &era, true)).unwrap();
+        let attachments = std::collections::HashMap::from([
+            (
+                1,
+                crate::api::v1::attachments::Attachment::new(
+                    sea_orm::prelude::Uuid::from_u128(1),
+                    Some("private.spr".to_owned()),
+                ),
+            ),
+            (
+                2,
+                crate::api::v1::attachments::Attachment::new(
+                    sea_orm::prelude::Uuid::from_u128(2),
+                    None,
+                ),
+            ),
+        ]);
+        let public = serde_json::to_value(response(
+            hotlap.clone(),
+            player.clone(),
+            &era,
+            false,
+            &attachments,
+        ))
+        .unwrap();
+        let owner = serde_json::to_value(response(
+            hotlap.clone(),
+            player.clone(),
+            &era,
+            true,
+            &attachments,
+        ))
+        .unwrap();
         assert!(public.get("submission").is_none());
         for private in [
             "raw_vehicle_name",
             "original_filename",
             "hlvc_result_code",
             "error_detail",
-            "spr_object_key",
+            "spr_attachment_id",
+            "raf_attachment_id",
             "fingerprint",
         ] {
             assert!(public.get(private).is_none());
             assert!(owner.get(private).is_none());
         }
-        assert_eq!(owner["submission"]["original_filename"], "private.spr");
+        assert_eq!(owner["spr"]["original_filename"], "private.spr");
         assert_eq!(
             owner["submission"]["raw_vehicle_name"],
             "Private replay name"
         );
-        assert_eq!(public["replay_url"], "/api/v1/hotlaps/42/replay");
+        assert_eq!(
+            public["raf"]["url"],
+            "/api/v1/attachments/00000000-0000-0000-0000-000000000002"
+        );
+        assert_eq!(public["spr"]["id"], "00000000-0000-0000-0000-000000000001");
         assert_eq!(public["player"]["id"], 7);
         assert_eq!(public["state"], "valid");
         assert_eq!(public["position"], serde_json::Value::Null);
@@ -207,6 +253,7 @@ mod tests {
                 make_page(),
                 &pagination,
                 viewer,
+                &attachments,
             ))
             .unwrap();
             assert!(page["items"][0].get("submission").is_none());
@@ -215,12 +262,10 @@ mod tests {
             make_page(),
             &pagination,
             Some(player.id),
+            &attachments,
         ))
         .unwrap();
-        assert_eq!(
-            page["items"][0]["submission"]["original_filename"],
-            "private.spr"
-        );
+        assert_eq!(page["items"][0]["spr"]["original_filename"], "private.spr");
         let mut owner_public_fields = owner;
         owner_public_fields
             .as_object_mut()

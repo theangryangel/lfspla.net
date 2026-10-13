@@ -130,10 +130,22 @@ pub(crate) async fn best(
         .as_ref()
         .map(|contributions| contributions.iter().cloned().map(Into::into).collect())
         .unwrap_or_default();
+    let attachments = crate::api::v1::attachments::load(
+        &state.database,
+        page.entries.iter().flat_map(|entry| {
+            [
+                entry.hotlap.spr_attachment_id,
+                entry.hotlap.raf_attachment_id,
+            ]
+            .into_iter()
+            .flatten()
+        }),
+    )
+    .await?;
     Ok(Json(HotlapChartResponse {
         chart: chart_response,
         contributes_to,
-        page: list_response(page, &pagination, None),
+        page: list_response(page, &pagination, None, &attachments),
     }))
 }
 
@@ -164,7 +176,7 @@ mod tests {
                     "XFG".parse().unwrap(),
                     "XF GTI".to_owned(),
                     "demo".to_owned(),
-                    false,
+                    None,
                 ),
             ),
             page: PaginatedResponse {
@@ -178,7 +190,7 @@ mod tests {
         assert_eq!(json["chart"]["track"]["code"], "BL1");
         assert_eq!(json["chart"]["vehicle"]["code"], "XFG");
         assert_eq!(
-            json["chart"]["vehicle"]["image_url"],
+            json["chart"]["vehicle"]["image"]["url"],
             serde_json::Value::Null
         );
         assert_eq!(json["items"], serde_json::json!([]));

@@ -11,13 +11,14 @@ INSERT INTO ranking (era_id, slug, position, title, description, benchmark_perce
 SELECT id, 'all', 0, 'Worker chart', 'Test chart', 103, 10, 3 FROM era WHERE slug = '2026-09-23';
 INSERT INTO ranking_chart_membership (era_id, ranking_id, position, chart_id)
 SELECT ranking.era_id, ranking.id, 0, chart.id FROM ranking JOIN chart ON chart.era_id = ranking.era_id;
+INSERT INTO attachment (object_key, media_type, extension, original_filename) VALUES ('missing.spr', 'application/octet-stream', 'spr', 'test.spr');
 INSERT INTO hotlap (
     player_id, era_id, chart_id, track, vehicle, raw_vehicle_name, lap_time_ms,
     split_1_ms, split_2_ms, split_3_ms, split_4_ms,
-    original_filename, spr_object_key, source, fingerprint, steering,
+    spr_attachment_id, source, fingerprint, steering,
     abs_enabled, player_flags, game_version, state
 )
 SELECT player.id, era.id, chart.id, 'BL1', 'XFG', 'XF GTI', 60000,
-    0, 0, 0, 0, 'test.spr', 'missing.spr', 'upload', repeat('a', 64),
+    0, 0, 0, 0, (SELECT id FROM attachment WHERE object_key = 'missing.spr'), 'upload', repeat('a', 64),
     'wheel', false, 0, '0.7A', 'pending'
 FROM player, era, chart WHERE chart.era_id = era.id AND player.lfs_username = 'worker-test' AND era.slug = '2026-09-23';

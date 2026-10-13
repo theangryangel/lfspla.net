@@ -63,18 +63,31 @@ async fn run_with(
     let batch = temporary_file("embedded validator batch", VALIDATOR_BATCH)?;
     let replay_file = temporary_file("replay", replay)?;
     let result_file = temporary_file("HLVC result", b"")?;
+    let raf_dir = tempfile::tempdir().context("failed to create RAF output directory")?;
     let command = SandboxCommand::Validate {
         installation_dir,
         wine_prefix,
         replay: replay_file.path(),
         batch: batch.path(),
         result: result_file.path(),
+        raf_dir: raf_dir.path(),
     }
     .build(bubblewrap, wine);
     let output = capture_output(command, timeout, "sandboxed validation").await?;
     let contents = fs::read(result_file.path()).context("failed to read the HLVC result file");
     let verdict = contents.and_then(|contents| ValidationResult::from_output(&output, &contents));
-    Ok(ValidationDiagnostic { output, verdict })
+    let raf = match super::raf::capture(raf_dir.path()) {
+        Ok(raf) => raf,
+        Err(error) => {
+            tracing::warn!(?error, "failed to capture RAF output");
+            None
+        }
+    };
+    Ok(ValidationDiagnostic {
+        output,
+        raf,
+        verdict,
+    })
 }
 
 enum StatusDocument {

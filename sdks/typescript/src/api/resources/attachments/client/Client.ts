@@ -14,48 +14,53 @@ import { handleNonStatusCodeError } from "../../../../errors/handleNonStatusCode
 import * as errors from "../../../../errors/index.js";
 import * as LfsplanetApi from "../../../index.js";
 
-export declare namespace ReplaysClient {
+export declare namespace AttachmentsClient {
   export type Options = BaseClientOptions;
 
   export interface RequestOptions extends BaseRequestOptions {}
 }
 
-export class ReplaysClient {
-  protected readonly _options: NormalizedClientOptions<ReplaysClient.Options>;
+export class AttachmentsClient {
+  protected readonly _options: NormalizedClientOptions<AttachmentsClient.Options>;
 
-  constructor(options: ReplaysClient.Options) {
+  constructor(options: AttachmentsClient.Options) {
     this._options = normalizeClientOptions(options);
   }
 
   /**
-   * `id` is the **hotlap** identity, not the object-store key: replays are
-   * stored under private, unique object keys.
+   * @param {LfsplanetApi.DownloadAttachmentRequest} request
+   * @param {AttachmentsClient.RequestOptions} requestOptions - Request-specific configuration.
    *
    * @throws {@link LfsplanetApi.NotFoundError}
+   *
+   * @example
+   *     await client.attachments.downloadAttachment({
+   *         attachment: "attachment"
+   *     })
    */
-  public download(
-    request: LfsplanetApi.DownloadRequest,
-    requestOptions?: ReplaysClient.RequestOptions,
-  ): core.HttpResponsePromise<core.BinaryResponse> {
+  public downloadAttachment(
+    request: LfsplanetApi.DownloadAttachmentRequest,
+    requestOptions?: AttachmentsClient.RequestOptions,
+  ): core.HttpResponsePromise<void> {
     return core.HttpResponsePromise.fromPromise(
-      this.__download(request, requestOptions),
+      this.__downloadAttachment(request, requestOptions),
     );
   }
 
-  private async __download(
-    request: LfsplanetApi.DownloadRequest,
-    requestOptions?: ReplaysClient.RequestOptions,
-  ): Promise<core.WithRawResponse<core.BinaryResponse>> {
-    const { hotlap } = request;
+  private async __downloadAttachment(
+    request: LfsplanetApi.DownloadAttachmentRequest,
+    requestOptions?: AttachmentsClient.RequestOptions,
+  ): Promise<core.WithRawResponse<void>> {
+    const { attachment } = request;
     let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
       this._options?.headers,
       requestOptions?.headers,
     );
-    const _response = await core.fetcher<core.BinaryResponse>({
+    const _response = await core.fetcher({
       url: core.url.join(
         (await core.Supplier.get(this._options.baseUrl)) ??
           (await core.Supplier.get(this._options.environment)),
-        `api/v1/hotlaps/${core.url.encodePathParam(hotlap)}/replay`,
+        `api/v1/attachments/${core.url.encodePathParam(attachment)}`,
       ),
       method: "GET",
       headers: _headers,
@@ -63,7 +68,6 @@ export class ReplaysClient {
         .queryBuilder()
         .mergeAdditional(requestOptions?.queryParams)
         .build(),
-      responseType: "binary-response",
       timeoutMs:
         (requestOptions?.timeoutInSeconds ??
           this._options?.timeoutInSeconds ??
@@ -74,7 +78,7 @@ export class ReplaysClient {
       logging: this._options.logging,
     });
     if (_response.ok) {
-      return { data: _response.body, rawResponse: _response.rawResponse };
+      return { data: undefined, rawResponse: _response.rawResponse };
     }
 
     if (_response.error.reason === "status-code") {
@@ -97,7 +101,7 @@ export class ReplaysClient {
       _response.error,
       _response.rawResponse,
       "GET",
-      "/api/v1/hotlaps/{hotlap}/replay",
+      "/api/v1/attachments/{attachment}",
     );
   }
 }

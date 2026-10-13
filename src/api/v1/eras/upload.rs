@@ -143,11 +143,18 @@ pub(crate) async fn upload(
     .await
     .map_err(|error| submission_error(error, &era))?;
 
+    let attachments = crate::api::v1::attachments::load(
+        &state.database,
+        [hotlap.spr_attachment_id, hotlap.raf_attachment_id]
+            .into_iter()
+            .flatten(),
+    )
+    .await?;
     let location = format!("/api/v1/hotlaps/{}", hotlap.id);
     Ok((
         StatusCode::ACCEPTED,
         [(header::LOCATION, location)],
-        Json(Hotlap::new(&hotlap, &era, player.into()).with_submission(&hotlap)),
+        Json(Hotlap::new(&hotlap, &era, player.into(), &attachments).with_submission(&hotlap)),
     ))
 }
 
@@ -209,7 +216,7 @@ fn submission_error(error: crate::services::submit_hotlap::SubmitError, era: &Er
             "The SPR header does not contain a lap time",
         ),
         SubmitError::Database(error) => ApiError::database(error),
-        SubmitError::ObjectStore(error) => ApiError::object_store(error),
+        SubmitError::Attachment(error) => ApiError::internal(&error, "attachment storage"),
         SubmitError::Admission(error) => match error {
             InsertError::QueueFull { outstanding, limit } => {
                 ApiError::hotlap_queue_full(outstanding, limit)

@@ -113,7 +113,7 @@ pub(super) async fn persist(
             INSERT INTO hotlap (
                 player_id, era_id, chart_id, track, vehicle, raw_vehicle_name,
                 lap_time_ms, split_1_ms, split_2_ms, split_3_ms, split_4_ms,
-                original_filename, spr_object_key,
+                spr_attachment_id,
                 source, fingerprint, steering, abs_enabled, player_flags,
                 created_at, game_version, state
             )
@@ -132,7 +132,6 @@ pub(super) async fn persist(
                 .push_bind(hotlap.split_times_ms[1])
                 .push_bind(hotlap.split_times_ms[2])
                 .push_bind(hotlap.split_times_ms[3])
-                .push_bind(&hotlap.original_filename)
                 .push("NULL")
                 .push_bind(SOURCE)
                 .push_bind(&hotlap.fingerprint)
@@ -255,7 +254,6 @@ mod tests {
                 vehicle: pair.vehicle.to_string(),
                 lap_time_ms: Milliseconds::from_millis(60000),
                 split_times_ms: [Milliseconds::ZERO; 4],
-                original_filename: "import.spr".into(),
                 steering: crate::models::hotlap::SteeringInput::Wheel,
                 abs_enabled: None,
                 player_flags: 0,

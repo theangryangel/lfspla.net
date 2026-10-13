@@ -82,7 +82,7 @@
 	}
 
 	const replayName = (hotlap: Hotlap) =>
-		hotlap.submission?.original_filename ??
+		hotlap.spr?.original_filename ??
 		`${hotlap.track} / ${hotlap.vehicle ?? hotlap.submission?.raw_vehicle_name}`;
 
 	/**
@@ -244,7 +244,7 @@
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="text-muted-foreground">
-									{hotlap.submission?.original_filename ?? '-'}
+									{hotlap.spr?.original_filename ?? '-'}
 								</Table.Cell>
 								<Table.Cell>
 									{#if session.me.allow_test_validation && hotlap.state !== 'valid'}
@@ -259,15 +259,23 @@
 												: 'Force validate'}
 										</Button>
 									{/if}
-									{#if hotlap.replay_url}
+									{#if hotlap.spr?.url}
 										<Button
 											variant="ghost"
 											size="icon"
-											href={hotlap.replay_url}
+											href={hotlap.spr.url}
 											aria-label="Download {replayName(hotlap)}"
 										>
 											<DownloadIcon />
 										</Button>
+									{/if}
+									{#if hotlap.raf}
+										<Button
+											variant="ghost"
+											size="sm"
+											href={hotlap.raf.url}
+											aria-label="Download RAF telemetry">RAF</Button
+										>
 									{/if}
 									<Button
 										variant="ghost"

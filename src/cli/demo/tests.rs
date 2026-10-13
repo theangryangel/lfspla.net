@@ -23,7 +23,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     assert_eq!(laps.len(), inserted);
     let invalid: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM hotlap WHERE era_id = $1 AND
-         (source <> 'demo' OR spr_object_key IS NOT NULL OR hlvc_result_code IS NOT NULL OR
+         (source <> 'demo' OR spr_attachment_id IS NOT NULL OR hlvc_result_code IS NOT NULL OR
           split_1_ms >= split_2_ms OR split_3_ms <> lap_time_ms OR game_version <> '0.0A')",
     )
     .bind(era.id)

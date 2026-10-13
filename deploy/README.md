@@ -21,11 +21,12 @@ It installs these persistent paths:
 
 ```text
 /etc/lfsplanet/config.yaml    rendered application configuration (contains secrets)
+/etc/lfsplanet/storage.env    shared object-storage environment (contains secrets)
 /etc/lfsplanet/eras/          deployed version-controlled era inputs
 /etc/lfsplanet/builtin-vehicles/  deployed built-in vehicle image inputs
 /var/lib/lfsplanet/games/     named LFS installations
 /var/lib/lfsplanet/wine/      shared Wine prefix
-/var/lib/lfsplanet/spr/       local replay and cached vehicle-image storage
+/var/lib/lfsplanet/spr/       object storage when no bucket is configured
 /opt/lfsplanet/frontend/      frontend releases and the `current` symlink
 ```
 
@@ -49,6 +50,38 @@ configuration, an agent, or your secret manager.
 `release_binary` and `frontend_dist` are relative to this `deploy/` directory;
 after the documented release build, use `../target/release/lfsplanet` and
 `../frontend2/dist`.
+
+## S3-compatible object storage
+
+AWS support is enabled by default in the release binary. Set all four variables
+on the deployment workstation to switch the shared object store to S3:
+
+```sh
+export LFSPLANET_BUCKET_NAME="my-bucket"
+export LFSPLANET_BUCKET_HOST="https://s3.example.com"
+export LFSPLANET_BUCKET_ACCESS_KEY_ID="your-access-key"
+export LFSPLANET_BUCKET_SECRET_ACCESS_KEY="your-secret-key"
+```
+
+`LFSPLANET_BUCKET_HOST` is the S3 API endpoint, without the bucket name; a bare
+hostname is accepted and uses HTTPS. The signing region defaults to `us-east-1`;
+set `LFSPLANET_BUCKET_REGION` if your provider requires another value (for example,
+`auto` for Cloudflare R2). The bucket must already exist.
+
+Deployment sets `storage.object_store_root` to `s3://<bucket>` and renders the
+standard `AWS_*` variables into `/etc/lfsplanet/storage.env`, owned by
+`root:lfsplanet` with mode `0640`. Web, worker, and maintenance units all load that
+file. The era deployment also passes the same environment to catalogue sync.
+Leave all four bucket variables unset to keep local storage; partial configuration
+fails before deployment operations are registered.
+
+The shared store contains SPRs, RAFs, and vehicle images. Switching its location
+does not move existing objects: copy the contents of `/var/lib/lfsplanet/spr/`
+to the bucket root with relative keys preserved, including legacy namespaces, while writers are stopped. Existing attachment keys
+are preserved; new uploads use content-hash paths. Follow the
+[attachment storage cutover guide](../docs/attachments.md). Keep the local copy until the new
+store has been verified. The application continues to serve downloads through its
+API, so the bucket can remain private.
 
 ## First deployment
 

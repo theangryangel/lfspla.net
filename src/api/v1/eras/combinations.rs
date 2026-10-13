@@ -240,6 +240,7 @@ mod tests {
             database,
             oauth: None,
             object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+            download_signer: None,
             hotlaps: Default::default(),
         };
         for (track, vehicle, reason) in [

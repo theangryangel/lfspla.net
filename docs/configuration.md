@@ -47,7 +47,7 @@ storage:
   object_store_root: s3://my-bucket/lfsplanet
 ```
 
-The URL selects the bucket and prefix. Replay and image keys remain relative to
+The URL selects the bucket and prefix. Attachment keys remain relative to
 that prefix, including during listing and garbage collection. Configure the
 backend through environment variables such as `AWS_REGION`,
 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` when needed.
@@ -58,7 +58,8 @@ backend environment.
 Other supported remote backends require their corresponding Cargo feature
 (`azure`, `gcp`, or `http`). An unavailable backend fails when the store is
 constructed. Changing the location does not migrate existing objects; copy them
-to the new location while preserving their relative keys.
+to the new location while preserving their relative keys. See the
+[attachment storage cutover guide](attachments.md) for the deployment procedure.
 
 ## Local LFS runtime
 

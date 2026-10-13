@@ -95,7 +95,12 @@ pub(crate) async fn get_stats(
                     combo.vehicle,
                     combo.vehicle_name,
                     combo.vehicle_license,
-                    combo.vehicle_has_image,
+                    combo.vehicle_image_public_id.map(|id| {
+                        crate::api::v1::attachments::Attachment::new(
+                            id,
+                            combo.vehicle_image_original_filename,
+                        )
+                    }),
                 ),
             ),
             recent_uploads: combo.recent_uploads,

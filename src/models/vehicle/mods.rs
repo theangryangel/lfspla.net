@@ -88,8 +88,7 @@ impl crate::models::Vehicle {
                         metadata: Set(Some(entry.metadata.clone())),
                         fetched_at: Set(Some(observed_at)),
                         last_seen_at: Set(Some(observed_at)),
-                        image_object_key: Set(None),
-                        image_content_type: Set(None),
+                        image_attachment_id: Set(None),
                         image_fetched_at: Set(None),
                         image_version: Set(None),
                     })
@@ -126,7 +125,7 @@ impl crate::models::Vehicle {
 impl crate::models::Vehicle {
     pub(crate) async fn image_cache_state(
         database: &DatabaseConnection,
-    ) -> Result<HashMap<String, (Option<i16>, Option<String>)>, sea_orm::DbErr> {
+    ) -> Result<HashMap<String, (Option<i16>, Option<i64>)>, sea_orm::DbErr> {
         VehicleEntity::find()
             .filter(VehicleColumn::Kind.eq("mod"))
             .all(database)
@@ -137,7 +136,7 @@ impl crate::models::Vehicle {
                     .map(|vehicle| {
                         (
                             vehicle.id.to_string(),
-                            (vehicle.image_version, vehicle.image_object_key),
+                            (vehicle.image_version, vehicle.image_attachment_id),
                         )
                     })
                     .collect()

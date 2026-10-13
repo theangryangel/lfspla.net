@@ -137,7 +137,6 @@ struct ImportedHotlap {
     vehicle: String,
     lap_time_ms: Milliseconds,
     split_times_ms: [Milliseconds; 4],
-    original_filename: String,
     /// Materialised for the chart query's controller filter; every other
     /// control setting is derived from `player_flags` when the row is read.
     steering: SteeringInput,
@@ -450,7 +449,6 @@ fn parse_row(
         vehicle: filename.vehicle.to_string(),
         lap_time_ms: row.laptime,
         split_times_ms,
-        original_filename: row.spr.clone(),
         steering,
         abs_enabled,
         player_flags: flag_bits,

@@ -146,7 +146,7 @@
 						<Thumbnail
 							kind="vehicle"
 							code={option.code}
-							src={option.image_url}
+							src={option.image?.url}
 						/>
 						<span class="flex items-center gap-1.5 p-2">
 							<span class="min-w-0 flex-1">

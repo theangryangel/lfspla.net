@@ -3,15 +3,11 @@
 use crate::milliseconds::Milliseconds;
 
 use crate::{
-    game_version::GameVersionCode, player_flags::PlayerFlagsBits, storage::Storage,
-    track_id::TrackId, vehicle_id::VehicleId,
+    game_version::GameVersionCode, player_flags::PlayerFlagsBits, track_id::TrackId,
+    vehicle_id::VehicleId,
 };
 
-use object_store::ObjectMeta;
-
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect, entity::prelude::*};
-
-use std::collections::HashSet;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, entity::prelude::*};
 
 use sea_orm::{Select, UpdateMany};
 
@@ -51,8 +47,8 @@ pub struct Model {
     pub split_2_ms: Milliseconds,
     pub split_3_ms: Milliseconds,
     pub split_4_ms: Milliseconds,
-    pub original_filename: Option<String>,
-    pub spr_object_key: Option<String>,
+    pub spr_attachment_id: Option<i64>,
+    pub raf_attachment_id: Option<i64>,
     pub source: String,
     pub fingerprint: String,
     pub steering: crate::models::hotlap::SteeringInput,
@@ -115,34 +111,6 @@ impl Model {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
-
-impl Storage for Entity {
-    const PREFIX: &'static str = "spr";
-
-    async fn should_gc(
-        database: &DatabaseConnection,
-        objects: &[ObjectMeta],
-    ) -> Result<Vec<ObjectMeta>, DbErr> {
-        let candidates = objects
-            .iter()
-            .map(|object| object.location.to_string())
-            .collect::<Vec<_>>();
-        let retained = Entity::find()
-            .select_only()
-            .column(Column::SprObjectKey)
-            .filter(Column::SprObjectKey.is_in(candidates))
-            .into_tuple::<String>()
-            .all(database)
-            .await?
-            .into_iter()
-            .collect::<HashSet<_>>();
-        Ok(objects
-            .iter()
-            .filter(|object| !retained.contains(object.location.as_ref()))
-            .cloned()
-            .collect())
-    }
-}
 
 /// The `source` value written by the upload path.
 ///
@@ -242,8 +210,8 @@ mod tests {
             split_2_ms: Milliseconds::from_millis(78_230),
             split_3_ms: Milliseconds::from_millis(118_200),
             split_4_ms: Milliseconds::from_millis(0),
-            original_filename: Some("example_SO4R_RB4_158200.spr".to_owned()),
-            spr_object_key: Some("spr/ab/abcdef.spr".to_owned()),
+            spr_attachment_id: Some(1),
+            raf_attachment_id: None,
             source: "upload".to_owned(),
             fingerprint: "ab".repeat(32),
             steering: SteeringInput::Mouse,

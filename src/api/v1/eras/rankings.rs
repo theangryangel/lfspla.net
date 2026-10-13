@@ -244,6 +244,15 @@ pub(crate) async fn detail(
                 .map_err(ApiError::database)?
                 .remove(&player.id)
                 .unwrap_or_default();
+            let attachments = crate::api::v1::attachments::load(
+                &state.database,
+                personal_bests.iter().flat_map(|best| {
+                    [best.hotlap.spr_attachment_id, best.hotlap.raf_attachment_id]
+                        .into_iter()
+                        .flatten()
+                }),
+            )
+            .await?;
             let personal_bests = personal_bests
                 .into_iter()
                 .map(|best| {
@@ -258,6 +267,7 @@ pub(crate) async fn detail(
                         },
                         badges.clone(),
                         &era,
+                        &attachments,
                     );
                     (key, response)
                 })

@@ -1,14 +1,15 @@
 //! Store built-in artwork and cache remote Vehicle Mod covers.
 use crate::{
+    models::attachment::Model as Attachment,
     models::vehicle::{Column as VehicleColumn, Entity as VehicleEntity},
-    storage::Storage,
 };
 use anyhow::Context;
 use futures::stream::{self, StreamExt};
 use lfsplanet_lfs_api::{LfsClient, RemoteVehicleMod};
-use object_store::{ObjectStore, ObjectStoreExt, PutPayload, path::Path as ObjectPath};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, sea_query::Expr};
-use sha2::{Digest, Sha256};
+use object_store::ObjectStore;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, TransactionTrait, sea_query::Expr,
+};
 use std::{collections::HashMap, path::Path, sync::Arc};
 const IMAGE_DOWNLOAD_CONCURRENCY: usize = 4;
 
@@ -29,24 +30,26 @@ pub(crate) async fn seed_builtin_images(
         let bytes = std::fs::read(&source).with_context(|| {
             format!("failed to read built-in vehicle image {}", source.display())
         })?;
-        let object_key = format!("builtin-vehicles/{id}.png");
-        object_store
-            .put(
-                &ObjectPath::from(object_key.as_str()),
-                PutPayload::from(bytes),
-            )
-            .await
-            .with_context(|| format!("failed to store built-in vehicle image {id}"))?;
+        let transaction = database.begin().await?;
+        let attachment = Attachment::store(
+            &transaction,
+            &*object_store,
+            bytes,
+            "png",
+            "image/png",
+            source.file_name().and_then(|name| name.to_str()),
+        )
+        .await?;
         VehicleEntity::update_many()
             .filter(VehicleColumn::Id.eq(&id))
-            .col_expr(VehicleColumn::ImageObjectKey, Expr::value(object_key))
-            .col_expr(VehicleColumn::ImageContentType, Expr::value("image/png"))
+            .col_expr(VehicleColumn::ImageAttachmentId, Expr::value(attachment.id))
             .col_expr(
                 VehicleColumn::ImageFetchedAt,
                 Expr::value(time::OffsetDateTime::now_utc()),
             )
-            .exec(database)
+            .exec(&transaction)
             .await?;
+        transaction.commit().await?;
         seeded += 1;
     }
     Ok(seeded)
@@ -60,7 +63,7 @@ pub(crate) async fn cache_images(
     object_store: Arc<dyn ObjectStore>,
     client: LfsClient,
     remote: &[RemoteVehicleMod],
-    previous: &HashMap<String, (Option<i16>, Option<String>)>,
+    previous: &HashMap<String, (Option<i16>, Option<i64>)>,
 ) -> Result<usize, sea_orm::DbErr> {
     let pending = remote
         .iter()
@@ -92,29 +95,30 @@ pub(crate) async fn cache_images(
                     .vehicle_mod_cover(&source)
                     .await
                     .map_err(anyhow::Error::from)?;
-                let digest = hex::encode(Sha256::digest(&cover.bytes));
-                let object_key = VehicleEntity::store(
-                    object_store.as_ref(),
-                    &format!("{id}/{digest}"),
-                    PutPayload::from(cover.bytes),
+                let transaction = database.begin().await?;
+                let extension = image_extension(&cover.content_type);
+                let attachment = Attachment::store(
+                    &transaction,
+                    &*object_store,
+                    cover.bytes.to_vec(),
+                    extension,
+                    &cover.content_type,
+                    None,
                 )
                 .await?;
                 let updated = VehicleEntity::update_many()
                     .filter(VehicleColumn::Id.eq(&id))
                     // A slower sync must not replace an image for a newer revision.
                     .filter(VehicleColumn::Version.eq(version))
-                    .col_expr(VehicleColumn::ImageObjectKey, Expr::value(object_key))
+                    .col_expr(VehicleColumn::ImageAttachmentId, Expr::value(attachment.id))
                     .col_expr(VehicleColumn::ImageVersion, Expr::value(version))
-                    .col_expr(
-                        VehicleColumn::ImageContentType,
-                        Expr::value(cover.content_type),
-                    )
                     .col_expr(
                         VehicleColumn::ImageFetchedAt,
                         Expr::value(time::OffsetDateTime::now_utc()),
                     )
-                    .exec(&database)
+                    .exec(&transaction)
                     .await?;
+                transaction.commit().await?;
                 Ok::<bool, anyhow::Error>(updated.rows_affected == 1)
             }
         })
@@ -130,4 +134,16 @@ pub(crate) async fn cache_images(
         })
         .await;
     Ok(cached)
+}
+
+fn image_extension(media_type: &str) -> &'static str {
+    match media_type {
+        "image/png" => "png",
+        "image/jpeg" => "jpg",
+        "image/webp" => "webp",
+        "image/gif" => "gif",
+        "image/avif" => "avif",
+        "image/svg+xml" => "svg",
+        _ => "bin",
+    }
 }

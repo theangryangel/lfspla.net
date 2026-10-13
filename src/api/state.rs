@@ -14,5 +14,6 @@ pub struct ApiState {
     pub(crate) database: DatabaseConnection,
     pub(crate) oauth: Option<OAuthProvider>,
     pub(crate) object_store: Arc<dyn ObjectStore>,
+    pub(crate) download_signer: Option<Arc<crate::storage::DownloadSigner>>,
     pub(crate) hotlaps: HotlapSettings,
 }

@@ -85,8 +85,9 @@ impl Processor for HotlapValidation {
         active.finished_at = Set(None);
         active.hlvc_result_code = Set(None);
         active.error_detail = Set(None);
+        active.raf_attachment_id = Set(None);
         let published = match checked {
-            Ok(result) => {
+            Ok((result, raf)) => {
                 // Recheck mutable vehicle availability after external validation.
                 let eligible = if result == HlvcResult::Ok {
                     hotlap
@@ -99,6 +100,18 @@ impl Processor for HotlapValidation {
                     false
                 };
                 let published = result == HlvcResult::Ok && eligible;
+                if published {
+                    if let Some(raf) = raf {
+                        match self.store_raf(&transaction, raf).await {
+                            Ok(attachment) => active.raf_attachment_id = Set(Some(attachment.id)),
+                            Err(error) => {
+                                tracing::warn!(?error, hotlap_id, "failed to store RAF attachment")
+                            }
+                        }
+                    } else {
+                        tracing::warn!(hotlap_id, "validation produced no usable RAF output");
+                    }
+                }
                 active.state = Set(if published {
                     HotlapState::Valid
                 } else {
@@ -148,19 +161,55 @@ impl Processor for HotlapValidation {
 }
 
 impl HotlapValidation {
+    async fn store_raf(
+        &self,
+        transaction: &DatabaseTransaction,
+        raf: lfsplanet_lfs::RafFile,
+    ) -> anyhow::Result<crate::models::attachment::Model> {
+        // A savepoint keeps a telemetry database error from aborting the verdict transaction.
+        let savepoint = transaction.begin().await?;
+        let result = tokio::time::timeout(
+            Duration::from_secs(30),
+            crate::models::attachment::Model::store(
+                &savepoint,
+                &*self.object_store,
+                raf.bytes,
+                "raf",
+                "application/octet-stream",
+                Some(&raf.filename),
+            ),
+        )
+        .await;
+        match result {
+            Ok(Ok(attachment)) => {
+                savepoint.commit().await?;
+                Ok(attachment)
+            }
+            Ok(Err(error)) => {
+                savepoint.rollback().await?;
+                Err(error)
+            }
+            Err(error) => {
+                savepoint.rollback().await?;
+                Err(error.into())
+            }
+        }
+    }
+
     async fn validate(
         &self,
         transaction: &DatabaseTransaction,
         hotlap: &Hotlap,
-    ) -> anyhow::Result<HlvcResult> {
+    ) -> anyhow::Result<(HlvcResult, Option<lfsplanet_lfs::RafFile>)> {
         lfsplanet_lfs::ensure_supported()?;
-        let key = hotlap
-            .spr_object_key
-            .as_deref()
-            .context("uploaded hotlap has no replay object")?;
+        let id = hotlap
+            .spr_attachment_id
+            .context("uploaded hotlap has no replay attachment")?;
+        let attachment = crate::models::attachment::Model::required(transaction, id).await?;
+        let key = attachment.object_key;
         let replay = self
             .object_store
-            .get(&Path::from(key))
+            .get(&Path::from(key.as_str()))
             .await?
             .bytes()
             .await
@@ -188,7 +237,7 @@ impl HotlapValidation {
             lfs_exit_code = result.lfs.code(),
             "validation completed"
         );
-        Ok(result.lfs)
+        Ok((result.lfs, diagnostic.raf))
     }
 }
 

@@ -4,7 +4,8 @@ use crate::era_slug::EraSlug;
 
 use crate::milliseconds::Milliseconds;
 
-use crate::api::v1::PlayerSummary;
+use crate::api::v1::{PlayerSummary, attachments::Attachment};
+use std::collections::HashMap;
 
 use crate::models::{
     Era, Hotlap as HotlapModel,
@@ -37,8 +38,6 @@ pub(crate) struct HotlapSubmission {
     #[schema(required)]
     pub(crate) mod_version: Option<i16>,
     #[schema(required)]
-    pub(crate) original_filename: Option<String>,
-    #[schema(required)]
     pub(crate) hlvc_result_code: Option<i16>,
     #[schema(required)]
     pub(crate) error_detail: Option<String>,
@@ -57,9 +56,12 @@ pub(crate) struct Hotlap {
     #[schema(value_type = String, format = DateTime)]
     pub(crate) created_at: time::OffsetDateTime,
     pub(crate) game_version: String,
-    /// Relative download URL; null when no replay is stored.
+    /// Stored SPR replay; null when no replay is stored.
     #[schema(required)]
-    pub(crate) replay_url: Option<String>,
+    pub(crate) spr: Option<Attachment>,
+    /// Stored RAF telemetry; null when no telemetry is retained.
+    #[schema(required)]
+    pub(crate) raf: Option<Attachment>,
     pub(crate) split_1_ms: Milliseconds,
     pub(crate) split_2_ms: Milliseconds,
     pub(crate) split_3_ms: Milliseconds,
@@ -95,7 +97,12 @@ pub(crate) struct Hotlap {
 }
 
 impl Hotlap {
-    pub(crate) fn new(hotlap: &HotlapModel, era: &Era, player: PlayerSummary) -> Self {
+    pub(crate) fn new(
+        hotlap: &HotlapModel,
+        era: &Era,
+        player: PlayerSummary,
+        attachments: &HashMap<i64, Attachment>,
+    ) -> Self {
         let controls = hotlap.controls();
         Self {
             split_1_ms: hotlap.split_1_ms,
@@ -128,17 +135,18 @@ impl Hotlap {
             lap_time_ms: hotlap.lap_time_ms,
             created_at: hotlap.created_at,
             game_version: hotlap.game_version.to_string(),
-            replay_url: hotlap
-                .spr_object_key
-                .as_ref()
-                .map(|_| super::replay::download_url(hotlap.id)),
+            raf: hotlap
+                .raf_attachment_id
+                .and_then(|id| attachments.get(&id).cloned()),
+            spr: hotlap
+                .spr_attachment_id
+                .and_then(|id| attachments.get(&id).cloned()),
         }
     }
     pub(crate) fn with_submission(mut self, hotlap: &HotlapModel) -> Self {
         self.submission = Some(HotlapSubmission {
             raw_vehicle_name: hotlap.raw_vehicle_name.clone(),
             mod_version: hotlap.mod_version,
-            original_filename: hotlap.original_filename.clone(),
             hlvc_result_code: hotlap.hlvc_result_code,
             error_detail: hotlap.error_detail.clone(),
         });
@@ -154,8 +162,10 @@ impl Hotlap {
         best: crate::models::chart::BestHotlap,
         badges: Vec<PlayerBadge>,
         era: &Era,
+        attachments: &HashMap<i64, Attachment>,
     ) -> Self {
-        let mut response = Self::new(&best.hotlap, era, best.player.into()).with_badges(badges);
+        let mut response =
+            Self::new(&best.hotlap, era, best.player.into(), attachments).with_badges(badges);
         response.position = Some(best.position);
         response.distance_to_benchmark_ms = Some(best.distance_to_benchmark_ms);
         response.distance_to_world_record_ms = Some(best.distance_to_world_record_ms);
@@ -180,9 +190,12 @@ impl Hotlap {
             lap_time_ms: result.lap_time_ms,
             created_at: result.created_at,
             game_version: result.game_version.to_string(),
-            replay_url: result
-                .downloadable
-                .then(|| super::replay::download_url(result.hotlap_id)),
+            raf: result
+                .raf_public_id
+                .map(|id| Attachment::new(id, result.raf_original_filename)),
+            spr: result
+                .spr_public_id
+                .map(|id| Attachment::new(id, result.spr_original_filename)),
             split_1_ms: result.split_1_ms,
             split_2_ms: result.split_2_ms,
             split_3_ms: result.split_3_ms,
@@ -210,6 +223,7 @@ pub(crate) fn list_response(
     page: crate::models::hotlap::HotlapPage,
     pagination: &crate::api::PaginationQuery,
     submission_owner: Option<i64>,
+    attachments: &HashMap<i64, Attachment>,
 ) -> crate::api::PaginatedResponse<Hotlap> {
     crate::api::PaginatedResponse {
         items: page
@@ -226,7 +240,7 @@ pub(crate) fn list_response(
                     contributes_to,
                     badges,
                 } = entry;
-                let mut response = Hotlap::new(&hotlap, &era, player.into());
+                let mut response = Hotlap::new(&hotlap, &era, player.into(), attachments);
                 response.position = position;
                 response.distance_to_world_record_ms = distance_to_world_record_ms;
                 response.distance_to_benchmark_ms = distance_to_benchmark_ms;

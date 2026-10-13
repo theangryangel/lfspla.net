@@ -7,6 +7,5 @@ export interface HotlapSubmission {
   error_detail: string | null;
   hlvc_result_code: number | null;
   mod_version: number | null;
-  original_filename: string | null;
   raw_vehicle_name: string;
 }

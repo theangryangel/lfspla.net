@@ -127,7 +127,10 @@ pub fn router(max_spr_upload_bytes: usize) -> Router<ApiState> {
 
 /// Wires the public routes to runtime dependencies and middleware.
 pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow::Result<Router> {
-    let object_store = storage::build(&settings.storage)?;
+    let storage::WebStorage {
+        object_store,
+        download_signer,
+    } = storage::build_with_downloads(&settings.storage)?;
     let oauth = settings
         .lfs
         .to_api_client()?
@@ -137,6 +140,7 @@ pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow:
         database: database.clone(),
         oauth: oauth.clone(),
         object_store,
+        download_signer,
         hotlaps: settings.hotlaps.clone(),
     };
 
@@ -307,11 +311,36 @@ mod tests {
         );
         let summary = &schemas["Hotlap"];
         let required = summary["required"].as_array().unwrap();
-        assert!(required.contains(&serde_json::json!("replay_url")));
+        assert!(required.contains(&serde_json::json!("spr")));
+        assert!(required.contains(&serde_json::json!("raf")));
+        for removed in [
+            "/api/v1/hotlaps/{hotlap}/replay",
+            "/api/v1/hotlaps/{hotlap}/raf",
+            "/api/v1/vehicles/{vehicle}/image",
+        ] {
+            assert!(document["paths"].get(removed).is_none());
+        }
+        assert!(document["paths"]["/api/v1/attachments/{attachment}"].is_object());
+        assert_eq!(schemas["Attachment"]["properties"]["id"]["format"], "uuid");
         assert_eq!(
-            summary["properties"]["replay_url"]["type"],
-            serde_json::json!(["string", "null"])
+            schemas["Attachment"]["required"],
+            serde_json::json!(["id", "url", "original_filename"])
         );
+        for (schema, field, old) in [
+            ("Hotlap", "spr", "replay_url"),
+            ("Hotlap", "raf", "raf_download_url"),
+            ("VehicleSummary", "image", "image_url"),
+        ] {
+            assert_eq!(
+                schemas[schema]["properties"][field]["oneOf"][0]["$ref"],
+                "#/components/schemas/Attachment"
+            );
+            assert_eq!(
+                schemas[schema]["properties"][field]["oneOf"][1]["type"],
+                "null"
+            );
+            assert!(schemas[schema]["properties"].get(old).is_none());
+        }
         let properties = schemas["Hotlap"]["properties"].as_object().unwrap();
         assert!(!properties.contains_key("entries"));
         for private in [

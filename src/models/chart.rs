@@ -193,10 +193,10 @@ mod tests {
 
         let second: i64 = sqlx::query_scalar("INSERT INTO hotlap (
             player_id, era_id, chart_id, track, vehicle, raw_vehicle_name, lap_time_ms,
-            split_1_ms, split_2_ms, split_3_ms, split_4_ms, original_filename, spr_object_key,
+            split_1_ms, split_2_ms, split_3_ms, split_4_ms, spr_attachment_id,
             source, fingerprint, steering, player_flags, game_version, state)
             SELECT player_id, era_id, chart_id, track, vehicle, raw_vehicle_name, lap_time_ms - 1000,
-            0,0,0,0, 'second.spr', 'second.spr', source, repeat('b',64), steering, player_flags, game_version, 'pending'
+            0,0,0,0, spr_attachment_id, source, repeat('b',64), steering, player_flags, game_version, 'pending'
             FROM hotlap WHERE id = $1 RETURNING id").bind(published.id).fetch_one(&pool).await?;
         Hotlap::validate_owned_for_testing(&database, second, published.player_id).await?;
         assert_eq!(

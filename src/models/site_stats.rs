@@ -43,7 +43,8 @@ pub(crate) struct ComboSpotlight {
     pub vehicle: VehicleId,
     pub vehicle_name: String,
     pub vehicle_license: String,
-    pub vehicle_has_image: bool,
+    pub vehicle_image_original_filename: Option<String>,
+    pub vehicle_image_public_id: Option<sea_orm::prelude::Uuid>,
     pub recent_uploads: i64,
     #[sea_orm(skip)]
     pub leaders: Vec<SpotlightBest>,
@@ -105,13 +106,15 @@ SELECT chart.id AS chart_id, era.slug AS era_id, era.title AS era_title,
        track.location AS track_location, track.reverse AS track_reverse,
        track.open_configuration AS track_open_configuration,
        chart.vehicle_id AS vehicle, vehicle.name AS vehicle_name, vehicle.license AS vehicle_license,
-       (vehicle.available AND vehicle.image_object_key IS NOT NULL) AS vehicle_has_image,
+       CASE WHEN vehicle.available THEN image.public_id END AS vehicle_image_public_id,
+       CASE WHEN vehicle.available THEN image.original_filename END AS vehicle_image_original_filename,
        selected.recent_uploads
 FROM selected
 JOIN chart ON chart.id = selected.chart_id
 JOIN era ON era.id = chart.era_id
 JOIN track ON track.id = chart.track_id
-JOIN vehicle ON vehicle.id = chart.vehicle_id"
+JOIN vehicle ON vehicle.id = chart.vehicle_id
+LEFT JOIN attachment image ON image.id = vehicle.image_attachment_id"
             ),
             [SPOTLIGHT_UPLOAD_LIMIT.into()],
         ))
@@ -220,9 +223,9 @@ SELECT player.id, chart.era_id, chart.id, chart.track_id, chart.vehicle_id, 'XF 
 FROM player CROSS JOIN chart CROSS JOIN generate_series(1,150) sequence WHERE player.lfs_username = 'worker-test';
 INSERT INTO hotlap (player_id, era_id, chart_id, track, vehicle, raw_vehicle_name,
     lap_time_ms, split_1_ms, split_2_ms, split_3_ms, split_4_ms,
-    source, fingerprint, steering, player_flags, game_version, state, original_filename, spr_object_key)
+    source, fingerprint, steering, player_flags, game_version, state, spr_attachment_id)
 SELECT player.id, chart.era_id, chart.id, chart.track_id, chart.vehicle_id, 'XF GTI',
-    50000, 0, 0, 0, 0, 'upload', repeat(CASE state WHEN 'pending' THEN 'b' ELSE 'c' END,64), 'wheel', 0, '0.7A', state, 'test.spr', 'missing.spr'
+    50000, 0, 0, 0, 0, 'upload', repeat(CASE state WHEN 'pending' THEN 'b' ELSE 'c' END,64), 'wheel', 0, '0.7A', state, (SELECT id FROM attachment WHERE object_key = 'missing.spr')
 FROM player CROSS JOIN chart CROSS JOIN (VALUES ('pending'), ('invalid')) states(state) WHERE player.lfs_username = 'worker-test';
 ").execute(&pool).await?;
         let era: Era = crate::models::era::Entity::find()

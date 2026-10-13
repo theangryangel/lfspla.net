@@ -71,7 +71,7 @@
 							<Thumbnail
 								kind="vehicle"
 								code={combo.chart.vehicle.code}
-								src={combo.chart.vehicle.image_url}
+								src={combo.chart.vehicle.image?.url}
 								class="w-12 rounded-md"
 							/>
 						</Card.Action>
