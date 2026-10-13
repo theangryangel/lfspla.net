@@ -127,10 +127,7 @@ pub fn router(max_spr_upload_bytes: usize) -> Router<ApiState> {
 
 /// Wires the public routes to runtime dependencies and middleware.
 pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow::Result<Router> {
-    let storage::WebStorage {
-        object_store,
-        download_signer,
-    } = storage::build_with_downloads(&settings.storage)?;
+    let object_store = storage::build(&settings.storage)?;
     let oauth = settings
         .lfs
         .to_api_client()?
@@ -140,7 +137,6 @@ pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow:
         database: database.clone(),
         oauth: oauth.clone(),
         object_store,
-        download_signer,
         hotlaps: settings.hotlaps.clone(),
     };
 

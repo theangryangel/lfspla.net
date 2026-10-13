@@ -46,9 +46,18 @@ validator service. Read the service logs and confirm that queued hotlaps are
 being processed. If a migration fails, fix the cause and rerun the deploy;
 the site remains in maintenance mode until it succeeds.
 
-Provision a new host separately. This installs host packages and creates the
-database and persistent paths. Follow [first deployment](../deploy/README.md#first-deployment)
+Provision a new host separately. This installs host packages and creates
+persistent paths. The application deploy creates the database. Follow [first deployment](../deploy/README.md#first-deployment)
 before using `just deploy` on a new host.
+
+Caddy validates its configuration before downtime. Frontend releases are
+published atomically; only the current release is kept. The API binary is
+replaced in place, so releases have no automatic rollback. Security headers are
+configured in `deploy/group_data/all.py` and applied by Caddy.
+
+For backup setup, checks and disaster recovery, see
+[PostgreSQL backups](../deploy/runbooks/backups.md). Restore a replacement host before
+enabling backups or deploying the application.
 
 ## Initialisation
 

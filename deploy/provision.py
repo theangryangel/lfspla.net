@@ -4,6 +4,8 @@ Run before the first deploy and whenever host dependencies change:
     pyinfra inventory.py provision.py
 """
 
+from object_storage import backup_configuration
+
 from pyinfra import host
 from pyinfra.operations import apt, files, server, systemd
 
@@ -15,6 +17,7 @@ config_dir = host.data.config_dir
 state_dir = host.data.state_dir
 maintenance_dir = f"{app_root}/maintenance"
 frontend_dir = host.data.frontend_dir
+backup = backup_configuration(host.data)
 
 apt.update(name="Update APT package index before provisioning dependencies")
 
@@ -30,7 +33,7 @@ server.shell(
 
 apt.packages(
     name="Install lfsplanet host dependencies",
-    packages=["bubblewrap", "caddy", "postgresql-18", "wine"],
+    packages=["bubblewrap", "caddy", "postgresql-18", "pgbackrest", "wine"],
     update=True,
 )
 
@@ -74,4 +77,28 @@ for path, owner, mode in (
         user=owner,
         group=app_group,
         mode=mode,
+    )
+
+# Prepare the client for backups or a manual restore. Do not contact the
+# repository, initialize a stanza, change archiving, or enable backup timers.
+if backup:
+    for path, owner in (
+        ("/etc/pgbackrest", "root"),
+        ("/var/lib/pgbackrest", "postgres"),
+    ):
+        files.directory(
+            name=f"Ensure {path} exists",
+            path=path,
+            user=owner,
+            group="postgres",
+            mode="0750",
+        )
+    files.template(
+        name="Configure encrypted pgBackRest S3 repository",
+        src="templates/pgbackrest.conf.j2",
+        dest="/etc/pgbackrest/pgbackrest.conf",
+        user="root",
+        group="postgres",
+        mode="0640",
+        backup=backup,
     )

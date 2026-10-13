@@ -1,4 +1,4 @@
-//! Shared file identities and authorized delivery.
+//! Shared file identities and proxied delivery.
 use crate::api::{ApiError, ApiState, ErrorResponse};
 use crate::models::attachment;
 use axum::{
@@ -68,7 +68,7 @@ pub(crate) fn router() -> OpenApiRouter<ApiState> {
 /// Serves a file by its public UUID.
 #[utoipa::path(get, path = "/api/v1/attachments/{attachment}", operation_id = "download_attachment", tag = "attachments",
     params(("attachment" = String, Path, format = "uuid", description = "Public attachment UUID")),
-    responses((status = 302, description = "Temporary redirect to a signed S3 download URL"), (status = 200, description = "Stored file"), (status = 404, description = "Attachment unavailable", body = ErrorResponse)))]
+    responses((status = 200, description = "Stored file streamed with 24-hour browser caching"), (status = 404, description = "Attachment unavailable", body = ErrorResponse)))]
 pub(crate) async fn download(
     Path(id): Path<Uuid>,
     State(state): State<ApiState>,
@@ -81,24 +81,6 @@ pub(crate) async fn download(
         .ok_or_else(not_found)?;
     let disposition = crate::storage::download_disposition(&attachment);
     let path = ObjectPath::from(attachment.object_key.as_str());
-    if let Some(signer) = &state.download_signer {
-        // Preserve API 404s for missing objects without proxying their contents.
-        state
-            .object_store
-            .head(&path)
-            .await
-            .map_err(storage_read_error)?;
-        let url = signer
-            .sign(&attachment, &disposition)
-            .await
-            .map_err(|error| ApiError::internal(&error, "attachment download signing"))?;
-        return Response::builder()
-            .status(StatusCode::FOUND)
-            .header(header::LOCATION, url.as_str())
-            .header(header::CACHE_CONTROL, "no-store")
-            .body(Body::empty())
-            .map_err(|error| ApiError::internal(&error, "attachment redirect response"));
-    }
     let file = state
         .object_store
         .get(&path)
@@ -108,6 +90,7 @@ pub(crate) async fn download(
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, &attachment.media_type)
         .header(header::CONTENT_LENGTH, file.meta.size)
+        .header(header::CACHE_CONTROL, "private, max-age=86400")
         .header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")
         .header(header::CONTENT_DISPOSITION, disposition)
         .body(Body::from_stream(file.into_stream()))
@@ -128,10 +111,25 @@ mod tests {
     use super::*;
     use sea_orm::TransactionTrait;
     use std::sync::Arc;
+    use tower::ServiceExt;
+
+    async fn request(id: Uuid, state: ApiState) -> Response {
+        // Include the API's default no-store middleware to check attachment overrides.
+        crate::api::router(state.hotlaps.max_spr_upload_bytes())
+            .with_state(state)
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri(format!("/api/v1/attachments/{id}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+    }
 
     #[sqlx::test]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
-    async fn downloads_use_only_the_requested_attachments_filename(
+    async fn downloads_stream_bytes_with_filenames_and_browser_caching(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
@@ -189,45 +187,40 @@ mod tests {
             database,
             oauth: None,
             object_store: store.clone(),
-            download_signer: None,
             hotlaps: Default::default(),
         };
-        for file in [&first, &second, &raf, &image, &unnamed] {
+        for (file, bytes) in [
+            (&first, b"same bytes".as_slice()),
+            (&second, b"same bytes".as_slice()),
+            (&raf, b"telemetry".as_slice()),
+            (&image, b"image".as_slice()),
+            (&unnamed, b"archive".as_slice()),
+        ] {
             // No parent reference or credentials are required: UUIDs are public links.
-            let response = download(Path(file.public_id), State(state.clone())).await?;
+            let response = request(file.public_id, state.clone()).await;
             assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(
+                response.headers()[header::CACHE_CONTROL],
+                "private, max-age=86400"
+            );
             assert_eq!(response.headers()[header::CONTENT_TYPE], file.media_type);
+            assert_eq!(
+                response.headers()[header::CONTENT_LENGTH],
+                bytes.len().to_string()
+            );
+            assert_eq!(
+                response.headers()[header::X_CONTENT_TYPE_OPTIONS],
+                "nosniff"
+            );
+            assert!(!response.headers().contains_key(header::LOCATION));
             assert_eq!(
                 response.headers()[header::CONTENT_DISPOSITION],
                 crate::storage::download_disposition(file)
             );
-            assert!(
-                !axum::body::to_bytes(response.into_body(), 100)
-                    .await?
-                    .is_empty()
+            assert_eq!(
+                axum::body::to_bytes(response.into_body(), 100).await?,
+                bytes
             );
-            #[cfg(feature = "aws")]
-            {
-                let mut redirect_state = state.clone();
-                redirect_state.download_signer =
-                    Some(crate::storage::test_download_signer("files"));
-                let response = download(Path(file.public_id), State(redirect_state)).await?;
-                assert_eq!(response.status(), StatusCode::FOUND);
-                assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
-                let url = url::Url::parse(response.headers()[header::LOCATION].to_str()?)?;
-                assert!(url.path().starts_with("/lfsplanet/files/"));
-                let query: HashMap<_, _> = url.query_pairs().collect();
-                assert_eq!(query["X-Amz-Expires"], "300");
-                assert_eq!(
-                    query["response-content-disposition"],
-                    crate::storage::download_disposition(file)
-                );
-                assert!(
-                    axum::body::to_bytes(response.into_body(), 100)
-                        .await?
-                        .is_empty()
-                );
-            }
         }
         assert!(
             crate::storage::download_disposition(&unnamed)
@@ -241,6 +234,9 @@ mod tests {
                 .code,
             "attachment_not_found"
         );
+        let response = request(Uuid::from_u128(99), state.clone()).await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
         store.delete(&ObjectPath::from(raf.object_key)).await?;
         assert_eq!(
             download(Path(raf.public_id), State(state.clone()))
@@ -249,18 +245,12 @@ mod tests {
                 .code,
             "attachment_not_found"
         );
-        #[cfg(feature = "aws")]
-        {
-            let mut redirect_state = state.clone();
-            redirect_state.download_signer = Some(crate::storage::test_download_signer(""));
-            assert_eq!(
-                download(Path(raf.public_id), State(redirect_state))
-                    .await
-                    .unwrap_err()
-                    .code,
-                "attachment_not_found"
-            );
-        }
+        store
+            .delete(&ObjectPath::from(image.object_key.as_str()))
+            .await?;
+        let response = request(image.public_id, state.clone()).await;
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
         Ok(())
     }
 }

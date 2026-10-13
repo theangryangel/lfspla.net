@@ -1,0 +1,19 @@
+[Unit]
+Description=lfsplanet PostgreSQL %i backup
+Wants=network-online.target
+After=network-online.target postgresql@18-main.service
+Requires=postgresql@18-main.service
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+# Serialize full and differential jobs, including simultaneous catch-up timers.
+ExecStart=/usr/bin/flock --wait 86400 /var/lib/pgbackrest/scheduled-backup.lock /usr/bin/pgbackrest --stanza=lfsplanet --type=%i backup
+TimeoutStartSec=infinity
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/pgbackrest

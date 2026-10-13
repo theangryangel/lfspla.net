@@ -27,6 +27,14 @@ lfsplanet = [
             "bucket_secret_access_key": os.environ.get("LFSPLANET_BUCKET_SECRET_ACCESS_KEY"),
             # Override when the provider requires a different signing region.
             "bucket_region": os.environ.get("LFSPLANET_BUCKET_REGION", "us-east-1"),
+            # Provision prepares the client; pgbackrest.py activates backups.
+            "backup_bucket_name": os.environ.get("LFSPLANET_BACKUP_BUCKET_NAME"),
+            "backup_bucket_host": os.environ.get("LFSPLANET_BACKUP_BUCKET_HOST"),
+            "backup_bucket_access_key_id": os.environ.get("LFSPLANET_BACKUP_BUCKET_ACCESS_KEY_ID"),
+            "backup_bucket_secret_access_key": os.environ.get("LFSPLANET_BACKUP_BUCKET_SECRET_ACCESS_KEY"),
+            "backup_cipher_pass": os.environ.get("LFSPLANET_BACKUP_CIPHER_PASS"),
+            "backup_bucket_region": os.environ.get("LFSPLANET_BACKUP_BUCKET_REGION", "us-east-1"),
+            "backup_retention_days": os.environ.get("LFSPLANET_BACKUP_RETENTION_DAYS", "30"),
             # Set true only after reviewing replacements to existing eras.
             "replace_existing_eras": False,
         },

@@ -7,6 +7,13 @@ For existing database, paths may stay unchanged.
 Each attachment has its own UUID and filename; paths can be shared.
 Anyone with the UUID can download it.
 
+All attachments are streamed through the API for every storage backend and
+cached in the browser for 24 hours (`Cache-Control: private, max-age=86400`).
+Content types and download filenames come from the attachment record, so existing
+objects need no metadata repair. Replacing a file creates a new attachment UUID
+and URL. A previously cached file can remain available for up to 24 hours after
+its attachment is deleted. Missing attachments and objects return uncached 404s.
+
 ## Configuration
 
 Local development needs no changes to `planet.yaml`.
