@@ -19,6 +19,7 @@ frontend_dir = "/opt/lfsplanet/frontend"
 # frontend and to proxied API responses alike; the application sets none of it.
 # `style-src` and `font-src` admit Google Fonts, `img-src` admits the country
 # flag CDN, and `script-src` needs 'unsafe-inline' for SvelteKit's bootstrap.
+# Deployment also adds the configured S3 origin to image sources.
 content_security_policy = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline'; "

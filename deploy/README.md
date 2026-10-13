@@ -155,6 +155,7 @@ loopback only, so nothing reaches it without passing through Caddy, and the
 policy governing a document belongs with whatever serves that document. Edit
 `content_security_policy` in `group_data/all.py` to change it; a frontend that
 needs a new origin no longer needs the binary rebuilt.
+Deployment adds the configured S3 origin to `img-src` for redirected vehicle images.
 
 Before anything is stopped the deploy runs `caddy validate` against the
 rendered file, so a broken site configuration fails while the running site is

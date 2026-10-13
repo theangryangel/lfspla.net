@@ -15,7 +15,7 @@ API, so a frontend change no longer needs the binary rebuilt and swapped.
 import hashlib
 from pathlib import Path
 
-from object_storage import quote_environment, storage_configuration
+from object_storage import quote_environment, storage_configuration, storage_image_policy
 
 from pyinfra import host
 from pyinfra.operations import files, server, systemd, postgres
@@ -150,7 +150,9 @@ files.template(
     alternate_domains=alternate_domains,
     maintenance_dir=f"{app_root}/maintenance",
     frontend_dir=frontend_dir,
-    content_security_policy=host.data.content_security_policy,
+    content_security_policy=storage_image_policy(
+        host.data.content_security_policy, storage_environment.get("AWS_ENDPOINT")
+    ),
 )
 
 files.template(

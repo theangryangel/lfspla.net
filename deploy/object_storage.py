@@ -54,3 +54,26 @@ def storage_configuration(data):
 def quote_environment(value):
     """Quote a literal value for a systemd EnvironmentFile (no shell expansion)."""
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def storage_image_policy(policy, endpoint):
+    """Allow redirected images from the configured S3 origin."""
+    if not endpoint:
+        return policy
+    parsed = urlsplit(endpoint)
+    hostname = parsed.hostname
+    if not hostname or any(c.isspace() or c in "'\";\\" for c in hostname):
+        raise ValueError("invalid S3 hostname for Content-Security-Policy")
+    hostname = f"[{hostname}]" if ":" in hostname else hostname
+    port = f":{parsed.port}" if parsed.port and parsed.port != 443 else ""
+    origin = f"https://{hostname}{port}"
+    directives = [part.split() for part in policy.split(";") if part.strip()]
+    if not any(parts[0] == "img-src" for parts in directives):
+        fallback = next((parts[1:] for parts in directives if parts[0] == "default-src"), None)
+        if fallback is not None:
+            directives.append(["img-src", *fallback])
+    for parts in directives:
+        if parts[0] in ("img-src", "img-src-elem") and origin not in parts:
+            parts[:] = [part for part in parts if part != "'none'"]
+            parts.append(origin)
+    return "; ".join(" ".join(parts) for parts in directives)
