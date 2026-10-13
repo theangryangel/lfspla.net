@@ -98,7 +98,6 @@ mod tests {
             database,
             oauth: None,
             object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
-            download_signer: None,
             hotlaps: crate::settings::HotlapSettings {
                 allow_test_validation: true,
                 ..Default::default()

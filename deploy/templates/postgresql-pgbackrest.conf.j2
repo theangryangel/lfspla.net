@@ -1,0 +1,6 @@
+# Managed by lfsplanet pgBackRest setup for the PostgreSQL 18/main cluster.
+wal_level = replica
+archive_mode = on
+archive_library = ''
+archive_command = '/usr/bin/pgbackrest --stanza=lfsplanet archive-push %p'
+archive_timeout = '5min'

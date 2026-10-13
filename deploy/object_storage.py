@@ -77,3 +77,66 @@ def storage_image_policy(policy, endpoint):
             parts[:] = [part for part in parts if part != "'none'"]
             parts.append(origin)
     return "; ".join(" ".join(parts) for parts in directives)
+
+
+def backup_configuration(data):
+    names = (
+        "backup_bucket_name",
+        "backup_bucket_host",
+        "backup_bucket_access_key_id",
+        "backup_bucket_secret_access_key",
+        "backup_cipher_pass",
+    )
+    values = {name: data.get(name) for name in names}
+    if all(value is None for value in values.values()):
+        return None
+    for name, value in values.items():
+        if (
+            not isinstance(value, str)
+            or not value
+            or value != value.strip()
+            or any(c in value for c in "\0\r\n")
+        ):
+            raise ValueError(f"set all five LFSPLANET_BACKUP_* settings; invalid {name}")
+
+    bucket = values["backup_bucket_name"]
+    if not re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]", bucket):
+        raise ValueError("LFSPLANET_BACKUP_BUCKET_NAME must be an S3 bucket name")
+    # GC scans the entire attachment bucket, so never put a repository there.
+    if bucket == data.get("bucket_name"):
+        raise ValueError("the backup bucket must be separate from the attachment bucket")
+
+    endpoint = values["backup_bucket_host"]
+    if "://" not in endpoint:
+        endpoint = f"https://{endpoint}"
+    parsed = urlsplit(endpoint)
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in ("", "/")
+        or not re.fullmatch(r"[a-zA-Z0-9.-]+", parsed.hostname)
+        or parsed.port == 0
+    ):
+        raise ValueError("LFSPLANET_BACKUP_BUCKET_HOST must be an HTTPS S3 API endpoint")
+
+    region = data.get("backup_bucket_region", "us-east-1")
+    if not isinstance(region, str) or not re.fullmatch(r"[a-zA-Z0-9-]+", region):
+        raise ValueError("LFSPLANET_BACKUP_BUCKET_REGION must be a signing region")
+    retention = str(data.get("backup_retention_days", "30"))
+    if not retention.isascii() or not retention.isdigit() or not 1 <= int(retention) <= 9999999:
+        raise ValueError("LFSPLANET_BACKUP_RETENTION_DAYS must be between 1 and 9999999")
+
+    return {
+        "bucket": bucket,
+        "endpoint": parsed.hostname,
+        "port": parsed.port or 443,
+        "region": region,
+        "access_key": values["backup_bucket_access_key_id"],
+        "secret_key": values["backup_bucket_secret_access_key"],
+        "cipher_pass": values["backup_cipher_pass"],
+        "retention_days": int(retention),
+    }

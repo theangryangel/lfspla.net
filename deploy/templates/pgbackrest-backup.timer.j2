@@ -1,0 +1,11 @@
+[Unit]
+Description=Schedule lfsplanet PostgreSQL {{ backup_type }} backups
+
+[Timer]
+OnCalendar={{ calendar }}
+RandomizedDelaySec=15min
+Persistent=true
+Unit=pgbackrest-backup@{{ backup_type }}.service
+
+[Install]
+WantedBy=timers.target
