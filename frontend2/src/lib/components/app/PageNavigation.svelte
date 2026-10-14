@@ -28,12 +28,14 @@
 		prominent = false,
 		orientation = 'horizontal',
 		action,
+		wrap = false,
 	}: {
 		label: string;
 		items: NavigationItem[];
 		prominent?: boolean;
 		orientation?: 'horizontal' | 'vertical';
 		action?: Snippet;
+		wrap?: boolean;
 	} = $props();
 
 	function isActive(item: NavigationLinkItem) {
@@ -48,12 +50,16 @@
 	aria-label={label}
 	class={orientation === 'vertical'
 		? 'w-full min-w-0'
-		: 'w-full max-w-full justify-start overflow-x-auto md:w-auto md:max-w-max'}
+		: wrap
+			? 'w-full min-w-0 md:w-auto'
+			: 'w-full max-w-full justify-start overflow-x-auto md:w-auto md:max-w-max'}
 >
 	<ul
 		class={orientation === 'vertical'
 			? 'grid min-w-0 list-none gap-1'
-			: 'flex min-w-max list-none flex-nowrap items-center justify-start gap-2'}
+			: wrap
+				? 'flex min-w-0 list-none flex-wrap items-center gap-2'
+				: 'flex min-w-max list-none flex-nowrap items-center justify-start gap-2'}
 	>
 		{#each items as item (item.key ?? item.to)}
 			<li>

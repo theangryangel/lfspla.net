@@ -26,13 +26,13 @@
 
 {#if items.length}
 	<Breadcrumb.Root class="min-w-0 {className ?? ''}">
-		<Breadcrumb.List class="flex-nowrap">
+		<Breadcrumb.List class="min-w-0 flex-wrap gap-y-2">
 			{#each items as crumb, index (index)}
 				{@const current = index === items.length - 1}
 				{#if index > 0}
 					<Breadcrumb.Separator />
 				{/if}
-				<Breadcrumb.Item>
+				<Breadcrumb.Item class="min-w-0 max-w-full">
 					{#if current}
 						<Breadcrumb.Page
 							class="flex min-w-0 items-center gap-2 font-semibold"

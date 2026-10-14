@@ -130,16 +130,18 @@
 				}}
 			/>
 		</div>
-		<PageNavigation label="Era" items={navigation}>
-			{#snippet action()}<HotlapUpload era={data.era} />{/snippet}
-		</PageNavigation>
+		<div class="w-full min-w-0 border-t pt-3 md:w-auto md:border-t-0 md:pt-0">
+			<PageNavigation label="Era" items={navigation} wrap>
+				{#snippet action()}<HotlapUpload era={data.era} />{/snippet}
+			</PageNavigation>
+		</div>
 	</div>
 {/snippet}
 
 <CombinationProvider bind:this={picker} era={data.era.id} onSelect={showChart}>
 	<main id="main" class="w-full min-w-0 flex-1">
 		{#if onChart || onOverview || onRanking || onSubmissions}
-			<div class="mx-auto w-full max-w-screen-2xl px-4 py-2 md:px-6 md:py-3">
+			<div class="mx-auto w-full max-w-screen-2xl px-4 py-4 md:px-6 md:py-3">
 				{@render eraContext()}
 			</div>
 			{#if onOverview}
@@ -181,12 +183,12 @@
 					</div>
 					{#snippet highlight()}
 						{#if driverLeaders.length || nationLeaders.length}
-							<div class="flex min-w-0 items-stretch">
+							<div class="grid min-w-0 gap-2 sm:grid-cols-2 lg:flex lg:gap-0">
 								{#if driverLeaders.length}
 									<RecordHighlight
 										title="Leading driver"
 										variant="purple"
-										class="flex-1 px-10 lg:w-72 lg:flex-none lg:px-14"
+										class="flex-1 lg:w-72 lg:flex-none lg:px-14"
 									>
 										<p
 											class="text-right font-mono text-sm font-bold tabular-nums sm:text-lg xl:text-2xl"
@@ -216,8 +218,8 @@
 									<RecordHighlight
 										title="Leading nation"
 										variant="yellow"
-										class={'flex-1 px-10 lg:w-72 lg:flex-none lg:px-14 ' +
-											(driverLeaders.length ? '-ml-[var(--highlight-slant)]' : '')}
+										class={'flex-1 lg:w-72 lg:flex-none lg:px-14 ' +
+											(driverLeaders.length ? 'lg:-ml-[var(--highlight-slant)]' : '')}
 									>
 										<p
 											class="text-right text-lg font-bold tabular-nums xl:text-2xl"

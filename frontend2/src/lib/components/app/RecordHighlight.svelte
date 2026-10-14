@@ -88,4 +88,14 @@
 			0 100%
 		);
 	}
+	@media (width < 64rem) {
+		.record-highlight {
+			padding-inline: 1rem;
+		}
+		.record-highlight::before,
+		.record-highlight[data-flush-end]::before,
+		.record-highlight[data-flush-start]::before {
+			clip-path: none;
+		}
+	}
 </style>

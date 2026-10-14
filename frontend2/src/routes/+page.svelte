@@ -54,7 +54,7 @@
 	</div>
 	{#snippet highlight()}
 		<div
-			class="home-highlights grid min-w-0 grid-cols-2 gap-y-2 lg:w-[34rem] xl:w-[48rem] xl:grid-cols-4"
+			class="home-highlights grid min-w-0 grid-cols-2 gap-2 lg:w-[34rem] lg:gap-x-0 xl:w-[48rem] xl:grid-cols-4"
 		>
 			{#each stats as stat (stat.label)}
 				<RecordHighlight
@@ -213,11 +213,13 @@
 </main>
 
 <style>
-	.home-highlights {
-		/* Include the same overlap in every panel, including the first in a row. */
-		padding-left: var(--highlight-slant);
-	}
-	.home-highlights :global(.record-highlight) {
-		margin-left: calc(-1 * var(--highlight-slant));
+	@media (min-width: 64rem) {
+		.home-highlights {
+			/* Include the same overlap in every panel, including the first in a row. */
+			padding-left: var(--highlight-slant);
+		}
+		.home-highlights :global(.record-highlight) {
+			margin-left: calc(-1 * var(--highlight-slant));
+		}
 	}
 </style>

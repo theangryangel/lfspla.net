@@ -13,7 +13,7 @@
 		class:lg:grid-cols-[minmax(0,1fr)_auto]={!!children}
 	>
 		{#if children}<div class="flex min-w-0 flex-col justify-center py-3 lg:py-4">{@render children()}</div>{/if}
-		{#if highlight}<div class="identity-highlights grid min-w-0">{@render highlight()}</div>{/if}
+		{#if highlight}<div class="identity-highlights grid min-w-0 pb-4 lg:pb-0">{@render highlight()}</div>{/if}
 	</div>
 </header>
 
@@ -28,14 +28,16 @@
 	.identity-highlights :global(.record-highlight) {
 		align-content: center;
 	}
-	/* Let the final surface reach the header edge while its content stays aligned. */
-	.identity-highlights :global(.record-highlight:last-child)::before {
-		right: calc(-1 * var(--identity-bleed));
-		clip-path: polygon(var(--highlight-slant) 0, 100% 0, 100% 100%, 0 100%);
-	}
 	@media (min-width: 48rem) {
 		.page-identity {
 			--identity-gutter: 1.5rem;
+		}
+	}
+	@media (min-width: 64rem) {
+		/* Let the final desktop surface reach the header edge. */
+		.identity-highlights :global(.record-highlight:last-child)::before {
+			right: calc(-1 * var(--identity-bleed));
+			clip-path: polygon(var(--highlight-slant) 0, 100% 0, 100% 100%, 0 100%);
 		}
 	}
 </style>
