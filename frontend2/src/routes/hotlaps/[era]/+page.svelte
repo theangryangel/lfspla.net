@@ -4,6 +4,7 @@
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import Flag from '$lib/components/app/Flag.svelte';
+	import Empty from '$lib/components/app/Empty.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -27,6 +28,7 @@
 			>
 				World record holders
 			</h2>
+      {#if data.holders.length > 0}
 			<TableFrame appearance="data">
 				<Table.Root
 					class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4"
@@ -59,15 +61,6 @@
 									>{holder.world_records.toLocaleString()}</Table.Cell
 								>
 							</Table.Row>
-						{:else}
-							<Table.Row>
-								<Table.Cell
-									colspan={3}
-									class="py-8 text-center text-muted-foreground"
-								>
-									No world records in this era yet.
-								</Table.Cell>
-							</Table.Row>
 						{/each}
 					</Table.Body>
 				</Table.Root>
@@ -80,6 +73,11 @@
 					{data.holders.length.toLocaleString()} holders
 				{/if}
 			</p>
+      {:else}
+        <Empty
+          title="No world records yet"
+        />
+      {/if}
 		</section>
 	{/snippet}
 </DataSplit>
