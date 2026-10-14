@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import CombinationProvider from '$lib/components/app/CombinationProvider.svelte';
 	import PageNavigation from '$lib/components/app/PageNavigation.svelte';
+	import EraIdentity from '$lib/components/app/EraIdentity.svelte';
 	import CombinationCard from '$lib/components/app/CombinationCard.svelte';
 	import { lapTime } from '$lib/format.js';
 	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
@@ -24,6 +25,7 @@
 	const onChart = $derived(
 		page.route.id === '/hotlaps/[era]/charts/[track]/[vehicle]',
 	);
+	const onOverview = $derived(page.route.id === '/hotlaps/[era]');
 	const chartRecord = $derived.by(() => {
 		if (!onChart) return null;
 		const entry = page.data.chart?.items[0];
@@ -88,15 +90,19 @@
 
 <CombinationProvider bind:this={picker} era={data.era.id} onSelect={showChart}>
 	<main id="main" class="w-full min-w-0 flex-1">
-		{#if onChart}
+		{#if onChart || onOverview}
 			<div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6">
 				{@render eraContext()}
 			</div>
-			<CombinationCard
-				track={page.data.track}
-				vehicle={page.data.vehicle}
-				recordTime={chartRecord}
-			/>
+			{#if onOverview}
+				<EraIdentity era={data.era} leaders={page.data.leaders} />
+			{:else}
+				<CombinationCard
+					track={page.data.track}
+					vehicle={page.data.vehicle}
+					recordTime={chartRecord}
+				/>
+			{/if}
 			<div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6">
 				{@render children()}
 			</div>

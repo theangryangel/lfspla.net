@@ -4,9 +4,11 @@
 
 	let {
 		class: className,
+		appearance = 'default',
 		children,
 	}: {
 		class?: string;
+		appearance?: 'default' | 'data';
 		children: Snippet;
 	} = $props();
 </script>
@@ -14,7 +16,10 @@
 <div
 	data-slot="table-frame"
 	class={cn(
-		'overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10',
+		'overflow-hidden text-card-foreground',
+		appearance === 'data'
+			? 'racing-data rounded-none border-y bg-background'
+			: 'rounded-xl bg-card ring-1 ring-foreground/10',
 		className,
 	)}
 >

@@ -195,7 +195,7 @@
 					>
 				</Empty>
 			{:else if entries.length}
-				<TableFrame class="rounded-none border-y bg-background ring-0">
+				<TableFrame appearance="data">
 					<div
 						class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4 [&_caption]:px-4 [&_caption]:pb-4"
 					>

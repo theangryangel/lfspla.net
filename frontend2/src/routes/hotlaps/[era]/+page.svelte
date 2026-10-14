@@ -3,38 +3,37 @@
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import Flag from '$lib/components/app/Flag.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 </script>
 
-<p class="text-sm text-muted-foreground">
-	{#if data.era.open}
-		This era is open for hotlap submissions and accepts replays recorded with
-		LFS {data.era.version_requirement}.
-	{:else}
-		This historical era accepts replays recorded with LFS
-		{data.era.version_requirement}.
-	{/if}
-</p>
-
 <div
-	class="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+	class="racing-data grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]"
 >
 	<div class="min-w-0">
 		<HotlapActivity
+			title="Activity"
 			eraId={data.era.id}
 			refreshKey={data.holders}
 			eras={data.eras}
 			views={['all', 'world_records', 'mine']}
 			perPage={25}
+			appearance="data"
 		/>
 	</div>
-	<div class="min-w-0">
+	<aside
+		class="min-w-0 border-t bg-card/60 px-4 pb-4 pt-4 xl:border-t-0 xl:border-l xl:pt-0"
+		aria-labelledby="record-holders-title"
+	>
 		<section class="space-y-3">
-			<h2 class="text-lg font-semibold">World record holders</h2>
-			<TableFrame>
+			<h2
+				id="record-holders-title"
+				class="racing-section-title flex h-8 items-center"
+			>
+				World record holders
+			</h2>
+			<TableFrame appearance="data">
 				<Table.Root
 					class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4"
 				>
@@ -72,20 +71,21 @@
 									colspan={3}
 									class="py-8 text-center text-muted-foreground"
 								>
-									{data.pagination.total_items > 0
-										? 'No holders on this page. Choose another page below.'
-										: 'No world records in this era yet.'}
+									No world records in this era yet.
 								</Table.Cell>
 							</Table.Row>
 						{/each}
 					</Table.Body>
 				</Table.Root>
 			</TableFrame>
-			<PaginationControls
-				pagination={data.pagination}
-				label="holders"
-				pageKey="wr_page"
-			/>
+			<p class="text-sm text-muted-foreground">
+				{#if data.pagination.total_items > data.holders.length}
+					Showing top {data.holders.length} of {data.pagination.total_items.toLocaleString()}
+					holders
+				{:else}
+					{data.holders.length.toLocaleString()} holders
+				{/if}
+			</p>
 		</section>
-	</div>
+	</aside>
 </div>

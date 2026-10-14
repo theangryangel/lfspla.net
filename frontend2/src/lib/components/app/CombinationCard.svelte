@@ -1,4 +1,6 @@
 <script lang="ts">
+	import PageIdentity from './PageIdentity.svelte';
+	import RecordHighlight from './RecordHighlight.svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
 	import { useCombinationPicker } from '$lib/picker.js';
@@ -62,36 +64,27 @@
 	</span>
 {/snippet}
 
-<header
-	class="border-b bg-card text-card-foreground"
-	aria-label="Chart identity"
->
+<PageIdentity label="Chart identity">
 	<div
-		class="mx-auto grid w-full max-w-screen-2xl items-center gap-x-8 gap-y-2 px-4 py-3 md:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:py-4"
+		class="grid min-w-0 content-center items-center gap-x-8 gap-y-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"
 	>
+		<h1 class="min-w-0">
+			{@render selector('track', track?.code, track?.name, null)}
+		</h1>
 		<div
-			class="grid min-w-0 content-center items-center gap-x-8 gap-y-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"
+			class="min-w-0 border-t pt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
 		>
-			<h1 class="min-w-0">
-				{@render selector('track', track?.code, track?.name, null)}
-			</h1>
-			<div
-				class="min-w-0 border-t pt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
-			>
-				{@render selector(
-					'vehicle',
-					vehicle?.code,
-					vehicle?.name,
-					vehicle?.image?.url ?? null,
-				)}
-			</div>
+			{@render selector(
+				'vehicle',
+				vehicle?.code,
+				vehicle?.name,
+				vehicle?.image?.url ?? null,
+			)}
 		</div>
+	</div>
+	{#snippet highlight()}
 		{#if recordTime !== null}
-			<section
-				class="record-highlight relative grid min-w-0 gap-2 px-14 py-3 text-black lg:w-80 lg:py-4"
-				aria-label="World record"
-			>
-				<h2 class="racing-section-title relative text-black">World record</h2>
+			<RecordHighlight title="World record">
 				<p
 					class="relative text-right whitespace-nowrap font-mono text-2xl font-bold tabular-nums lg:text-3xl"
 				>
@@ -108,17 +101,7 @@
 						aria-label="Badge unavailable">—</span
 					>
 				</div>
-			</section>
+			</RecordHighlight>
 		{/if}
-	</div>
-</header>
-
-<style>
-	.record-highlight::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: var(--brand-yellow);
-		clip-path: polygon(2.25rem 0, 100% 0, calc(100% - 2.25rem) 100%, 0 100%);
-	}
-</style>
+	{/snippet}
+</PageIdentity>

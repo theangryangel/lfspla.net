@@ -36,6 +36,8 @@
 		eras = [],
 		views = ['all', 'world_records', 'mine'],
 		perPage = 25,
+		appearance = 'default',
+		title = 'Hotlaps',
 	}: {
 		eraId?: string;
 		lfsUsername?: string;
@@ -43,6 +45,8 @@
 		eras?: Pick<EraSummary, 'id' | 'title'>[];
 		views?: View[];
 		perPage?: number;
+		appearance?: 'default' | 'data';
+		title?: string;
 	} = $props();
 
 	const session = useSession();
@@ -127,7 +131,13 @@
 
 <Tabs.Root value={view} onValueChange={changeView} class="min-w-0">
 	<div class="flex flex-wrap items-center gap-4">
-		<h2 class="text-lg font-semibold">Hotlaps</h2>
+		<h2
+			class={appearance === 'data'
+				? 'racing-section-title'
+				: 'text-lg font-semibold'}
+		>
+			{title}
+		</h2>
 		<Tabs.List aria-label="Filter hotlaps">
 			{#if views.includes('all')}<Tabs.Trigger value="all"
 					>All hotlaps</Tabs.Trigger
@@ -169,7 +179,7 @@
 				</div>
 			{/if}
 		{:else}
-			<TableFrame>
+			<TableFrame {appearance}>
 				<Table.Root
 					class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4"
 				>

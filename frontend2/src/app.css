@@ -178,60 +178,62 @@
 
 .racing-section-title {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   font-style: italic;
   line-height: 1.1;
 }
 
-.racing-chart {
+:is(.racing-chart, .racing-data) {
   font-size: var(--data-font-size);
 }
 
-.racing-chart
+:is(.racing-chart, .racing-data)
   :where([data-slot="button"], [data-slot="select-trigger"], input) {
   border-radius: var(--radius-sm);
 }
 
-.racing-chart :where([data-slot="table"]) {
+:is(.racing-chart, .racing-data) :where([data-slot="table"]) {
   font-size: var(--data-font-size);
   font-variant-numeric: tabular-nums;
 }
 
-.racing-chart :where([data-slot="table-cell"], [data-slot="table-head"]) {
+:is(.racing-chart, .racing-data)
+  :where([data-slot="table-cell"], [data-slot="table-head"]) {
   padding-inline: 0.75rem;
 }
 
-.racing-chart :where([data-slot="table-row"]) {
+:is(.racing-chart, .racing-data) :where([data-slot="table-row"]) {
   height: var(--data-row-height);
 }
 
-.racing-chart :where([data-slot="table-cell"]) {
+:is(.racing-chart, .racing-data) :where([data-slot="table-cell"]) {
   padding-block: 0.1875rem;
 }
 
-.racing-chart :where([data-slot="table-head"]) {
+:is(.racing-chart, .racing-data) :where([data-slot="table-head"]) {
   height: var(--data-row-height);
 }
 
 /* Gentle row tracking; hover and comparison selection remain distinct. */
-.racing-chart
+:is(.racing-chart, .racing-data)
   :where(
     tbody [data-slot="table-row"]:nth-child(even):not([data-state="selected"])
   ) {
   background: color-mix(in oklch, var(--foreground) 3%, var(--background));
 }
 
-.racing-chart
+:is(.racing-chart, .racing-data)
   :where(tbody [data-slot="table-row"]:hover:not([data-state="selected"])) {
   background: color-mix(in oklch, var(--foreground) 7%, var(--background));
 }
 
-.racing-chart :where([data-slot="table-row"][data-state="selected"]) {
+:is(.racing-chart, .racing-data)
+  :where([data-slot="table-row"][data-state="selected"]) {
   background: color-mix(in oklch, var(--primary) 12%, var(--background));
 }
 
-.racing-chart :where(a, button, input):focus-visible {
+:is(.racing-chart, .racing-data) :where(a, button, input):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
