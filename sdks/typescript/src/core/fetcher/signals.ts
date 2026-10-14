@@ -35,7 +35,7 @@ export function anySignal(
     // Re-check after adding listener: the signal may have aborted
     // between the initial `signal.aborted` check and the `addEventListener`
     // call above. If it did, the abort event was already dispatched and
-    // the listener will never fire — we must manually abort.
+    // the listener will never fire - we must manually abort.
     if (signal.aborted) {
       controller.abort((signal as any)?.reason);
       return controller.signal;

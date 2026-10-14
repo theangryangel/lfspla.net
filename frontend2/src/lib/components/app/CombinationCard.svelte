@@ -94,11 +94,11 @@
 					class="relative flex items-center justify-end gap-2 text-sm"
 					aria-label="Record holder unavailable"
 				>
-					<span>Record holder <span aria-hidden="true">—</span></span>
+					<span>Record holder <span aria-hidden="true">-</span></span>
 					<span
 						class="inline-flex size-6 shrink-0 items-center justify-center border border-dashed border-black/40 text-xs"
 						title="Badge unavailable"
-						aria-label="Badge unavailable">—</span
+						aria-label="Badge unavailable">-</span
 					>
 				</div>
 			</RecordHighlight>

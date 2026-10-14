@@ -14,7 +14,7 @@
 		{
 			label: 'Hotlaps',
 			value: data.stats?.validated_hotlaps,
-			variant: 'yellow' as const,
+			variant: 'cyan' as const,
 		},
 		{
 			label: 'Drivers',
@@ -24,7 +24,7 @@
 		{
 			label: 'Combinations',
 			value: data.stats?.combinations,
-			variant: 'cyan' as const,
+			variant: 'yellow' as const,
 		},
 	]);
 	const combo = $derived(data.stats?.combo_spotlight);
@@ -46,8 +46,8 @@
 <PageIdentity label="Community statistics">
 	<div class="space-y-3 py-2">
 		<h1 class="racing-page-title">A new home for Live for Speed data.</h1>
-		<p class="max-w-prose text-sm text-muted-foreground">
-			A community-built alternative to LFS World—starting with validated hotlaps
+		<p class="max-w-prose text-muted-foreground">
+			A community-built alternative to LFS World-starting with validated hotlaps
 			and (hopefully) growing to include online results, personal bests,
 			statistics, and driver history.
 		</p>
@@ -63,7 +63,7 @@
 					class="w-auto px-8 lg:w-auto lg:px-10"
 				>
 					<p class="text-right text-2xl font-bold tabular-nums sm:text-3xl">
-						{stat.value == null ? '—' : stat.value.toLocaleString()}
+						{stat.value == null ? '-' : stat.value.toLocaleString()}
 					</p>
 				</RecordHighlight>
 			{/each}
@@ -143,7 +143,7 @@
 									? lapTime(
 											target.lap_time_ms - target.distance_to_world_record_ms,
 										)
-									: '—'}
+									: '-'}
 							</p>
 						</RecordHighlight>
 					</div>
