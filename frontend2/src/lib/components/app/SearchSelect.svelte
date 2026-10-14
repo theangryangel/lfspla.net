@@ -11,9 +11,11 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Command from '$lib/components/ui/command/index.js';
 	import * as Popover from '$lib/components/ui/popover/index.js';
+	import { cn } from '$lib/utils.js';
 
 	let {
 		label,
+		class: className,
 		value,
 		selectedLabel = '',
 		options,
@@ -22,6 +24,7 @@
 		onValueChange,
 	}: {
 		label: string;
+		class?: string;
 		value: string;
 		selectedLabel?: string;
 		options: SearchOption[];
@@ -98,7 +101,7 @@
 				role="combobox"
 				aria-label={label}
 				aria-expanded={open}
-				class="w-56 justify-between font-normal"
+				class={cn('w-56 justify-between font-normal', className)}
 			>
 				<span class="truncate">{current || label}</span>
 				<ChevronsUpDownIcon class="opacity-50" />

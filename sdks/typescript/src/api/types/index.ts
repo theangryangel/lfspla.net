@@ -33,6 +33,8 @@ export * from "./NationContributionResponse.js";
 export * from "./NationRankingEntryResponse.js";
 export * from "./PaginatedResponseChart.js";
 export * from "./PaginatedResponseHotlap.js";
+export * from "./PaginatedResponseTrackSummary.js";
+export * from "./PaginatedResponseVehicleSummary.js";
 export * from "./PaginatedResponseWebhookNotificationResponse.js";
 export * from "./PaginatedResponseWorldRecordHolderResponse.js";
 export * from "./Pagination.js";

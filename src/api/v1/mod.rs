@@ -8,6 +8,8 @@ pub mod me;
 pub mod player_comparison;
 pub mod players;
 pub mod stats;
+pub mod tracks;
+pub mod vehicles;
 
 use crate::api::ApiState;
 use serde::Serialize;
@@ -50,5 +52,7 @@ pub(crate) fn router(max_spr_upload_bytes: usize) -> OpenApiRouter<ApiState> {
         .merge(me::router())
         .merge(players::router())
         .merge(stats::router())
+        .merge(tracks::router())
+        .merge(vehicles::router())
         .merge(player_comparison::router())
 }

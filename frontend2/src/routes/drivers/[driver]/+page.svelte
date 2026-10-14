@@ -6,30 +6,14 @@
 	import RecordHighlight from '$lib/components/app/RecordHighlight.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import * as Table from '$lib/components/ui/table/index.js';
-	import Empty from '$lib/components/app/Empty.svelte';
+	import HotlapActivity from '$lib/components/app/HotlapActivity.svelte';
 	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
-	import { dateTime, delta, lapTime } from '$lib/format.js';
+	import { dateTime } from '$lib/format.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	const player = $derived(data.player);
-
-	const totals = $derived([
-		{ label: 'Hotlaps', value: player.stats.hotlaps },
-		{ label: 'Personal bests', value: player.stats.personal_bests },
-		{ label: 'Podiums', value: player.stats.podiums },
-		{ label: 'Eras', value: player.stats.eras },
-		...(player.stats.first_hotlap_at
-			? [
-					{
-						label: 'Racing here since',
-						value: dateTime(player.stats.first_hotlap_at),
-						valueFirst: false,
-					},
-				]
-			: []),
-	]);
 </script>
 
 <main id="main" class="w-full min-w-0 flex-1">
@@ -38,26 +22,21 @@
 	</div>
 	<PageIdentity label="Driver identity">
 		<div class="space-y-3 py-2">
-			<div class="flex flex-wrap items-center gap-3">
-				<Flag code={player.flag_code} fallback={player.country_code} />
-				<h1 class="break-words text-3xl font-semibold tracking-tight">
+			<div class="flex min-w-0 items-center gap-3">
+				<Flag code={player.flag_code} fallback={player.country_code} size="lg" />
+				<h1 class="racing-page-title min-w-0 flex-1 break-words">
 					{player.display_name}
 				</h1>
-				<CompareButton driver={player} />
+				<div class="shrink-0"><CompareButton driver={player} /></div>
 			</div>
-			<p class="text-sm text-muted-foreground">{player.lfs_username}</p>
-			<dl class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-				{#each totals as stat (stat.label)}
-					<div class="flex flex-wrap items-baseline gap-2">
-						<dt class="text-muted-foreground">{stat.label}</dt>
-						<dd class="font-semibold tabular-nums">
-							{typeof stat.value === 'number'
-								? stat.value.toLocaleString()
-								: stat.value}
-						</dd>
-					</div>
-				{/each}
-			</dl>
+			<div
+				class="flex min-w-0 flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground"
+			>
+				<p class="break-words">{player.lfs_username}</p>
+				{#if player.stats.first_hotlap_at}
+					<p>Racing here since {dateTime(player.stats.first_hotlap_at)}</p>
+				{/if}
+			</div>
 		</div>
 		{#snippet highlight()}
 			<RecordHighlight title="World records" variant="purple">
@@ -78,9 +57,11 @@
 						<Table.Header>
 							<Table.Row>
 								<Table.Head>Era</Table.Head>
-								<Table.Head>Hotlaps</Table.Head>
-								<Table.Head>Personal bests</Table.Head>
-								<Table.Head>Podiums</Table.Head>
+								<Table.Head class="text-right">Hotlaps</Table.Head>
+								<Table.Head class="text-right">Personal bests</Table.Head>
+								<Table.Head class="text-right">1st</Table.Head>
+								<Table.Head class="text-right">2nd</Table.Head>
+								<Table.Head class="text-right">3rd</Table.Head>
 								<Table.Head>Badges</Table.Head>
 								<Table.Head>Last lap</Table.Head>
 							</Table.Row>
@@ -93,15 +74,21 @@
 											>{era.title}</a
 										>
 									</Table.Cell>
-									<Table.Cell class="tabular-nums"
+									<Table.Cell class="text-right tabular-nums"
 										>{era.hotlaps.toLocaleString()}</Table.Cell
 									>
-									<Table.Cell class="tabular-nums"
+									<Table.Cell class="text-right tabular-nums"
 										>{era.personal_bests.toLocaleString()}</Table.Cell
 									>
-									<Table.Cell class="tabular-nums">
-										{era.firsts} · {era.seconds} · {era.thirds}
-									</Table.Cell>
+									<Table.Cell class="text-right tabular-nums"
+										>{era.firsts.toLocaleString()}</Table.Cell
+									>
+									<Table.Cell class="text-right tabular-nums"
+										>{era.seconds.toLocaleString()}</Table.Cell
+									>
+									<Table.Cell class="text-right tabular-nums"
+										>{era.thirds.toLocaleString()}</Table.Cell
+									>
 									<Table.Cell>
 										{#each era.badges as playerBadge, i (i)}
 											<PlayerBadge badge={playerBadge} class="mr-2" />
@@ -120,73 +107,13 @@
 			</section>
 		{/if}
 
-		<section class="space-y-3">
-			<header class="space-y-1">
-				<h2 class="racing-section-title">Highlights</h2>
-				<p class="text-sm text-muted-foreground">
-					Current personal bests with the strongest chart positions.
-				</p>
-			</header>
-			{#if player.highlights.length}
-				<TableFrame appearance="data">
-					<Table.Root
-						class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4 [&_caption]:px-4 [&_caption]:pb-4"
-					>
-						<Table.Header>
-							<Table.Row>
-								<Table.Head>Chart</Table.Head>
-								<Table.Head>Era</Table.Head>
-								<Table.Head>Lap time</Table.Head>
-								<Table.Head title="Difference from the current world record"
-									>To WR</Table.Head
-								>
-								<Table.Head>#</Table.Head>
-								<Table.Head>Set</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each player.highlights as result (result.id)}
-								<Table.Row>
-									<Table.Cell>
-										<a
-											class="hover:underline"
-											href="/hotlaps/{result.era_id}/charts/{result.track}/{result.vehicle}"
-										>
-											{result.track} · {result.vehicle}
-										</a>
-									</Table.Cell>
-									<Table.Cell class="text-muted-foreground">
-										{data.eras.find((era) => era.id === result.era_id)?.title ??
-											result.era_id}
-									</Table.Cell>
-									<Table.Cell class="font-mono tabular-nums">
-										{lapTime(result.lap_time_ms)}
-									</Table.Cell>
-									<Table.Cell
-										class="font-mono tabular-nums text-muted-foreground"
-									>
-										{delta(result.distance_to_world_record_ms)}
-									</Table.Cell>
-									<Table.Cell
-										class="tabular-nums {result.position === 1
-											? 'text-time-best'
-											: ''}"
-									>
-										#{result.position}
-									</Table.Cell>
-									<Table.Cell class="text-muted-foreground"
-										>{dateTime(result.created_at)}</Table.Cell
-									>
-								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
-				</TableFrame>
-			{:else}
-				<Empty title="No published laps yet">
-					<p>{player.display_name} has no validated hotlaps.</p>
-				</Empty>
-			{/if}
-		</section>
+		<HotlapActivity
+			title="Hotlap activity"
+			lfsUsername={player.lfs_username}
+			eras={data.eras}
+			refreshKey={player}
+			views={['all', 'world_records']}
+			appearance="data"
+		/>
 	</div>
 </main>

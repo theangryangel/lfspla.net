@@ -1,13 +1,11 @@
 <script lang="ts">
-	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { CARD } from '$lib/components/app/picker.js';
 	import { type TrackSummary, type VehicleSummary, useApi } from '$lib/api.js';
 
 	import { onMount, type Snippet } from 'svelte';
 	import SearchIcon from '@lucide/svelte/icons/search';
 
-	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
+	import VehicleCard from '$lib/components/app/VehicleCard.svelte';
 
 	const api = useApi();
 
@@ -137,29 +135,11 @@
 		<ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 			{#each shown as option (option.code)}
 				<li>
-					<button
-						type="button"
-						aria-current={option.code === selected?.code ? 'true' : undefined}
-						class={CARD}
-						onclick={() => onSelect(option)}
-					>
-						<Thumbnail
-							kind="vehicle"
-							code={option.code}
-							src={option.image?.url}
-						/>
-						<span class="flex items-center gap-1.5 p-2">
-							<span class="min-w-0 flex-1">
-								<span class="block truncate text-sm font-medium"
-									>{option.name}</span
-								>
-								<span class="block font-mono text-xs text-muted-foreground"
-									>{option.code}</span
-								>
-							</span>
-							<Badge variant="secondary">{option.license}</Badge>
-						</span>
-					</button>
+					<VehicleCard
+						vehicle={option}
+						selected={option.code === selected?.code}
+						{onSelect}
+					/>
 				</li>
 			{/each}
 		</ul>

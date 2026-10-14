@@ -15,7 +15,8 @@
 			{ label: 'Historical', eras: newestFirst.filter((era) => !era.open) },
 		].filter((group) => group.eras.length > 0),
 	);
-	const hoverClass = 'hover:bg-accent hover:text-white data-active:hover:bg-accent data-active:hover:text-white dark:data-active:hover:bg-accent';
+	const hoverClass =
+		'hover:bg-accent hover:text-white data-active:hover:bg-accent data-active:hover:text-white dark:data-active:hover:bg-accent';
 	const linkClass = `h-8 px-2.5 py-0 font-medium ${navigationTextClass} ${hoverClass}`;
 	function isActive(path: string) {
 		return (
@@ -82,7 +83,7 @@
 				</DropdownMenu.Content>
 			</DropdownMenu.Root>
 		</NavigationMenu.Item>
-		{#each [{ label: 'Drivers', href: '/drivers' }] as item}
+		{#each [{ label: 'Drivers', href: '/drivers' }, { label: 'Vehicles', href: '/vehicles' }, { label: 'Tracks', href: '/tracks' }] as item}
 			<NavigationMenu.Item>
 				<NavigationMenu.Link
 					href={item.href}

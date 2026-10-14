@@ -22,7 +22,7 @@
 	let failed = $state(false);
 	let retry = $state(0);
 	let opener: HTMLElement | null = null;
-	let searchInput = $state<HTMLInputElement | null>(null);
+	let dialogContent = $state<HTMLElement | null>(null);
 
 	export function open(from?: HTMLElement | null, query = '') {
 		opener = from ?? null;
@@ -106,10 +106,12 @@
 
 <Dialog.Root bind:open={visible}>
 	<Dialog.Content
+		bind:ref={dialogContent}
+		tabindex={-1}
 		class="max-h-[calc(100dvh-2rem)] gap-3 overflow-y-auto rounded-sm sm:max-w-2xl"
 		onOpenAutoFocus={(event) => {
 			event.preventDefault();
-			searchInput?.focus();
+			dialogContent?.focus({ preventScroll: true });
 		}}
 		onCloseAutoFocus={(event) => {
 			if (opener?.isConnected) {
@@ -126,7 +128,6 @@
 			>
 		</Dialog.Header>
 		<Input
-			bind:ref={searchInput}
 			aria-label="Search rankings"
 			placeholder="Search rankings…"
 			bind:value={search}
