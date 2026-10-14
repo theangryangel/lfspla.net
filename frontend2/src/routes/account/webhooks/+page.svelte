@@ -131,13 +131,11 @@
 </script>
 
 <svelte:head><title>Webhooks · lfspla.net</title></svelte:head>
-<p class="text-sm text-muted-foreground">
-	Choose which notifications to receive and where to send them.
-</p>
+
 {#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 {#if notice}<p role="status" class="text-sm">{notice}</p>{/if}
-<div class="max-w-2xl space-y-6">
-	<Panel title="Add a webhook">
+<div class="racing-data max-w-2xl space-y-6">
+	<Panel title="Add a webhook" appearance="data" surface={false}>
 		<form onsubmit={create} class="space-y-4">
 			<div class="grid gap-4 sm:grid-cols-2">
 				<div class="space-y-2">
@@ -240,7 +238,7 @@
 			>
 		</form>
 	</Panel>
-	<Panel title="Your webhooks">
+	<Panel title="Your webhooks" appearance="data" surface={false}>
 		{#if !webhooks.length}<p class="text-sm text-muted-foreground">
 				You haven’t added any webhooks.
 			</p>{/if}
@@ -285,8 +283,8 @@
 	</Panel>
 </div>
 {#if data.notifications}
-	<div class="mt-6 max-w-2xl">
-		<Panel title="Notification deliveries">
+	<div class="racing-data mt-6 max-w-2xl">
+		<Panel title="Notification deliveries" appearance="data" surface={false}>
 			{#if data.notifications.items.length === 0}
 				<p class="text-sm text-muted-foreground">No notifications yet.</p>
 			{:else}
@@ -328,7 +326,8 @@
 <Dialog.Root bind:open={confirmOpen}>
 	<Dialog.Content>
 		<Dialog.Header
-			><Dialog.Title>Delete webhook?</Dialog.Title><Dialog.Description
+			><Dialog.Title class="racing-section-title">Delete webhook?</Dialog.Title
+			><Dialog.Description
 				>Delete “{target?.name}” and its queued notifications? You can add the
 				destination again later.</Dialog.Description
 			></Dialog.Header

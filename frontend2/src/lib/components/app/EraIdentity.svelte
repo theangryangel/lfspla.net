@@ -1,12 +1,7 @@
 <script lang="ts">
-	import type { EraSummary, WorldRecordHolderResponse } from '$lib/api.js';
+	import type { EraSummary } from '$lib/api.js';
 	import PageIdentity from './PageIdentity.svelte';
-	import RecordHighlight from './RecordHighlight.svelte';
-	import Flag from './Flag.svelte';
-	let {
-		era,
-		leaders = [],
-	}: { era: EraSummary; leaders?: WorldRecordHolderResponse[] } = $props();
+	let { era }: { era: EraSummary } = $props();
 </script>
 
 <PageIdentity label="Era identity">
@@ -21,27 +16,4 @@
 			{/if}
 		</p>
 	</div>
-	{#snippet highlight()}
-		{#if leaders.length}
-			<RecordHighlight title="Most world records" variant="purple">
-				<p class="text-right text-3xl font-bold tabular-nums">
-					{leaders[0].world_records.toLocaleString()}
-				</p>
-				<div class="grid gap-1 text-sm">
-					{#each leaders as holder (holder.player.id)}
-						<a
-							class="flex min-w-0 items-center justify-end gap-2 font-medium hover:underline"
-							href="/drivers/{encodeURIComponent(holder.player.lfs_username)}"
-						>
-							<Flag
-								code={holder.player.flag_code}
-								fallback={holder.player.country_code}
-							/>
-							<span class="break-words">{holder.player.display_name}</span>
-						</a>
-					{/each}
-				</div>
-			</RecordHighlight>
-		{/if}
-	{/snippet}
 </PageIdentity>

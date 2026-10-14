@@ -51,6 +51,14 @@
 			>
 		</Card.Root>
 	{:else}
-		<div class={flush ? '' : 'space-y-4 py-4'}>{@render children()}</div>
+		<div
+			class={flush
+				? ''
+				: appearance === 'data'
+					? 'space-y-4 border-t py-4'
+					: 'space-y-4 py-4'}
+		>
+			{@render children()}
+		</div>
 	{/if}
 </section>

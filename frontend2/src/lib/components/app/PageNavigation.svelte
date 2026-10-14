@@ -26,11 +26,13 @@
 		label,
 		items,
 		prominent = false,
+		orientation = 'horizontal',
 		action,
 	}: {
 		label: string;
 		items: NavigationItem[];
 		prominent?: boolean;
+		orientation?: 'horizontal' | 'vertical';
 		action?: Snippet;
 	} = $props();
 
@@ -44,10 +46,14 @@
 
 <nav
 	aria-label={label}
-	class="w-full max-w-full justify-start overflow-x-auto md:w-auto md:max-w-max"
+	class={orientation === 'vertical'
+		? 'w-full min-w-0'
+		: 'w-full max-w-full justify-start overflow-x-auto md:w-auto md:max-w-max'}
 >
 	<ul
-		class="flex min-w-max list-none flex-nowrap items-center justify-start gap-2"
+		class={orientation === 'vertical'
+			? 'grid min-w-0 list-none gap-1'
+			: 'flex min-w-max list-none flex-nowrap items-center justify-start gap-2'}
 	>
 		{#each items as item (item.key ?? item.to)}
 			<li>
@@ -60,7 +66,7 @@
 						data-active={isActive(item) ? '' : undefined}
 						class={prominent
 							? 'flex items-center text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring rounded-none border-b-2 border-transparent px-3 py-2 font-semibold text-muted-foreground hover:text-foreground data-active:border-primary data-active:bg-transparent data-active:text-foreground data-active:hover:bg-transparent data-active:focus:bg-transparent'
-							: `flex items-center rounded-lg transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring h-8 px-2.5 py-0 ${navigationTextClass}`}
+							: `flex items-center ${orientation === 'vertical' ? 'rounded-sm' : 'rounded-lg'} transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring h-8 px-2.5 py-0 ${navigationTextClass}`}
 					>
 						{item.label}
 					</a>

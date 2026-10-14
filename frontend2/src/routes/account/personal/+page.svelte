@@ -85,11 +85,9 @@
 </script>
 
 <svelte:head><title>Personal settings · lfspla.net</title></svelte:head>
-<p class="text-sm text-muted-foreground">
-	Manage the preferences for your LFS account.
-</p>
-<div class="max-w-xl">
-	<Panel title="Account preferences">
+
+<div class="racing-data max-w-xl">
+	<Panel title="Account preferences" appearance="data" surface={false}>
 		<p class="text-sm text-muted-foreground">
 			Signed in as <span class="font-medium text-foreground"
 				>{session.player?.lfs_username}</span

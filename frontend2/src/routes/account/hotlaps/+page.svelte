@@ -5,7 +5,5 @@
 </script>
 
 <svelte:head><title>My hotlaps · lfspla.net</title></svelte:head>
-<p class="text-sm text-muted-foreground">
-	All your hotlap submissions across every era.
-</p>
+
 <HotlapSubmissions hotlaps={data.hotlaps} />

@@ -8,6 +8,7 @@
 	import RankingPicker from '$lib/components/app/RankingPicker.svelte';
 	import RecordHighlight from '$lib/components/app/RecordHighlight.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
+	import PageHeading from '$lib/components/app/PageHeading.svelte';
 	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
 	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -50,6 +51,7 @@
 	const onChart = $derived(
 		page.route.id === '/hotlaps/[era]/charts/[track]/[vehicle]',
 	);
+	const onSubmissions = $derived(page.route.id === '/hotlaps/[era]/submissions');
 	const onOverview = $derived(page.route.id === '/hotlaps/[era]');
 	const chartRecord = $derived.by(() => {
 		if (!onChart) return null;
@@ -117,7 +119,7 @@
 {/snippet}
 
 {#snippet eraContext()}
-	<div class="flex flex-wrap items-center justify-between gap-4">
+	<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 		<div class="flex w-full min-w-0 flex-wrap items-center gap-3 md:w-auto">
 			<Breadcrumbs
 				class="[&_ol]:flex-wrap sm:[&_ol]:flex-nowrap"
@@ -136,12 +138,16 @@
 
 <CombinationProvider bind:this={picker} era={data.era.id} onSelect={showChart}>
 	<main id="main" class="w-full min-w-0 flex-1">
-		{#if onChart || onOverview || onRanking}
-			<div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6">
+		{#if onChart || onOverview || onRanking || onSubmissions}
+			<div class="mx-auto w-full max-w-screen-2xl px-4 py-2 md:px-6 md:py-3">
 				{@render eraContext()}
 			</div>
 			{#if onOverview}
-				<EraIdentity era={data.era} leaders={page.data.leaders} />
+				<EraIdentity era={data.era} />
+			{:else if onSubmissions}
+				<PageIdentity label="Submission identity">
+					<PageHeading title="My submissions">Your uploaded replays and validation results for {data.era.title}.</PageHeading>
+				</PageIdentity>
 			{:else if onRanking}
 				<PageIdentity label="Ranking identity">
 					<div class="flex min-h-19 flex-col justify-center py-2">

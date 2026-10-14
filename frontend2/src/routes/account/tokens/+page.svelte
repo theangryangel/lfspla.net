@@ -101,12 +101,9 @@
 </script>
 
 <svelte:head><title>Personal access tokens · lfspla.net</title></svelte:head>
-<p class="text-sm text-muted-foreground">
-	Create credentials for tools that use the API on your behalf. Keep them
-	private.
-</p>
-<div class="max-w-2xl">
-	<Panel title="Create a token">
+
+<div class="racing-data max-w-2xl">
+	<Panel title="Create a token" appearance="data" surface={false}>
 		<form onsubmit={create} class="space-y-4">
 			<div class="grid gap-4 sm:grid-cols-[1fr_10rem]">
 				<div class="space-y-2">
@@ -144,7 +141,7 @@
 			>
 		</form>
 		{#if created}
-			<div class="space-y-3 rounded-lg border border-primary p-4">
+			<div class="space-y-3 rounded-sm border border-primary p-4">
 				<p role="status" class="font-medium">Your token is ready</p>
 				<p class="text-sm text-muted-foreground">
 					Copy it now. You won’t be able to view it again after leaving this
@@ -174,13 +171,18 @@
 	</Panel>
 </div>
 {#if notice}<p role="status" class="text-sm">{notice}</p>{/if}
-<Panel title="Your tokens" flush={tokens.length > 0} surface={false}>
+<Panel
+	title="Your tokens"
+	appearance="data"
+	surface={false}
+	flush={tokens.length > 0}
+>
 	{#if tokens.length === 0}
 		<p class="text-sm text-muted-foreground">
 			You haven’t created any personal access tokens yet.
 		</p>
 	{:else}
-		<TableFrame>
+		<TableFrame appearance="data">
 			<Table.Root>
 				<Table.Header
 					><Table.Row>
@@ -241,7 +243,7 @@
 <Dialog.Root bind:open={confirmOpen}>
 	<Dialog.Content>
 		<Dialog.Header>
-			<Dialog.Title>Revoke token?</Dialog.Title>
+			<Dialog.Title class="racing-section-title">Revoke token?</Dialog.Title>
 			<Dialog.Description
 				>Tools using “{target?.name}” will lose access immediately. This cannot
 				be undone.</Dialog.Description

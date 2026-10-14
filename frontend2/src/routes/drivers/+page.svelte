@@ -8,7 +8,8 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import Empty from '$lib/components/app/Empty.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
-	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
+	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
+	import PageHeading from '$lib/components/app/PageHeading.svelte';
 	import { setQuery } from '$lib/query.js';
 	import type { PageProps } from './$types';
 
@@ -48,81 +49,87 @@
 	}
 </script>
 
-<main
-	id="main"
-	class="mx-auto w-full max-w-screen-2xl flex-1 space-y-6 p-4 md:p-6"
->
-	<Breadcrumbs items={data.breadcrumbs} />
-	<div class="flex flex-wrap items-center gap-4">
-		<Input
-			class="sm:max-w-xs"
-			aria-label="Search drivers"
-			placeholder="Search drivers..."
-			value={search}
-			oninput={(e) => searchDrivers(e.currentTarget.value)}
-		/>
-		{#if data.players}
-			<span class="text-sm text-muted-foreground sm:ml-auto">
-				{data.players.length}
-				{data.players.length === 1 ? 'driver' : 'drivers'}
-			</span>
+<main id="main" class="w-full min-w-0 flex-1">
+	<PageIdentity label="Driver directory identity">
+		<PageHeading title="Drivers"
+			>Find drivers and explore their racing records.</PageHeading
+		>
+	</PageIdentity>
+	<div class="mx-auto w-full max-w-screen-2xl space-y-6 p-4 md:p-6">
+		<div class="flex flex-wrap items-center gap-4">
+			<Input
+				class="sm:max-w-xs"
+				aria-label="Search drivers"
+				placeholder="Search drivers..."
+				value={search}
+				oninput={(e) => searchDrivers(e.currentTarget.value)}
+			/>
+			{#if data.players}
+				<span class="text-sm text-muted-foreground sm:ml-auto">
+					{data.players.length}
+					{data.players.length === 1 ? 'driver' : 'drivers'}
+				</span>
+			{/if}
+		</div>
+		{#if searchError}<p role="alert" class="text-destructive">
+				{searchError}
+			</p>{/if}
+		{#if !data.players}
+			<Empty title="Search for a driver">
+				<p>Type a username or display name to search the directory.</p>
+			</Empty>
+		{:else if data.players.length}
+			<TableFrame appearance="data">
+				<div
+					class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4 [&_caption]:px-4 [&_caption]:pb-4"
+				>
+					<Table.Root>
+						<Table.Caption
+							>The first 25 matches, in username order.</Table.Caption
+						>
+						<Table.Header>
+							<Table.Row>
+								<Table.Head>Driver</Table.Head>
+								<Table.Head>LFS username</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
+							{#each data.players as player (player.id)}
+								<Table.Row>
+									<Table.Cell class="font-medium">
+										<div class="flex min-w-0 items-center gap-1">
+											<a
+												class="min-w-0 truncate hover:underline"
+												href="/drivers/{encodeURIComponent(
+													player.lfs_username,
+												)}"
+											>
+												{#if player.flag_code || player.country_code}
+													<Flag
+														code={player.flag_code}
+														fallback={player.country_code}
+													/>
+												{:else}
+													<span class="text-muted-foreground">-</span>
+												{/if}
+												{player.display_name}
+											</a>
+											<CompareButton driver={player} />
+										</div>
+									</Table.Cell>
+									<Table.Cell class="text-muted-foreground"
+										>{player.lfs_username}</Table.Cell
+									>
+								</Table.Row>
+							{/each}
+						</Table.Body>
+					</Table.Root>
+				</div>
+			</TableFrame>
+		{:else}
+			<Empty title="No matching drivers">
+				<p>No driver matches “{data.search}”.</p>
+			</Empty>
 		{/if}
 	</div>
-	{#if searchError}<p role="alert" class="text-destructive">
-			{searchError}
-		</p>{/if}
-	{#if !data.players}
-		<Empty title="Search for a driver">
-			<p>Type a username or display name to search the directory.</p>
-		</Empty>
-	{:else if data.players.length}
-		<TableFrame>
-			<div
-				class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4 [&_caption]:px-4 [&_caption]:pb-4"
-			>
-				<Table.Root>
-					<Table.Caption>The first 25 matches, in username order.</Table.Caption
-					>
-					<Table.Header>
-						<Table.Row>
-							<Table.Head>Driver</Table.Head>
-							<Table.Head>LFS username</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#each data.players as player (player.id)}
-							<Table.Row>
-								<Table.Cell class="font-medium">
-									<div class="flex min-w-0 items-center gap-1">
-										<a
-											class="min-w-0 truncate hover:underline"
-											href="/drivers/{encodeURIComponent(player.lfs_username)}"
-										>
-											{#if player.flag_code || player.country_code}
-												<Flag
-													code={player.flag_code}
-													fallback={player.country_code}
-												/>
-											{:else}
-												<span class="text-muted-foreground">-</span>
-											{/if}
-											{player.display_name}
-										</a>
-										<CompareButton driver={player} />
-									</div>
-								</Table.Cell>
-								<Table.Cell class="text-muted-foreground"
-									>{player.lfs_username}</Table.Cell
-								>
-							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			</div>
-		</TableFrame>
-	{:else}
-		<Empty title="No matching drivers">
-			<p>No driver matches “{data.search}”.</p>
-		</Empty>
-	{/if}
 </main>

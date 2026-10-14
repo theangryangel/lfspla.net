@@ -15,7 +15,8 @@
 			{ label: 'Historical', eras: newestFirst.filter((era) => !era.open) },
 		].filter((group) => group.eras.length > 0),
 	);
-	const linkClass = `h-8 px-2.5 py-0 font-medium ${navigationTextClass}`;
+	const hoverClass = 'hover:bg-accent hover:text-white data-active:hover:bg-accent data-active:hover:text-white dark:data-active:hover:bg-accent';
+	const linkClass = `h-8 px-2.5 py-0 font-medium ${navigationTextClass} ${hoverClass}`;
 	function isActive(path: string) {
 		return (
 			page.url.pathname === path || page.url.pathname.startsWith(path + '/')
@@ -37,7 +38,7 @@
 							{...props}
 							variant="ghost"
 							data-active={isActive('/hotlaps') ? '' : undefined}
-							class={`${navigationTextClass} !cursor-pointer`}
+							class={`${navigationTextClass} ${hoverClass} !cursor-pointer`}
 						>
 							Hotlaps
 							<ChevronDownIcon class="size-4" />

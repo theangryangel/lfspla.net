@@ -145,14 +145,14 @@
 {:else}
 	{#if validateError}
 		<p
-			class="rounded-lg border border-destructive/40 px-4 py-3 text-sm text-destructive"
+			class="rounded-sm border border-destructive/40 px-4 py-3 text-sm text-destructive"
 			role="alert"
 		>
 			{validateError}
 		</p>
 	{/if}
 	{#if hotlaps.length}
-		<TableFrame>
+		<TableFrame appearance="data">
 			<div
 				class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4 [&_caption]:px-4 [&_caption]:pb-4"
 			>
@@ -227,7 +227,7 @@
 										{/each}
 									</div>
 								</Table.Cell>
-								<Table.Cell class="font-mono tabular-nums">
+								<Table.Cell class="font-mono font-semibold tabular-nums">
 									{lapTime(hotlap.lap_time_ms)}
 								</Table.Cell>
 								<Table.Cell class="text-muted-foreground">
@@ -316,7 +316,7 @@
 <Dialog.Root bind:open={confirmOpen}>
 	<Dialog.Content>
 		<Dialog.Header>
-			<Dialog.Title>Are you sure?</Dialog.Title>
+			<Dialog.Title class="racing-section-title">Are you sure?</Dialog.Title>
 			<Dialog.Description>
 				Remove {removeTarget ? replayName(removeTarget) : 'this submission'}?
 				This cannot be undone.

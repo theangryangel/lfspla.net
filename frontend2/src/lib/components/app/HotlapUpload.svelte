@@ -292,7 +292,7 @@
 			{#snippet child({ props })}
 				<Button
 					{...props}
-					class="!cursor-pointer bg-[oklch(0.852_0.199_91.936)] text-zinc-950 hover:bg-[oklch(0.795_0.184_86.047)]"
+					class="rounded-sm"
 				>
 					<UploadIcon />
 					Upload hotlap
