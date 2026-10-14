@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { mode, ModeWatcher, toggleMode } from 'mode-watcher';
+	import MoonIcon from '@lucide/svelte/icons/moon';
+	import SunIcon from '@lucide/svelte/icons/sun';
 	import { Button } from '$lib/components/ui/button/index.js';
 
 	import '../app.css';
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
-	import MoonIcon from '@lucide/svelte/icons/moon';
-	import SunIcon from '@lucide/svelte/icons/sun';
 	import { onMount, type Snippet } from 'svelte';
 
 	import { setComparison } from '$lib/compare.svelte.js';
@@ -64,7 +64,7 @@
 				</p>
 			</div>
 		</aside>
-		<header class="dark border-b bg-background text-foreground">
+		<header class="dark border-b bg-[oklch(0.145_0_0)] text-foreground">
 			<div
 				class="relative mx-auto flex max-w-screen-2xl flex-wrap items-center p-4 md:px-6"
 			>
@@ -86,7 +86,6 @@
 						{:else}
 							<SunIcon class="size-4" aria-hidden="true" />
 						{/if}
-						<span class="sr-only">Toggle theme</span>
 					</Button>
 					<MobileNavigation eras={data.eras} {session} />
 					{#if session.signedIn}

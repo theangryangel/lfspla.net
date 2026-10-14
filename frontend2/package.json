@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
     "@lfsplanet/sdk": "file:../sdks/typescript",
     "@lucide/svelte": "^1.43.0",
     "bits-ui": "2.19.0",

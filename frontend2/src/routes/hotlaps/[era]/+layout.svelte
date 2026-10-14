@@ -4,6 +4,8 @@
 	import { page } from '$app/state';
 	import CombinationProvider from '$lib/components/app/CombinationProvider.svelte';
 	import PageNavigation from '$lib/components/app/PageNavigation.svelte';
+	import CombinationCard from '$lib/components/app/CombinationCard.svelte';
+	import { lapTime } from '$lib/format.js';
 	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
 	import { navigationTextClass } from '$lib/components/app/navigation.js';
 	import HotlapUpload from '$lib/components/app/HotlapUpload.svelte';
@@ -22,6 +24,13 @@
 	const onChart = $derived(
 		page.route.id === '/hotlaps/[era]/charts/[track]/[vehicle]',
 	);
+	const chartRecord = $derived.by(() => {
+		if (!onChart) return null;
+		const entry = page.data.chart?.items[0];
+		return entry && entry.distance_to_world_record_ms !== null
+			? lapTime(entry.lap_time_ms - entry.distance_to_world_record_ms)
+			: null;
+	});
 	// Support bookmarks to the former chart picker entry point.
 	afterNavigate(() => {
 		if (page.url.searchParams.get('picker') === 'charts') openPicker();
@@ -62,28 +71,40 @@
 	</button>
 {/snippet}
 
-<main
-	id="main"
-	class="mx-auto w-full max-w-screen-2xl flex-1 space-y-6 p-4 md:p-6"
->
+{#snippet eraContext()}
 	<div class="flex flex-wrap items-center justify-between gap-4">
 		<div class="flex w-full min-w-0 flex-wrap items-center gap-3 md:w-auto">
 			<Breadcrumbs
+				class="[&_ol]:flex-wrap sm:[&_ol]:flex-nowrap"
 				items={page.data.breadcrumbs}
 				actions={{ charts: openPicker }}
 			/>
 		</div>
 		<PageNavigation label="Era" items={navigation}>
-			{#snippet action()}
-				<HotlapUpload era={data.era} />
-			{/snippet}
+			{#snippet action()}<HotlapUpload era={data.era} />{/snippet}
 		</PageNavigation>
 	</div>
-	<CombinationProvider
-		bind:this={picker}
-		era={data.era.id}
-		onSelect={showChart}
-	>
-		{@render children()}
-	</CombinationProvider>
-</main>
+{/snippet}
+
+<CombinationProvider bind:this={picker} era={data.era.id} onSelect={showChart}>
+	<main id="main" class="w-full min-w-0 flex-1">
+		{#if onChart}
+			<div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6">
+				{@render eraContext()}
+			</div>
+			<CombinationCard
+				track={page.data.track}
+				vehicle={page.data.vehicle}
+				recordTime={chartRecord}
+			/>
+			<div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6">
+				{@render children()}
+			</div>
+		{:else}
+			<div class="mx-auto w-full max-w-screen-2xl space-y-6 p-4 md:p-6">
+				{@render eraContext()}
+				{@render children()}
+			</div>
+		{/if}
+	</main>
+</CombinationProvider>

@@ -1,73 +1,124 @@
 <script lang="ts">
-	import PencilIcon from '@lucide/svelte/icons/pencil';
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
 	import { useCombinationPicker } from '$lib/picker.js';
 	import type { TrackSummary, VehicleSummary } from '$lib/api.js';
 
-	/** The combination in view, with each half its own way into the picker. */
 	let {
 		track = null,
 		vehicle = null,
+		recordTime = null,
 	}: {
 		track?: TrackSummary | null;
 		vehicle?: VehicleSummary | null;
+		recordTime?: string | null;
 	} = $props();
-
 	const picker = useCombinationPicker();
-	// Wide enough for the long names the catalogue and mods actually carry, with
-	// a second line behind that rather than a cut-off word.
-	const BLOB =
-		'flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg border p-2 text-left transition-colors hover:border-ring hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-ring sm:w-72 sm:flex-none';
+	const selectorClass =
+		'flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-sm py-1 text-left transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4';
 </script>
 
-{#snippet blob(
+{#snippet selector(
 	kind: 'track' | 'vehicle',
 	code: string | undefined,
 	name: string | undefined,
 	image: string | null,
 )}
-	<button
-		type="button"
-		title={name || undefined}
-		aria-label={name ? `Change the ${kind}: ${name}` : `Choose a ${kind}`}
-		onclick={(event) =>
-			picker.open({
-				mode: kind,
-				track,
-				vehicle,
-				from: event.currentTarget,
-			})}
-		class={BLOB}
-	>
+	<span class="flex min-w-0 items-center gap-3 py-2">
 		{#if code}
 			<Thumbnail
 				{kind}
 				{code}
 				src={image}
-				class="w-20 shrink-0 rounded-md ring-1 ring-border"
+				class="w-16 shrink-0 bg-transparent sm:w-24"
 			/>
-		{:else}
-			<span class="aspect-16/10 w-20 shrink-0 rounded-md border border-dashed"
-			></span>
 		{/if}
 		<span class="min-w-0 flex-1">
-			<span class="line-clamp-2 text-sm leading-tight font-semibold"
-				>{name ?? `Choose a ${kind}`}</span
+			<button
+				type="button"
+				title={name || undefined}
+				aria-label={name ? `Change the ${kind}: ${name}` : `Choose a ${kind}`}
+				aria-haspopup="dialog"
+				onclick={(event) =>
+					picker.open({
+						mode: kind,
+						track,
+						vehicle,
+						from: event.currentTarget,
+					})}
+				class={selectorClass}
 			>
-			<span class="block font-mono text-xs text-muted-foreground"
-				>{code ?? kind}</span
-			>
+				<span class="racing-page-title break-words"
+					>{name ?? `Choose a ${kind}`}</span
+				>
+				<ChevronDownIcon
+					class="size-4 shrink-0 text-primary"
+					aria-hidden="true"
+				/>
+			</button>
+			{#if code}<span class="block text-sm text-muted-foreground">{code}</span
+				>{/if}
 		</span>
-		<PencilIcon class="size-4 shrink-0 opacity-50" />
-	</button>
+	</span>
 {/snippet}
 
-<div class="flex w-full flex-wrap items-center gap-4 sm:w-auto">
-	{@render blob('track', track?.code, track?.name, null)}
-	{@render blob(
-		'vehicle',
-		vehicle?.code,
-		vehicle?.name,
-		vehicle?.image?.url ?? null,
-	)}
-</div>
+<header
+	class="border-b bg-card text-card-foreground"
+	aria-label="Chart identity"
+>
+	<div
+		class="mx-auto grid w-full max-w-screen-2xl items-center gap-x-8 gap-y-2 px-4 py-3 md:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:py-4"
+	>
+		<div
+			class="grid min-w-0 content-center items-center gap-x-8 gap-y-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"
+		>
+			<h1 class="min-w-0">
+				{@render selector('track', track?.code, track?.name, null)}
+			</h1>
+			<div
+				class="min-w-0 border-t pt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
+			>
+				{@render selector(
+					'vehicle',
+					vehicle?.code,
+					vehicle?.name,
+					vehicle?.image?.url ?? null,
+				)}
+			</div>
+		</div>
+		{#if recordTime !== null}
+			<section
+				class="record-highlight relative grid min-w-0 gap-2 px-14 py-3 text-black lg:w-80 lg:py-4"
+				aria-label="World record"
+			>
+				<h2 class="racing-section-title relative text-black">World record</h2>
+				<p
+					class="relative text-right whitespace-nowrap font-mono text-2xl font-bold tabular-nums lg:text-3xl"
+				>
+					{recordTime}
+				</p>
+				<div
+					class="relative flex items-center justify-end gap-2 text-sm"
+					aria-label="Record holder unavailable"
+				>
+					<span>Record holder <span aria-hidden="true">—</span></span>
+					<span
+						class="inline-flex size-6 shrink-0 items-center justify-center border border-dashed border-black/40 text-xs"
+						title="Badge unavailable"
+						aria-label="Badge unavailable">—</span
+					>
+				</div>
+			</section>
+		{/if}
+	</div>
+</header>
+
+<style>
+	.record-highlight::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: var(--brand-yellow);
+		clip-path: polygon(2.25rem 0, 100% 0, calc(100% - 2.25rem) 100%, 0 100%);
+	}
+</style>
