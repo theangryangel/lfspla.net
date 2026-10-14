@@ -4,7 +4,6 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
 	import * as Dialog from './index.js';
-	import DialogPortal from './dialog-portal.svelte';
 	import type { Snippet } from 'svelte';
 	import type { ComponentProps } from 'svelte';
 
@@ -16,13 +15,13 @@
 		showCloseButton = true,
 		...restProps
 	}: WithoutChildrenOrChild<DialogPrimitive.ContentProps> & {
-		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof DialogPortal>>;
+		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof DialogPrimitive.Portal>>;
 		children: Snippet;
 		showCloseButton?: boolean;
 	} = $props();
 </script>
 
-<DialogPortal {...portalProps}>
+<DialogPrimitive.Portal {...portalProps}>
 	<Dialog.Overlay />
 	<DialogPrimitive.Content
 		bind:ref
@@ -50,4 +49,4 @@
 			</DialogPrimitive.Close>
 		{/if}
 	</DialogPrimitive.Content>
-</DialogPortal>
+</DialogPrimitive.Portal>

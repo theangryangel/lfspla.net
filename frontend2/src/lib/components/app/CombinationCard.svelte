@@ -84,7 +84,7 @@
 	</div>
 	{#snippet highlight()}
 		{#if recordTime !== null}
-			<RecordHighlight title="World record">
+			<RecordHighlight title="World record" variant="purple">
 				<p
 					class="relative text-right whitespace-nowrap font-mono text-2xl font-bold tabular-nums lg:text-3xl"
 				>

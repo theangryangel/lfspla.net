@@ -170,10 +170,10 @@
 		{@render children()}
 		<footer class="border-border/50 border-t">
 			<div
-				class="mx-auto grid max-w-screen-2xl gap-4 p-4 text-sm text-muted-foreground md:grid-cols-[1fr_auto_1fr] md:items-center md:px-6 md:py-6"
+				class="mx-auto grid max-w-screen-2xl gap-4 p-4 text-sm text-muted-foreground md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:px-6 md:py-6"
 			>
 				<span
-					class="order-3 text-center md:order-1 md:justify-self-start md:text-left"
+					class="order-2 text-center md:order-1 md:justify-self-start md:text-left"
 				>
 					Independent community project · Not affiliated with
 					<a
@@ -183,7 +183,7 @@
 				</span>
 				<nav
 					aria-label="Project"
-					class="order-2 flex flex-wrap justify-center gap-x-4 gap-y-2 md:order-2"
+					class="order-1 flex flex-wrap justify-center gap-x-4 gap-y-2 md:order-2"
 				>
 					<a
 						class="hover:text-foreground hover:underline"
@@ -200,13 +200,6 @@
 						>Get involved</a
 					>
 				</nav>
-				<a
-					class="order-1 justify-self-center font-medium text-foreground md:order-3 md:justify-self-end"
-					href="/"
-					aria-label="lfspla.net home"
-				>
-					<Wordmark />
-				</a>
 			</div>
 		</footer>
 		<CompareTray />

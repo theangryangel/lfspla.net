@@ -2,7 +2,6 @@
 	import { Tooltip as TooltipPrimitive } from 'bits-ui';
 	import { cn } from '$lib/utils.js';
 	import type { WithoutChildrenOrChild } from '$lib/utils.js';
-	import TooltipPortal from './tooltip-portal.svelte';
 	import type { ComponentProps } from 'svelte';
 
 	let {
@@ -16,11 +15,11 @@
 		...restProps
 	}: TooltipPrimitive.ContentProps & {
 		arrowClasses?: string;
-		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof TooltipPortal>>;
+		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof TooltipPrimitive.Portal>>;
 	} = $props();
 </script>
 
-<TooltipPortal {...portalProps}>
+<TooltipPrimitive.Portal {...portalProps}>
 	<TooltipPrimitive.Content
 		bind:ref
 		data-slot="tooltip-content"
@@ -45,4 +44,4 @@
 			{/snippet}
 		</TooltipPrimitive.Arrow>
 	</TooltipPrimitive.Content>
-</TooltipPortal>
+</TooltipPrimitive.Portal>
