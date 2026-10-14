@@ -15,7 +15,7 @@
 	data-slot={dataSlot}
 	class={cn(
 		'shrink-0 bg-border data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:w-px',
-		// this is different in shadcn/ui but self-stretch breaks things for us
+		// Use the parent height; self-stretch breaks vertical separators.
 		'data-[orientation=vertical]:h-full',
 		className,
 	)}
