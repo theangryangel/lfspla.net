@@ -85,6 +85,8 @@
   --data-row-height: 2.5rem;
   --control-height: 2rem;
   --panel-cut: 1.125rem;
+  /* Highlight lower edges sit this far left of their upper edges. */
+  --highlight-slant: 2.25rem;
   /* Personal timing comparisons retain their established purple/green signals. */
   --time-best: oklch(0.541 0.247 293);
   /* The green it uses for a personal best, and for anything still live. */

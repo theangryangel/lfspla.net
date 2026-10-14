@@ -1,18 +1,24 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { cn } from '$lib/utils.js';
 	let {
 		title,
 		children,
 		variant = 'yellow',
+		class: className,
 	}: {
 		title: string;
 		children: Snippet;
 		variant?: 'yellow' | 'purple';
+		class?: string;
 	} = $props();
 </script>
 
 <section
-	class="record-highlight relative grid min-w-0 gap-2 px-14 py-3 lg:w-80 lg:py-4"
+	class={cn(
+		'record-highlight relative grid min-w-0 gap-2 px-14 py-3 lg:w-80 lg:py-4',
+		className,
+	)}
 	data-variant={variant}
 	aria-label={title}
 >
@@ -34,7 +40,13 @@
 		position: absolute;
 		inset: 0;
 		background: var(--highlight-background);
-		clip-path: polygon(2.25rem 0, 100% 0, calc(100% - 2.25rem) 100%, 0 100%);
+		/* One direction for every highlight: bottom to the left, top to the right. */
+		clip-path: polygon(
+			var(--highlight-slant) 0,
+			100% 0,
+			calc(100% - var(--highlight-slant)) 100%,
+			0 100%
+		);
 	}
 	.record-highlight :global(a:focus-visible) {
 		outline: 2px solid currentColor;

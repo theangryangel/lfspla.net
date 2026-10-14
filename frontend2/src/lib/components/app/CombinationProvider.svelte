@@ -193,7 +193,7 @@
 		onCloseAutoFocus={restoreFocus}
 	>
 		<Dialog.Header class="pr-8">
-			<Dialog.Title>{title}</Dialog.Title>
+			<Dialog.Title class="racing-section-title">{title}</Dialog.Title>
 		</Dialog.Header>
 		{#if !showing}
 			<div class="grid gap-3 py-2 sm:grid-cols-2">

@@ -2,7 +2,7 @@
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
+	import RankingList from './RankingList.svelte';
 	import type { EraSummary, RankingContribution } from '$lib/api.js';
 
 	let {
@@ -17,6 +17,13 @@
 		vehicle?: string;
 	} = $props();
 	let open = $state(false);
+	const rankings = $derived(
+		contributions.map((ranking) => ({
+			...ranking,
+			description: era.rankings.find((candidate) => candidate.id === ranking.id)
+				?.description,
+		})),
+	);
 </script>
 
 <Dialog.Root bind:open>
@@ -35,25 +42,29 @@
 			</Button>
 		{/snippet}
 	</Dialog.Trigger>
-	<Dialog.Content>
-		<Dialog.Header>
-			<Dialog.Title>Contributes to</Dialog.Title>
+	<Dialog.Content
+		class="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-sm sm:max-w-2xl"
+	>
+		<Dialog.Header class="pr-8">
+			<Dialog.Title class="racing-section-title">Contributes to</Dialog.Title>
 			<Dialog.Description
 				>Personal bests on {track} / {vehicle} count towards these rankings in {era.title}.</Dialog.Description
 			>
 		</Dialog.Header>
-		<div class="flex max-h-[60vh] flex-wrap gap-2 overflow-auto">
-			{#each contributions as ranking (ranking.id)}
-				<Badge
-					variant="outline"
-					href={`/hotlaps/${era.id}/rankings/${encodeURIComponent(ranking.id)}`}
-					onclick={() => (open = false)}>{ranking.title}</Badge
-				>
-			{:else}
-				<p class="text-sm text-muted-foreground">
-					No rankings include this chart.
-				</p>
-			{/each}
-		</div>
+		<RankingList
+			era={era.id}
+			{rankings}
+			label="Contributing rankings"
+			empty="No rankings include this chart."
+			onChoose={(event) => {
+				if (
+					!event.metaKey &&
+					!event.ctrlKey &&
+					!event.shiftKey &&
+					!event.altKey
+				)
+					open = false;
+			}}
+		/>
 	</Dialog.Content>
 </Dialog.Root>

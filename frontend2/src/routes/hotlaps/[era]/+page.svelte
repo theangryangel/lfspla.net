@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DataSplit from '$lib/components/app/DataSplit.svelte';
 	import HotlapActivity from '$lib/components/app/HotlapActivity.svelte';
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
 	import * as Table from '$lib/components/ui/table/index.js';
@@ -8,24 +9,17 @@
 	let { data }: PageProps = $props();
 </script>
 
-<div
-	class="racing-data grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]"
->
-	<div class="min-w-0">
-		<HotlapActivity
-			title="Activity"
-			eraId={data.era.id}
-			refreshKey={data.holders}
-			eras={data.eras}
-			views={['all', 'world_records', 'mine']}
-			perPage={25}
-			appearance="data"
-		/>
-	</div>
-	<aside
-		class="min-w-0 border-t bg-card/60 px-4 pb-4 pt-4 xl:border-t-0 xl:border-l xl:pt-0"
-		aria-labelledby="record-holders-title"
-	>
+<DataSplit secondaryLabelledBy="record-holders-title">
+	<HotlapActivity
+		title="Activity"
+		eraId={data.era.id}
+		refreshKey={data.holders}
+		eras={data.eras}
+		views={['all', 'world_records', 'mine']}
+		perPage={25}
+		appearance="data"
+	/>
+	{#snippet secondary()}
 		<section class="space-y-3">
 			<h2
 				id="record-holders-title"
@@ -87,5 +81,5 @@
 				{/if}
 			</p>
 		</section>
-	</aside>
-</div>
+	{/snippet}
+</DataSplit>
