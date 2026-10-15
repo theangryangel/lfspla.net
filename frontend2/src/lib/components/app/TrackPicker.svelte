@@ -6,16 +6,13 @@
 </script>
 
 <script lang="ts">
-	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { CARD } from '$lib/components/app/picker.js';
 
 	import { onMount, type Snippet } from 'svelte';
-	import CheckIcon from '@lucide/svelte/icons/check';
 	import SearchIcon from '@lucide/svelte/icons/search';
 
 	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
-	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
+	import TrackCard from '$lib/components/app/TrackCard.svelte';
 	import {
 		useApi,
 		type TrackLocation,
@@ -179,30 +176,11 @@
 		<ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 			{#each shown as option (option.code)}
 				<li>
-					<button
-						type="button"
-						aria-current={option.code === selected?.code ? 'true' : undefined}
-						class={CARD}
-						onclick={() => onSelect(option)}
-					>
-						<Thumbnail kind="track" code={option.code} />
-						<span class="flex items-center gap-1.5 p-2">
-							<span class="min-w-0 flex-1">
-								<span class="block truncate text-sm font-medium"
-									>{option.name}</span
-								>
-								<span class="block font-mono text-xs text-muted-foreground"
-									>{option.code}</span
-								>
-							</span>
-							{#if option.reverse}
-								<Badge variant="outline">Rev</Badge>
-							{/if}
-							{#if option.code === selected?.code}
-								<CheckIcon class="size-4 shrink-0 text-primary" />
-							{/if}
-						</span>
-					</button>
+					<TrackCard
+						track={option}
+						selected={option.code === selected?.code}
+						{onSelect}
+					/>
 				</li>
 			{/each}
 		</ul>

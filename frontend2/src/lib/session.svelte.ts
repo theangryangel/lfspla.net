@@ -10,15 +10,19 @@ import { invalidateAll } from "$app/navigation";
 const KEY = Symbol("lfsplanet.session");
 
 /**
- * The signed-in player, as `GET /api/v1/me` reported them for this navigation.
+ * Current player and frontend policy reported by `GET /api/v1/me`.
  *
- * The root layout load owns the fetch; this only holds the answer and performs
- * the two transitions out of it. Signing in leaves the SPA entirely (the LFS
- * OAuth redirect), so there is no client-side login state to keep in step.
+ * The root layout supplies initial state; background refreshes update policy.
+ * Signing in leaves the SPA entirely through the LFS OAuth redirect.
  */
 export class Session {
   /** Reads through to the root layout's data, so a reload is picked up here. */
   readonly #me: () => MeResponse;
+  #refreshed = $state.raw<{ source: MeResponse; value: MeResponse } | null>(
+    null,
+  );
+  #refreshing = false;
+
   /** Set while a sign-out request is in flight. */
   pending = $state(false);
   error = $state("");
@@ -31,8 +35,26 @@ export class Session {
   }
 
   get me(): MeResponse {
-    return this.#me();
+    const source = this.#me();
+    return this.#refreshed?.source === source ? this.#refreshed.value : source;
   }
+
+  /** Refresh frontend policy without reloading page data; retain state on failure. */
+  refresh = async () => {
+    if (this.#refreshing || this.pending) return;
+    this.#refreshing = true;
+    const source = this.#me();
+    try {
+      const value = await this.api.authentication.get();
+      if (!this.pending && this.#me() === source) {
+        this.#refreshed = { source, value };
+      }
+    } catch {
+      // A transient failure must not clear the notice or change permissions.
+    } finally {
+      this.#refreshing = false;
+    }
+  };
 
   get signedIn(): boolean {
     return this.me.authenticated;

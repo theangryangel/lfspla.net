@@ -5,7 +5,6 @@
 		apiErrorMessage,
 		useApi,
 		type Hotlap,
-		type EraSummary,
 		type PaginatedResponseHotlap,
 		type HotlapListColumn,
 		type Ordering,
@@ -21,6 +20,7 @@
 	} from '$lib/format.js';
 
 	import DownloadIcon from '@lucide/svelte/icons/download';
+	import InfoIcon from '@lucide/svelte/icons/info';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import { invalidate } from '$app/navigation';
 
@@ -38,13 +38,16 @@
 
 	let {
 		hotlaps: submissions,
-		era,
 	}: {
 		hotlaps: PaginatedResponseHotlap | null;
-		era?: EraSummary;
 	} = $props();
 
 	const session = useSession();
+	const submittedDate = new Intl.DateTimeFormat(undefined, {
+		day: 'numeric',
+		month: 'short',
+		year: 'numeric',
+	});
 	/** The submission being withdrawn, and why the last attempt did not work. */
 	let removing = $state<number | null>(null);
 	let removeError = $state('');
@@ -130,6 +133,89 @@
 	);
 </script>
 
+{#snippet details(hotlap: Hotlap)}
+	<Dialog.Root>
+		<Dialog.Trigger>
+			{#snippet child({ props })}
+				<Button
+					{...props}
+					variant="ghost"
+					size="icon"
+					aria-label="Details for {replayName(hotlap)}"><InfoIcon /></Button
+				>
+			{/snippet}
+		</Dialog.Trigger>
+		<Dialog.Content
+			class="max-h-[calc(100dvh-4rem)] overflow-y-auto sm:max-w-lg"
+		>
+			<Dialog.Header class="pr-8">
+				<Dialog.Title>Submission details</Dialog.Title>
+				<Dialog.Description
+					>{hotlap.era_title} / {hotlap.track} / {hotlap.vehicle ||
+						hotlap.submission?.raw_vehicle_name ||
+						'Unknown vehicle'}</Dialog.Description
+				>
+			</Dialog.Header>
+			<dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
+				<dt class="text-muted-foreground">Submitted</dt>
+				<dd>{dateTime(hotlap.created_at)}</dd>
+				<dt class="text-muted-foreground">Lap time</dt>
+				<dd class="font-mono font-semibold tabular-nums">
+					{lapTime(hotlap.lap_time_ms)}
+				</dd>
+				<dt class="text-muted-foreground">Rank</dt>
+				<dd class="tabular-nums">{hotlap.position ?? '-'}</dd>
+				<dt class="text-muted-foreground">To WR</dt>
+				<dd class="font-mono tabular-nums">
+					{delta(hotlap.distance_to_world_record_ms)}
+				</dd>
+				<dt class="text-muted-foreground">Controller</dt>
+				<dd>{steeringLabels[hotlap.steering]}</dd>
+				<dt class="text-muted-foreground">File</dt>
+				<dd class="break-all">{hotlap.spr?.original_filename ?? '-'}</dd>
+				<dt class="text-muted-foreground">Status</dt>
+				<dd>
+					<Badge variant={hotlapStates[hotlap.state].variant}
+						>{hotlapStates[hotlap.state].label}</Badge
+					>
+					{#if hotlap.submission?.error_detail}<p
+							class="mt-1 break-words text-muted-foreground"
+						>
+							{hotlap.submission.error_detail}
+						</p>{/if}
+				</dd>
+				<dt class="text-muted-foreground">Contributes to</dt>
+				<dd class="flex flex-wrap gap-1">
+					{#each hotlap.contributes_to ?? [] as ranking (ranking.id)}
+						<Badge
+							variant="outline"
+							href={`/hotlaps/${hotlap.era_id}/rankings/${encodeURIComponent(ranking.id)}`}
+							>{ranking.title}</Badge
+						>
+					{:else}<span class="text-muted-foreground">-</span>{/each}
+				</dd>
+			</dl>
+			{#if hotlap.raf || (session.me.allow_test_validation && hotlap.state !== 'valid')}
+				<Dialog.Footer>
+					{#if hotlap.raf}<Button variant="outline" href={hotlap.raf.url}
+							><DownloadIcon />Download RAF</Button
+						>{/if}
+					{#if session.me.allow_test_validation && hotlap.state !== 'valid'}
+						<Button
+							variant="outline"
+							disabled={busy || !hotlap.vehicle}
+							onclick={() => validate(hotlap)}
+							>{validating === hotlap.id
+								? 'Validating...'
+								: 'Force validate'}</Button
+						>
+					{/if}
+				</Dialog.Footer>
+			{/if}
+		</Dialog.Content>
+	</Dialog.Root>
+{/snippet}
+
 {#if refreshError}<p role="alert" class="text-destructive">
 		{refreshError}
 	</p>{/if}
@@ -145,18 +231,18 @@
 {:else}
 	{#if validateError}
 		<p
-			class="rounded-lg border border-destructive/40 px-4 py-3 text-sm text-destructive"
+			class="rounded-sm border border-destructive/40 px-4 py-3 text-sm text-destructive"
 			role="alert"
 		>
 			{validateError}
 		</p>
 	{/if}
 	{#if hotlaps.length}
-		<TableFrame>
+		<TableFrame appearance="data">
 			<div
 				class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4 [&_caption]:px-4 [&_caption]:pb-4"
 			>
-				<Table.Root>
+				<Table.Root aria-label="My hotlap submissions">
 					<Table.Header>
 						<Table.Row>
 							<SortableHead
@@ -165,131 +251,84 @@
 								activeColumn={column}
 								{order}
 							/>
-							{#if !era}<Table.Head>Era</Table.Head>{/if}
-							<Table.Head>Track / Vehicle</Table.Head>
-							<Table.Head class="text-center">#</Table.Head>
-							<Table.Head>To WR</Table.Head>
-							<Table.Head>Contributes to</Table.Head>
+							<Table.Head>Era / Track / Vehicle</Table.Head>
+							<Table.Head class="text-center">Rank</Table.Head>
 							<SortableHead
 								column="lap_time"
 								label="Lap time"
 								activeColumn={column}
 								{order}
 							/>
-							<Table.Head>Controller</Table.Head>
 							<Table.Head>Status</Table.Head>
-							<Table.Head>File</Table.Head>
 							<Table.Head><span class="sr-only">Actions</span></Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
 						{#each hotlaps as hotlap (hotlap.id)}
 							<Table.Row>
-								<Table.Cell class="text-muted-foreground"
-									><time datetime={hotlap.created_at}
-										>{dateTime(hotlap.created_at)}</time
-									></Table.Cell
-								>
-								{#if !era}<Table.Cell
-										><a
-											class="hover:underline"
-											href={`/hotlaps/${hotlap.era_id}`}>{hotlap.era_title}</a
-										></Table.Cell
-									>{/if}
+								<Table.Cell class="text-muted-foreground">
+									<time
+										datetime={hotlap.created_at}
+										title={dateTime(hotlap.created_at)}
+									>
+										{submittedDate.format(new Date(hotlap.created_at))}
+									</time>
+								</Table.Cell>
 								<Table.Cell>
 									{#if hotlap.vehicle}
 										<a
 											class="hover:underline"
 											href={`/hotlaps/${hotlap.era_id}/charts/${encodeURIComponent(hotlap.track)}/${encodeURIComponent(hotlap.vehicle)}`}
 										>
-											{hotlap.track} / {hotlap.vehicle}
+											{hotlap.era_title} / {hotlap.track} / {hotlap.vehicle}
 										</a>
 									{:else}
-										{hotlap.track} / {hotlap.submission?.raw_vehicle_name}
+										{hotlap.era_title} / {hotlap.track} / {hotlap.submission
+											?.raw_vehicle_name ?? 'Unknown vehicle'}
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="text-center tabular-nums"
 									>{hotlap.position ?? '-'}</Table.Cell
 								>
-								<Table.Cell class="font-mono tabular-nums"
-									>{delta(hotlap.distance_to_world_record_ms)}</Table.Cell
+								<Table.Cell class="font-mono font-semibold tabular-nums"
+									>{lapTime(hotlap.lap_time_ms)}</Table.Cell
 								>
 								<Table.Cell>
-									<div class="flex flex-wrap gap-1">
-										{#each hotlap.contributes_to ?? [] as ranking (ranking.id)}
-											<Badge
-												variant="outline"
-												href={`/hotlaps/${hotlap.era_id}/rankings/${encodeURIComponent(ranking.id)}`}
-												>{ranking.title}</Badge
-											>
-										{:else}
-											<span class="text-muted-foreground">-</span>
-										{/each}
-									</div>
-								</Table.Cell>
-								<Table.Cell class="font-mono tabular-nums">
-									{lapTime(hotlap.lap_time_ms)}
-								</Table.Cell>
-								<Table.Cell class="text-muted-foreground">
-									{steeringLabels[hotlap.steering]}
-								</Table.Cell>
-								<Table.Cell>
-									<Badge variant={hotlapStates[hotlap.state].variant}>
-										{hotlapStates[hotlap.state].label}
-									</Badge>
+									<Badge variant={hotlapStates[hotlap.state].variant}
+										>{hotlapStates[hotlap.state].label}</Badge
+									>
 									{#if hotlap.submission?.error_detail}
-										<p class="text-xs text-muted-foreground">
-											{hotlap.submission?.error_detail}
+										<p
+											class="max-w-xs whitespace-normal text-xs text-muted-foreground"
+										>
+											{hotlap.submission.error_detail}
 										</p>
 									{/if}
 								</Table.Cell>
-								<Table.Cell class="text-muted-foreground">
-									{hotlap.spr?.original_filename ?? '-'}
-								</Table.Cell>
 								<Table.Cell>
-									{#if session.me.allow_test_validation && hotlap.state !== 'valid'}
-										<Button
-											variant="outline"
-											size="sm"
-											disabled={busy || !hotlap.vehicle}
-											onclick={() => validate(hotlap)}
-										>
-											{validating === hotlap.id
-												? 'Validating...'
-												: 'Force validate'}
-										</Button>
-									{/if}
-									{#if hotlap.spr?.url}
+									<div class="flex items-center gap-1">
+										{#if hotlap.spr?.url}
+											<Button
+												variant="ghost"
+												size="icon"
+												href={hotlap.spr.url}
+												aria-label="Download {replayName(hotlap)}"
+												><DownloadIcon /></Button
+											>
+										{/if}
+										{@render details(hotlap)}
 										<Button
 											variant="ghost"
 											size="icon"
-											href={hotlap.spr.url}
-											aria-label="Download {replayName(hotlap)}"
+											disabled={busy}
+											aria-label="Remove {replayName(hotlap)}"
+											onclick={() => {
+												removeTarget = hotlap;
+												removeError = '';
+												confirmOpen = true;
+											}}><Trash2Icon class="text-destructive" /></Button
 										>
-											<DownloadIcon />
-										</Button>
-									{/if}
-									{#if hotlap.raf}
-										<Button
-											variant="ghost"
-											size="sm"
-											href={hotlap.raf.url}
-											aria-label="Download RAF telemetry">RAF</Button
-										>
-									{/if}
-									<Button
-										variant="ghost"
-										size="icon"
-										disabled={busy}
-										aria-label="Remove {replayName(hotlap)}"
-										onclick={() => {
-											removeTarget = hotlap;
-											removeError = '';
-											confirmOpen = true;
-										}}
-									>
-										<Trash2Icon class="text-destructive" />
-									</Button>
+									</div>
 								</Table.Cell>
 							</Table.Row>
 						{/each}

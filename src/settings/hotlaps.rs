@@ -10,6 +10,8 @@ use size::Size;
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct HotlapSettings {
+    /// Whether the API accepts new hotlap uploads globally.
+    pub allow_uploads: bool,
     /// Whether uploaded replay usernames must match the authenticated player.
     pub enforce_replay_username: bool,
     /// Maximum number of unfinished hotlaps allowed per player.
@@ -24,6 +26,7 @@ pub struct HotlapSettings {
 impl Default for HotlapSettings {
     fn default() -> Self {
         Self {
+            allow_uploads: true,
             enforce_replay_username: true,
             max_queued_per_player: NonZeroU64::new(10).expect("10 is non-zero"),
             max_spr_upload_bytes: default_max_spr_upload_bytes(),
@@ -54,4 +57,17 @@ impl HotlapSettings {
 
 fn default_max_spr_upload_bytes() -> Size {
     Size::from_mib(2)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn uploads_default_to_enabled_and_can_be_paused() {
+        let defaults: HotlapSettings = serde_saphyr::from_str("{}").unwrap();
+        assert!(defaults.allow_uploads);
+        let paused: HotlapSettings = serde_saphyr::from_str("allow_uploads: false").unwrap();
+        assert!(!paused.allow_uploads);
+    }
 }

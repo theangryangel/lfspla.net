@@ -130,14 +130,11 @@
 	}
 </script>
 
-<svelte:head><title>Webhooks · lfspla.net</title></svelte:head>
-<p class="text-sm text-muted-foreground">
-	Choose which notifications to receive and where to send them.
-</p>
+
 {#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 {#if notice}<p role="status" class="text-sm">{notice}</p>{/if}
-<div class="max-w-2xl space-y-6">
-	<Panel title="Add a webhook">
+<div class="racing-data max-w-2xl space-y-6">
+	<Panel title="Add a webhook" appearance="data" surface={false}>
 		<form onsubmit={create} class="space-y-4">
 			<div class="grid gap-4 sm:grid-cols-2">
 				<div class="space-y-2">
@@ -240,7 +237,7 @@
 			>
 		</form>
 	</Panel>
-	<Panel title="Your webhooks">
+	<Panel title="Your webhooks" appearance="data" surface={false}>
 		{#if !webhooks.length}<p class="text-sm text-muted-foreground">
 				You haven’t added any webhooks.
 			</p>{/if}
@@ -253,9 +250,9 @@
 					<p class="text-sm text-muted-foreground">
 						{data.options?.formats.find(
 							(option) => option.value === webhook.format,
-						)?.label ?? webhook.format} · {data.options?.events.find(
+						)?.label ?? webhook.format} - {data.options?.events.find(
 							(option) => option.value === webhook.event_kind,
-						)?.label ?? webhook.event_kind} · {webhook.enabled
+						)?.label ?? webhook.event_kind} - {webhook.enabled
 							? 'Active'
 							: 'Paused'}
 					</p>
@@ -285,8 +282,8 @@
 	</Panel>
 </div>
 {#if data.notifications}
-	<div class="mt-6 max-w-2xl">
-		<Panel title="Notification deliveries">
+	<div class="racing-data mt-6 max-w-2xl">
+		<Panel title="Notification deliveries" appearance="data" surface={false}>
 			{#if data.notifications.items.length === 0}
 				<p class="text-sm text-muted-foreground">No notifications yet.</p>
 			{:else}
@@ -300,14 +297,14 @@
 								<p class="text-sm">{statusLabel(notification.status)}</p>
 							</div>
 							<p class="text-sm text-muted-foreground">
-								Created {dateTime(notification.created_at)} · {notification.attempt_count}
+								Created {dateTime(notification.created_at)} - {notification.attempt_count}
 								{notification.attempt_count === 1 ? 'attempt' : 'attempts'}
 								{#if notification.next_attempt_at}
-									· Next try {dateTime(notification.next_attempt_at)}{/if}
+									- Next try {dateTime(notification.next_attempt_at)}{/if}
 								{#if notification.delivered_at}
-									· Delivered {dateTime(notification.delivered_at)}{/if}
+									- Delivered {dateTime(notification.delivered_at)}{/if}
 								{#if notification.failed_at}
-									· Failed {dateTime(notification.failed_at)}{/if}
+									- Failed {dateTime(notification.failed_at)}{/if}
 							</p>
 							{#if notification.error_detail}
 								<p class="text-sm text-destructive">
@@ -328,7 +325,8 @@
 <Dialog.Root bind:open={confirmOpen}>
 	<Dialog.Content>
 		<Dialog.Header
-			><Dialog.Title>Delete webhook?</Dialog.Title><Dialog.Description
+			><Dialog.Title>Delete webhook?</Dialog.Title
+			><Dialog.Description
 				>Delete “{target?.name}” and its queued notifications? You can add the
 				destination again later.</Dialog.Description
 			></Dialog.Header

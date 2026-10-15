@@ -184,6 +184,7 @@ mod tests {
         assert_ne!(first.public_id, second.public_id);
         assert_eq!(first.object_key, second.object_key);
         let state = ApiState {
+            site_notice: None,
             database,
             oauth: None,
             object_store: store.clone(),

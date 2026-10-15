@@ -104,7 +104,7 @@
 			</div>
 		{:else if rows.length}
 			<p class="text-sm text-muted-foreground">
-				{points.toLocaleString()} points · {delta(handicap)} handicap
+				{points.toLocaleString()} points - {delta(handicap)} handicap
 			</p>
 			<div class="max-h-[60vh] overflow-auto rounded-lg border">
 				<Table.Root aria-label={`${country} player contributions`}>

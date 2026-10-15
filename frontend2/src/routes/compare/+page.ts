@@ -35,6 +35,7 @@ export const load: PageLoad = async ({ depends, fetch, url }) => {
     }
   }
   return {
+    title: "Compare drivers",
     left,
     right,
     era,

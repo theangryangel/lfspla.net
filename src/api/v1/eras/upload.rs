@@ -95,6 +95,7 @@ struct UploadHotlapForm {
         (status = 404, description = "Era was not found", body = ErrorResponse),
         (status = 409, description = "Era is closed or replay has already been submitted", body = ErrorResponse),
         (status = 429, description = "Player already has the maximum number of hotlaps awaiting processing", body = ErrorResponse),
+        (status = 503, description = "Uploads are temporarily paused", body = ErrorResponse),
         (status = 413, description = "Upload exceeds the size limit", body = ErrorResponse),
         (status = 422, description = "SPR metadata is invalid, or the replay does not belong to this era", body = ErrorResponse)
     )
@@ -109,6 +110,13 @@ pub(crate) async fn upload(
     AuthenticatedPlayer(player): AuthenticatedPlayer,
     multipart: Multipart,
 ) -> Result<impl IntoResponse, ApiError> {
+    if !state.hotlaps.allow_uploads {
+        return Err(ApiError::new(
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            "uploads_paused",
+            "Hotlap uploads are temporarily paused. Please try again later.",
+        ));
+    }
     if player.deny_uploads {
         return Err(ApiError::uploads_banned());
     }

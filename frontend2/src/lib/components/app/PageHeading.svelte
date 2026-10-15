@@ -5,7 +5,7 @@
 </script>
 
 <div class="space-y-2">
-	<h1 class="text-3xl font-semibold tracking-tight">{title}</h1>
+	<h1 class="racing-page-title">{title}</h1>
 	{#if children}
 		<div class="text-sm text-muted-foreground">{@render children()}</div>
 	{/if}

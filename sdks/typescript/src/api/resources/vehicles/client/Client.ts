@@ -119,4 +119,91 @@ export class VehiclesClient {
       "/api/v1/eras/{era}/vehicles",
     );
   }
+
+  /**
+   * @param {LfsplanetApi.ListVehiclesRequest} request
+   * @param {VehiclesClient.RequestOptions} requestOptions - Request-specific configuration.
+   *
+   * @throws {@link LfsplanetApi.BadRequestError}
+   *
+   * @example
+   *     await client.vehicles.listVehicles()
+   */
+  public listVehicles(
+    request: LfsplanetApi.ListVehiclesRequest = {},
+    requestOptions?: VehiclesClient.RequestOptions,
+  ): core.HttpResponsePromise<LfsplanetApi.PaginatedResponseVehicleSummary> {
+    return core.HttpResponsePromise.fromPromise(
+      this.__listVehicles(request, requestOptions),
+    );
+  }
+
+  private async __listVehicles(
+    request: LfsplanetApi.ListVehiclesRequest = {},
+    requestOptions?: VehiclesClient.RequestOptions,
+  ): Promise<
+    core.WithRawResponse<LfsplanetApi.PaginatedResponseVehicleSummary>
+  > {
+    const { q, page, per_page: perPage } = request;
+    const _queryParams: Record<string, unknown> = {
+      q,
+      page,
+      per_page: perPage,
+    };
+    let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
+      this._options?.headers,
+      requestOptions?.headers,
+    );
+    const _response = await core.fetcher({
+      url: core.url.join(
+        (await core.Supplier.get(this._options.baseUrl)) ??
+          (await core.Supplier.get(this._options.environment)),
+        "api/v1/vehicles",
+      ),
+      method: "GET",
+      headers: _headers,
+      queryString: core.url
+        .queryBuilder()
+        .addMany(_queryParams)
+        .mergeAdditional(requestOptions?.queryParams)
+        .build(),
+      timeoutMs:
+        (requestOptions?.timeoutInSeconds ??
+          this._options?.timeoutInSeconds ??
+          60) * 1000,
+      maxRetries: requestOptions?.maxRetries ?? this._options?.maxRetries,
+      abortSignal: requestOptions?.abortSignal,
+      fetchFn: this._options?.fetch,
+      logging: this._options.logging,
+    });
+    if (_response.ok) {
+      return {
+        data: _response.body as LfsplanetApi.PaginatedResponseVehicleSummary,
+        rawResponse: _response.rawResponse,
+      };
+    }
+
+    if (_response.error.reason === "status-code") {
+      switch (_response.error.statusCode) {
+        case 400:
+          throw new LfsplanetApi.BadRequestError(
+            _response.error.body as LfsplanetApi.ErrorResponse,
+            _response.rawResponse,
+          );
+        default:
+          throw new errors.LfsplanetApiError({
+            statusCode: _response.error.statusCode,
+            body: _response.error.body,
+            rawResponse: _response.rawResponse,
+          });
+      }
+    }
+
+    return handleNonStatusCodeError(
+      _response.error,
+      _response.rawResponse,
+      "GET",
+      "/api/v1/vehicles",
+    );
+  }
 }

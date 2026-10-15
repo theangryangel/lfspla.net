@@ -10,7 +10,29 @@ for actions, status, and identity. These rules apply to `frontend2`.
 - Use spacing and type before colour.
 - Keep navigation quiet and clear.
 - Do not use colour as the only signal.
-- Keep shadcn-svelte's rounded controls, neutral surfaces, borders, and focus states.
+- Keep the current rounded controls, neutral surfaces, borders, and focus states
+  until the racing design is developed.
+
+## Component ownership
+
+`frontend2/src/lib/components/ui` contains our UI component source. Edit these
+components directly to evolve the design, keeping Bits UI as the underlying
+primitives for interactive behaviour, keyboard navigation, and focus management.
+Simple presentational components use native HTML.
+
+Shared theme tokens live in `frontend2/src/app.css`. UI state variants and
+utilities live in `frontend2/src/lib/styles/ui.css`; animations use `tw-animate-css`.
+The components and CSS originated from shadcn-svelte, with its MIT notice retained
+in `frontend2/src/lib/components/ui/LICENSE.md`. There is no dependency on its
+package or component generator. Add new components locally using the same
+conventions and Bits UI where appropriate.
+
+Keep the UI layer limited to components the application uses. Export unstyled
+Bits UI roots directly from each family's index; use Bits UI portals inside
+styled content components. Keep local wrappers when they provide styling,
+markup, or intentional defaults (such as the tooltip provider's zero delay).
+Preserve `data-slot` attributes used by the theme. Avoid copying complete
+component families or adding duplicate export names for unused variants.
 
 ## Colours
 

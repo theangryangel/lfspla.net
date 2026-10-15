@@ -156,15 +156,19 @@
 	}
 </script>
 
-<Panel
-	title="Choose drivers"
-	description="Compare personal bests in an era, with optional track and vehicle filters."
->
-	<form action="/compare" method="GET" class="space-y-4" onsubmit={submit}>
-		<div class="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
+<Panel title="Choose drivers" appearance="data" surface={false}>
+	<form
+		action="/compare"
+		method="GET"
+		class="racing-data space-y-4"
+		onsubmit={submit}
+	>
+		<div class="grid gap-4 sm:grid-cols-2">
 			<label class="grid gap-2 text-sm font-medium"
 				>First LFS username<Input
 					name="left"
+					class="h-10"
+					autocomplete="off"
 					required
 					bind:value={left}
 				/></label
@@ -172,22 +176,19 @@
 			<label class="grid gap-2 text-sm font-medium"
 				>Second LFS username<Input
 					name="right"
+					class="h-10"
+					autocomplete="off"
 					required
 					bind:value={right}
 				/></label
 			>
-			<div class="grid gap-2">
-				<label class="flex w-fit items-center gap-2 text-sm"
-					><input type="checkbox" bind:checked={sharedOnly} />Show shared charts
-					only</label
-				>
-			</div>
 		</div>
-		<div class="flex flex-wrap items-end gap-4 border-t pt-4">
-			<div class="grid gap-2">
+		<div class="grid gap-4 border-t pt-4 sm:grid-cols-3">
+			<div class="grid min-w-0 gap-2">
 				<span class="text-sm font-medium">Era</span>
 				<SearchSelect
 					label="Era"
+					class="h-10 w-full"
 					value={era}
 					options={eraOptions}
 					placeholder="Search eras..."
@@ -198,10 +199,11 @@
 					}}
 				/>
 			</div>
-			<div class="grid gap-2">
+			<div class="grid min-w-0 gap-2">
 				<span class="text-sm font-medium">Track</span>
 				<SearchSelect
 					label="Track"
+					class="h-10 w-full"
 					value={track}
 					selectedLabel={tracks.find((item) => item.code === track)?.name ??
 						track}
@@ -213,11 +215,12 @@
 					}}
 				/>
 			</div>
-			<div class="grid gap-2">
+			<div class="grid min-w-0 gap-2">
 				<span class="text-sm font-medium">Vehicle</span>
 				{#key `${era}/${track}`}
 					<SearchSelect
 						label="Vehicle"
+						class="h-10 w-full"
 						value={vehicle}
 						selectedLabel={vehicleLabels[vehicle] ??
 							vehicles.find((item) => item.code === vehicle)?.name ??
@@ -234,18 +237,29 @@
 			<input type="hidden" name="era" value={era} />
 			<input type="hidden" name="track" value={track} />
 			<input type="hidden" name="vehicle" value={vehicle} />
-			<Button type="submit" disabled={pending || !era}
-				>{pending ? 'Comparing...' : 'Compare'}</Button
-			>
-			{#if track || vehicle}
-				<Button
-					variant="ghost"
-					onclick={() => {
-						track = '';
-						vehicle = '';
-					}}>Clear filters</Button
+		</div>
+		<div class="flex flex-wrap items-center justify-between gap-4">
+			<label class="flex w-fit items-center gap-2 text-sm">
+				<input
+					type="checkbox"
+					class="size-4 accent-primary"
+					bind:checked={sharedOnly}
+				/>Show shared charts only
+			</label>
+			<div class="flex items-center gap-2">
+				<Button type="submit" class="h-10" disabled={pending || !era}
+					>{pending ? 'Comparing...' : 'Compare'}</Button
 				>
-			{/if}
+				{#if track || vehicle}
+					<Button
+						variant="ghost"
+						onclick={() => {
+							track = '';
+							vehicle = '';
+						}}>Clear filters</Button
+					>
+				{/if}
+			</div>
 		</div>
 		{#if trackProblem || vehicleProblem || problem}
 			<p role="alert" class="text-sm text-destructive">

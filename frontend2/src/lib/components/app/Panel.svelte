@@ -5,18 +5,22 @@
 
 	let {
 		title,
+		titleId,
 		description,
 		to,
 		flush = false,
 		surface = true,
+		appearance = 'default',
 		action,
 		children,
 	}: {
 		title: string;
+		titleId?: string;
 		description?: string;
 		to?: string;
 		flush?: boolean;
 		surface?: boolean;
+		appearance?: 'default' | 'data';
 		action?: Snippet;
 		children: Snippet;
 	} = $props();
@@ -25,7 +29,14 @@
 <section class="space-y-3">
 	<header class="flex flex-wrap items-start justify-between gap-3">
 		<div class="space-y-1">
-			<h2 class="text-lg font-semibold">{title}</h2>
+			<h2
+				id={titleId}
+				class={appearance === 'data'
+					? 'racing-section-title flex h-8 items-center'
+					: 'text-lg font-semibold'}
+			>
+				{title}
+			</h2>
 			{#if description}<p class="text-sm text-muted-foreground">
 					{description}
 				</p>{/if}
@@ -40,6 +51,14 @@
 			>
 		</Card.Root>
 	{:else}
-		<div class={flush ? '' : 'space-y-4 py-4'}>{@render children()}</div>
+		<div
+			class={flush
+				? ''
+				: appearance === 'data'
+					? 'space-y-4 border-t py-4'
+					: 'space-y-4 py-4'}
+		>
+			{@render children()}
+		</div>
 	{/if}
 </section>

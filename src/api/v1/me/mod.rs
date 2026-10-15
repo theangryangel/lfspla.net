@@ -40,6 +40,9 @@ pub(crate) struct MeResponse {
     allow_test_validation: bool,
     /// Whether the current account may submit hotlap uploads.
     allow_uploads: bool,
+    /// Optional plain-text site notice; null hides the banner.
+    #[schema(required)]
+    site_notice: Option<String>,
     /// Maximum accepted size of one uploaded SPR replay, in bytes.
     max_spr_upload_bytes: usize,
 }
@@ -94,7 +97,8 @@ pub(crate) async fn get(
 ) -> Result<Json<MeResponse>, ApiError> {
     let player = player.map(|AuthenticatedPlayer(player)| player);
     let issue_csrf_token = !headers.contains_key(header::AUTHORIZATION);
-    let allow_uploads = player.as_ref().is_some_and(|player| !player.deny_uploads);
+    let allow_uploads =
+        state.hotlaps.allow_uploads && player.as_ref().is_some_and(|player| !player.deny_uploads);
     let player = player.map(PlayerSummary::from);
     // Every route that verifies a CSRF token also requires an authenticated
     // player, so a token issued to an anonymous caller could never authorise
@@ -112,6 +116,12 @@ pub(crate) async fn get(
         csrf_token,
         allow_test_validation: state.hotlaps.allow_test_validation,
         allow_uploads,
+        site_notice: state
+            .site_notice
+            .as_deref()
+            .map(str::trim)
+            .filter(|notice| !notice.is_empty())
+            .map(str::to_owned),
         max_spr_upload_bytes: state.hotlaps.max_spr_upload_bytes(),
     }))
 }
@@ -198,6 +208,41 @@ impl UpdateMeRequest {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[tokio::test]
+    async fn anonymous_frontend_state_includes_notice_and_global_upload_policy() {
+        for (notice, expected) in [
+            (None, None),
+            (Some("  "), None),
+            (Some("  Test site <notice>  "), Some("Test site <notice>")),
+        ] {
+            for allow_uploads in [true, false] {
+                let state = ApiState {
+                    database: Default::default(),
+                    oauth: None,
+                    object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+                    hotlaps: crate::settings::HotlapSettings {
+                        allow_uploads,
+                        ..Default::default()
+                    },
+                    site_notice: notice.map(str::to_owned),
+                };
+                let session = Session::new(
+                    None,
+                    std::sync::Arc::new(tower_sessions::MemoryStore::default()),
+                    None,
+                );
+                let Json(response) = get(State(state), HeaderMap::new(), None, session.clone())
+                    .await
+                    .unwrap();
+                assert_eq!(response.site_notice.as_deref(), expected);
+                assert!(!response.allow_uploads);
+                assert!(!response.authenticated);
+                assert!(response.csrf_token.is_empty());
+                assert!(session.is_empty().await);
+            }
+        }
+    }
 
     #[test]
     fn patch_distinguishes_missing_and_null() {

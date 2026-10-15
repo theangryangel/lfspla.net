@@ -20,4 +20,6 @@ export interface MeResponse {
   /** Maximum accepted size of one uploaded SPR replay, in bytes. */
   max_spr_upload_bytes: number;
   player: LfsplanetApi.PlayerSummary | null;
+  /** Optional plain-text site notice; null hides the banner. */
+  site_notice: string | null;
 }

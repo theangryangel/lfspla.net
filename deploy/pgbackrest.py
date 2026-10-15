@@ -60,15 +60,16 @@ server.shell(
     commands=[
         """
         set -eu
-        pg_ctlcluster 18 main reload
-        pending_restart="$(psql -p 5432 -d postgres -Atqc "SELECT count(*) FROM pg_settings WHERE pending_restart AND name IN ('archive_mode', 'wal_level')")"
-        archive_mode="$(psql -p 5432 -d postgres -Atqc 'SHOW archive_mode')"
+        systemctl reload postgresql@18-main.service
+        pending_restart="$(sudo -u postgres psql -h /var/run/postgresql -p 5432 -d postgres -Atqc "SELECT count(*) FROM pg_settings WHERE pending_restart AND name IN ('archive_mode', 'wal_level')")"
+        archive_mode="$(sudo -u postgres psql -h /var/run/postgresql -p 5432 -d postgres -Atqc 'SHOW archive_mode')"
         if [ "$pending_restart" != "0" ] || [ "$archive_mode" != "on" ]; then
-            pg_ctlcluster 18 main restart
+            systemctl restart postgresql@18-main.service
         fi
         """
     ],
-    _sudo_user="postgres",
+    _sudo=True,
+    _sudo_user="root",
 )
 
 server.shell(

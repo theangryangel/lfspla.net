@@ -82,14 +82,16 @@
 					</section>
 				{/each}
 			</div>
-			<a
-				class={`mt-3 flex h-9 items-center rounded-md px-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${isActive('/drivers') ? 'bg-accent text-accent-foreground' : ''}`}
-				href="/drivers"
-				onclick={closeMobileMenu}
-				aria-current={isActive('/drivers') ? 'page' : undefined}
-			>
-				Drivers
-			</a>
+			{#each [{ label: 'Drivers', href: '/drivers' }, { label: 'Vehicles', href: '/vehicles' }, { label: 'Tracks', href: '/tracks' }] as item}
+				<a
+					class={`mt-3 flex h-9 items-center rounded-md px-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${isActive(item.href) ? 'bg-accent text-accent-foreground' : ''}`}
+					href={item.href}
+					onclick={closeMobileMenu}
+					aria-current={isActive(item.href) ? 'page' : undefined}
+				>
+					{item.label}
+				</a>
+			{/each}
 			<div class="mt-3 pl-2">
 				<h2 class="text-xs font-semibold tracking-wide text-muted-foreground">
 					My account

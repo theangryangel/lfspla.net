@@ -100,13 +100,38 @@
 	}
 </script>
 
-<svelte:head><title>Personal access tokens · lfspla.net</title></svelte:head>
-<p class="text-sm text-muted-foreground">
-	Create credentials for tools that use the API on your behalf. Keep them
-	private.
-</p>
-<div class="max-w-2xl">
-	<Panel title="Create a token">
+
+<div class="racing-data max-w-2xl space-y-6">
+	<aside
+		aria-label="Using the API"
+		class="space-y-2 border-l-2 border-primary bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
+	>
+		<p>
+			You only need a token when a tool needs to act <strong
+				class="text-foreground">as you</strong
+			>, such as uploading replays or accessing your private account data.
+			Public, read-only API requests do not need a token.
+		</p>
+		<p>
+			Please use the API considerately: cache responses, avoid aggressive
+			polling, and don’t hammer the server. This is a community project with
+			shared resources.
+		</p>
+		<p>
+			For supported events, use <a
+				class="text-primary underline underline-offset-4"
+				href="/account/webhooks">webhooks</a
+			>
+			instead of polling. Need a webhook format we don’t currently support?
+			<a
+				class="text-primary underline underline-offset-4"
+				href="https://www.lfs.net/forum/565-LFS-Planet-Forum"
+				target="_blank"
+				rel="noopener noreferrer">Get in touch on the forum</a
+			>.
+		</p>
+	</aside>
+	<Panel title="Create a token" appearance="data" surface={false}>
 		<form onsubmit={create} class="space-y-4">
 			<div class="grid gap-4 sm:grid-cols-[1fr_10rem]">
 				<div class="space-y-2">
@@ -144,7 +169,7 @@
 			>
 		</form>
 		{#if created}
-			<div class="space-y-3 rounded-lg border border-primary p-4">
+			<div class="space-y-3 rounded-sm border border-primary p-4">
 				<p role="status" class="font-medium">Your token is ready</p>
 				<p class="text-sm text-muted-foreground">
 					Copy it now. You won’t be able to view it again after leaving this
@@ -174,13 +199,18 @@
 	</Panel>
 </div>
 {#if notice}<p role="status" class="text-sm">{notice}</p>{/if}
-<Panel title="Your tokens" flush={tokens.length > 0} surface={false}>
+<Panel
+	title="Your tokens"
+	appearance="data"
+	surface={false}
+	flush={tokens.length > 0}
+>
 	{#if tokens.length === 0}
 		<p class="text-sm text-muted-foreground">
 			You haven’t created any personal access tokens yet.
 		</p>
 	{:else}
-		<TableFrame>
+		<TableFrame appearance="data">
 			<Table.Root>
 				<Table.Header
 					><Table.Row>

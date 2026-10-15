@@ -13,6 +13,13 @@
 		{#if page.status !== 404}
 			<p>{page.error?.message}</p>
 		{/if}
-		<a href="/">Back home</a>
+		<div class="flex flex-wrap justify-center gap-4">
+			<a href="/">Back home</a>
+			<a
+				href="https://www.lfs.net/forum/565-LFS-Planet-Forum"
+				target="_blank"
+				rel="noopener noreferrer">Report a problem</a
+			>
+		</div>
 	</Empty>
 </main>

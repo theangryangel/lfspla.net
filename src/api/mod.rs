@@ -138,6 +138,7 @@ pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow:
         oauth: oauth.clone(),
         object_store,
         hotlaps: settings.hotlaps.clone(),
+        site_notice: settings.web.site_notice.clone(),
     };
 
     // Share SeaORM's SQLx 0.9 connection pool with the session store.

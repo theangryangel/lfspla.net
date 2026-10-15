@@ -237,6 +237,7 @@ mod tests {
             .await?
             .unwrap();
         let state = ApiState {
+            site_notice: None,
             database,
             oauth: None,
             object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),

@@ -6,7 +6,11 @@ use sea_orm::{ActiveValue::Set, ConnectionTrait, EntityTrait, sea_query::OnConfl
 
 use sea_orm::entity::prelude::*;
 
-use sea_orm::{QueryOrder, Select};
+use crate::db::escaped_like::EscapedLike;
+use sea_orm::{
+    Condition, QueryFilter, QueryOrder, Select,
+    sea_query::{Expr, extension::postgres::PgExpr},
+};
 
 mod location;
 
@@ -67,6 +71,24 @@ impl Model {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+/// Literal, case-insensitive code and name search for the track catalogue.
+pub(crate) trait TrackFilter: QueryFilter + Sized {
+    fn name_or_id_contains(self, query: &str) -> Self {
+        let query = query.trim();
+        if query.is_empty() {
+            return self;
+        }
+        let pattern = EscapedLike::contains(query);
+        self.filter(
+            Condition::any()
+                .add(Expr::col(Column::Id).ilike(pattern.clone()))
+                .add(Expr::col(Column::Name).ilike(pattern)),
+        )
+    }
+}
+
+impl TrackFilter for Select<Entity> {}
 
 /// Canonical presentation ordering for track catalogue queries.
 pub(crate) trait TrackOrder: QueryOrder + Sized {
