@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { mode, ModeWatcher, toggleMode } from 'mode-watcher';
+	import { page } from '$app/state';
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import SunIcon from '@lucide/svelte/icons/sun';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -37,10 +38,31 @@
 
 	const api = setApi();
 	const session = setSession(() => data.me, api);
+
+	// Routes inherit their title from the final breadcrumb, with optional overrides.
+	const pageTitle = $derived(
+		page.status === 404
+			? 'Page not found'
+			: page.status >= 400
+				? 'Something went wrong'
+				: (page.data.title ?? page.data.breadcrumbs?.at(-1)?.label ?? 'Home'),
+	);
+
+	onMount(() => {
+		const refresh = () => {
+			if (document.visibilityState === 'visible') void session.refresh();
+		};
+		const timer = window.setInterval(refresh, 5 * 60 * 1000);
+		document.addEventListener('visibilitychange', refresh);
+		return () => {
+			window.clearInterval(timer);
+			document.removeEventListener('visibilitychange', refresh);
+		};
+	});
 </script>
 
 <svelte:head>
-	<title>lfspla.net</title>
+	<title>{pageTitle} | lfspla.net</title>
 </svelte:head>
 
 <ModeWatcher />
@@ -50,20 +72,24 @@
 		<a class="sr-only focus:not-sr-only focus:p-4" href="#main"
 			>Skip to content</a
 		>
-		<aside
-			aria-label="Test site notice"
-			class="bg-primary text-primary-foreground"
-		>
-			<div
-				class="mx-auto flex max-w-screen-2xl items-start gap-3 px-4 py-3 text-sm md:px-6"
+		{#if session.me.site_notice}
+			<aside
+				aria-label="Site notice"
+				class="bg-primary text-primary-foreground"
 			>
-				<TriangleAlertIcon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-				<p>
-					This is a test site; data and features may change. Consider all
-					uploads may be lost and deleted at anytime.
-				</p>
-			</div>
-		</aside>
+				<div
+					class="mx-auto flex max-w-screen-2xl items-start gap-3 px-4 py-3 text-sm md:px-6"
+				>
+					<TriangleAlertIcon
+						class="mt-0.5 size-4 shrink-0"
+						aria-hidden="true"
+					/>
+					<p>
+						{session.me.site_notice}
+					</p>
+				</div>
+			</aside>
+		{/if}
 		<header class="dark border-b bg-[oklch(0.145_0_0)] text-foreground">
 			<div
 				class="relative mx-auto flex max-w-screen-2xl flex-wrap items-center p-4 md:px-6"
@@ -175,7 +201,7 @@
 				<span
 					class="order-2 text-center md:order-1 md:justify-self-start md:text-left"
 				>
-					Independent community project · Not affiliated with
+					Independent community project - Not affiliated with
 					<a
 						class="hover:text-foreground hover:underline"
 						href="https://www.lfs.net/">Live for Speed</a
@@ -193,6 +219,12 @@
 					<a
 						class="hover:text-foreground hover:underline"
 						href="https://www.lfs.net/forum/565-LFS-Planet-Forum">Forum</a
+					>
+					<a
+						class="hover:text-foreground hover:underline"
+						href="https://www.lfs.net/forum/565-LFS-Planet-Forum"
+						target="_blank"
+						rel="noopener noreferrer">Report a problem</a
 					>
 					<a
 						class="hover:text-foreground hover:underline"

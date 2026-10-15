@@ -4,4 +4,4 @@
 	let { data }: PageProps = $props();
 </script>
 
-<HotlapSubmissions hotlaps={data.hotlaps} era={data.era} />
+<HotlapSubmissions hotlaps={data.hotlaps} />

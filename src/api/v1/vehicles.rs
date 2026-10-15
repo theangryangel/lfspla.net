@@ -133,6 +133,7 @@ mod tests {
         unavailable.available = Set(false);
         unavailable.update(&database).await?;
         let state = ApiState {
+            site_notice: None,
             database,
             oauth: None,
             object_store: Arc::new(object_store::memory::InMemory::new()),

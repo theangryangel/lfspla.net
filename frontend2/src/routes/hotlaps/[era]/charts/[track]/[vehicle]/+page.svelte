@@ -355,7 +355,7 @@
 											</div>
 										</Table.Cell>
 										<Table.Cell class="text-muted-foreground">
-											{dateTime(entry.created_at)} · {entry.game_version}
+											{dateTime(entry.created_at)} - {entry.game_version}
 										</Table.Cell>
 										<Table.Cell>
 											{#if entry.spr?.url}

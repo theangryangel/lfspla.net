@@ -6,7 +6,6 @@
 
 	import { useSession } from '$lib/session.svelte.js';
 	import Flag from '$lib/components/app/Flag.svelte';
-	import Panel from '$lib/components/app/Panel.svelte';
 	import SearchSelect from '$lib/components/app/SearchSelect.svelte';
 
 	import type { PageProps } from './$types';
@@ -84,83 +83,80 @@
 	}
 </script>
 
-<svelte:head><title>Personal settings · lfspla.net</title></svelte:head>
 
-<div class="racing-data max-w-xl">
-	<Panel title="Account preferences" appearance="data" surface={false}>
-		<p class="text-sm text-muted-foreground">
-			Signed in as <span class="font-medium text-foreground"
-				>{session.player?.lfs_username}</span
-			>.
-		</p>
-		<form onsubmit={save} class="space-y-4">
-			<fieldset disabled={pending} class="space-y-2">
-				<legend class="mb-2 text-sm font-medium">Country</legend>
+<div class="racing-data max-w-xl space-y-4">
+	<p class="text-sm text-muted-foreground">
+		Signed in as <span class="font-medium text-foreground"
+			>{session.player?.lfs_username}</span
+		>.
+	</p>
+	<form onsubmit={save} class="space-y-4">
+		<fieldset disabled={pending} class="space-y-2">
+			<legend class="mb-2 text-sm font-medium">Country</legend>
+			<SearchSelect
+				label="Country"
+				value={country}
+				{options}
+				placeholder="Search countries..."
+				onValueChange={(value) => {
+					country = value;
+					flag = '';
+					saved = false;
+				}}
+			/>
+			<p class="text-sm text-muted-foreground">
+				Your country appears on your driver profile and in nation rankings.
+			</p>
+		</fieldset>
+		{#if country}
+			<fieldset
+				disabled={pending || loadingFlags || !!flagError}
+				class="space-y-2"
+			>
+				<legend class="mb-2 text-sm font-medium">Display flag</legend>
 				<SearchSelect
-					label="Country"
-					value={country}
-					{options}
-					placeholder="Search countries..."
+					label="Display flag"
+					value={flag}
+					options={[
+						{ value: '', label: 'Country flag (default)' },
+						...flags.map((choice) => ({
+							value: choice.code,
+							label: choice.name,
+						})),
+					]}
+					placeholder="Search flags..."
 					onValueChange={(value) => {
-						country = value;
-						flag = '';
+						flag = value;
 						saved = false;
 					}}
 				/>
 				<p class="text-sm text-muted-foreground">
-					Your country appears on your driver profile and in nation rankings.
+					<Flag code={flag} fallback={country} /> Shown beside your name.
 				</p>
 			</fieldset>
-			{#if country}
-				<fieldset
-					disabled={pending || loadingFlags || !!flagError}
-					class="space-y-2"
-				>
-					<legend class="mb-2 text-sm font-medium">Display flag</legend>
-					<SearchSelect
-						label="Display flag"
-						value={flag}
-						options={[
-							{ value: '', label: 'Country flag (default)' },
-							...flags.map((choice) => ({
-								value: choice.code,
-								label: choice.name,
-							})),
-						]}
-						placeholder="Search flags..."
-						onValueChange={(value) => {
-							flag = value;
-							saved = false;
-						}}
-					/>
-					<p class="text-sm text-muted-foreground">
-						<Flag code={flag} fallback={country} /> Shown beside your name.
-					</p>
-				</fieldset>
-				{#if loadingFlags}<p role="status" class="text-sm">
-						Loading flags...
-					</p>{/if}
-				{#if flagError}<p role="alert" class="text-sm text-destructive">
-						{flagError}
-					</p>
-					<Button type="button" onclick={() => retry++}>Retry</Button>
-				{/if}
+			{#if loadingFlags}<p role="status" class="text-sm">
+					Loading flags...
+				</p>{/if}
+			{#if flagError}<p role="alert" class="text-sm text-destructive">
+					{flagError}
+				</p>
+				<Button type="button" onclick={() => retry++}>Retry</Button>
 			{/if}
-			{#if error}<p role="alert" class="text-sm text-destructive">
-					{error}
-				</p>{/if}
-			{#if saved}<p role="status" class="text-sm">
-					Your preferences have been saved.
-				</p>{/if}
-			<Button
-				type="submit"
-				disabled={pending ||
-					loadingFlags ||
-					!!flagError ||
-					(country === (session.player?.country_code ?? '') &&
-						flag === (session.player?.flag_code ?? ''))}
-				>{pending ? 'Saving...' : 'Save preferences'}</Button
-			>
-		</form>
-	</Panel>
+		{/if}
+		{#if error}<p role="alert" class="text-sm text-destructive">
+				{error}
+			</p>{/if}
+		{#if saved}<p role="status" class="text-sm">
+				Your preferences have been saved.
+			</p>{/if}
+		<Button
+			type="submit"
+			disabled={pending ||
+				loadingFlags ||
+				!!flagError ||
+				(country === (session.player?.country_code ?? '') &&
+					flag === (session.player?.flag_code ?? ''))}
+			>{pending ? 'Saving...' : 'Save preferences'}</Button
+		>
+	</form>
 </div>

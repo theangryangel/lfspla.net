@@ -97,6 +97,7 @@ mod tests {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
         crate::models::Track::sync(&database).await?;
         let state = ApiState {
+            site_notice: None,
             database,
             oauth: None,
             object_store: Arc::new(object_store::memory::InMemory::new()),

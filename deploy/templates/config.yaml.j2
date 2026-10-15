@@ -6,7 +6,8 @@ web:
   listen: "127.0.0.1:8000"
   public_base_url: {{ ("https://" ~ site_domain) | tojson }}
   cookie_secure: true
-  site_notice: "This is a test site; data and features may change. Consider all uploads to be lost and deleted at anytime."
+  site_notice: "Hold on tight. Uploads are currently paused in preparation for LFS World migration."
+  allow_uploads: false
 
 storage:
   object_store_root: {{ object_store_root | tojson }}

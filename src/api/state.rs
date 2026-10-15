@@ -15,4 +15,5 @@ pub struct ApiState {
     pub(crate) oauth: Option<OAuthProvider>,
     pub(crate) object_store: Arc<dyn ObjectStore>,
     pub(crate) hotlaps: HotlapSettings,
+    pub(crate) site_notice: Option<String>,
 }

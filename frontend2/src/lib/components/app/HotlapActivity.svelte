@@ -153,7 +153,7 @@
 	<Tabs.Content value={view}>
 		{#if loading}
 			<p class="py-10 text-center text-sm text-muted-foreground" role="status">
-				Loading hotlaps…
+				Loading hotlaps...
 			</p>
 		{:else if unavailable}
 			<Empty title="Hotlaps unavailable">

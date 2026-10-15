@@ -51,7 +51,9 @@
 	const onChart = $derived(
 		page.route.id === '/hotlaps/[era]/charts/[track]/[vehicle]',
 	);
-	const onSubmissions = $derived(page.route.id === '/hotlaps/[era]/submissions');
+	const onSubmissions = $derived(
+		page.route.id === '/hotlaps/[era]/submissions',
+	);
 	const onOverview = $derived(page.route.id === '/hotlaps/[era]');
 	const chartRecord = $derived.by(() => {
 		if (!onChart) return null;
@@ -148,7 +150,10 @@
 				<EraIdentity era={data.era} />
 			{:else if onSubmissions}
 				<PageIdentity label="Submission identity">
-					<PageHeading title="My submissions">Your uploaded replays and validation results for {data.era.title}.</PageHeading>
+					<PageHeading title="My submissions"
+						>Your uploaded replays and validation results for {data.era
+							.title}.</PageHeading
+					>
 				</PageIdentity>
 			{:else if onRanking}
 				<PageIdentity label="Ranking identity">
@@ -219,7 +224,9 @@
 										title="Leading nation"
 										variant="yellow"
 										class={'flex-1 lg:w-72 lg:flex-none lg:px-14 ' +
-											(driverLeaders.length ? 'lg:-ml-[var(--highlight-slant)]' : '')}
+											(driverLeaders.length
+												? 'lg:-ml-[var(--highlight-slant)]'
+												: '')}
 									>
 										<p
 											class="text-right text-lg font-bold tabular-nums xl:text-2xl"

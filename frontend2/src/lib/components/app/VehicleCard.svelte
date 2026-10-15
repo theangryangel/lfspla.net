@@ -29,7 +29,7 @@
 			>
 			<div class="text-xs text-muted-foreground">
 				<span class="font-mono">{vehicle.code}</span>
-				{#if !onSelect}<span> · {mod ? 'Mod' : 'Standard'}</span>{/if}
+				{#if !onSelect}<span> - {mod ? 'Mod' : 'Standard'}</span>{/if}
 			</div>
 		</div>
 		<Badge variant="secondary">{vehicle.license}</Badge>

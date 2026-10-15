@@ -4,6 +4,5 @@
 	let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>My hotlaps · lfspla.net</title></svelte:head>
 
 <HotlapSubmissions hotlaps={data.hotlaps} />

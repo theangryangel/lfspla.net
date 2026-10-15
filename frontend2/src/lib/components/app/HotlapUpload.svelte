@@ -21,7 +21,7 @@
 	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
 	import UploadIcon from '@lucide/svelte/icons/upload';
 	import XIcon from '@lucide/svelte/icons/x';
-	import { invalidate } from '$app/navigation';
+	import { beforeNavigate, invalidate } from '$app/navigation';
 	import { onMount } from 'svelte';
 
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -64,6 +64,25 @@
 	let open = $state(false);
 	let items = $state<Item[]>([]);
 	let running = $state(false);
+
+	beforeNavigate((navigation) => {
+		if (!running) return;
+		// Query changes keep the upload component mounted.
+		if (
+			!navigation.willUnload &&
+			navigation.from?.url.pathname === navigation.to?.url.pathname
+		)
+			return;
+		if (navigation.type === 'leave') {
+			// SvelteKit requests the browser's native reload/close confirmation.
+			navigation.cancel();
+		} else if (
+			!window.confirm('Uploads are still in progress. Leave this page?')
+		) {
+			navigation.cancel();
+		}
+	});
+
 	let refreshError = $state('');
 	let dragging = $state(false);
 	let duplicates = $state(0);
@@ -205,7 +224,7 @@
 
 	async function uploadOne(id: number) {
 		const item = items.find((candidate) => candidate.id === id);
-		if (!item || item.status !== 'queued') return;
+		if (!item || item.status !== 'queued' || !session.me.allow_uploads) return;
 		item.status = 'uploading';
 		item.error = null;
 		item.retryable = false;
@@ -232,7 +251,7 @@
 
 	// Upload independently; refresh once.
 	async function upload(ids?: number[]) {
-		if (running) return;
+		if (running || !session.me.allow_uploads) return;
 		const queue =
 			ids ??
 			items.filter((item) => item.status === 'queued').map((item) => item.id);
@@ -290,10 +309,7 @@
 	<Dialog.Root bind:open>
 		<Dialog.Trigger>
 			{#snippet child({ props })}
-				<Button
-					{...props}
-					class="rounded-sm"
-				>
+				<Button {...props} class="rounded-sm">
 					<UploadIcon />
 					Upload hotlap
 				</Button>
@@ -321,9 +337,13 @@
 					<Button onclick={session.signIn}>Sign in with LFS</Button>
 				</Dialog.Footer>
 			{:else if !session.me.allow_uploads}
-				<p class="text-sm text-muted-foreground">
-					Your account is not currently allowed to upload hotlaps.
-				</p>
+				<div
+					role="alert"
+					class="flex items-start gap-3 rounded-sm border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+				>
+					<CircleAlertIcon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+					<p class="font-medium">Hotlap uploads are currently unavailable.</p>
+				</div>
 			{:else}
 				{#if targets.length > 1}
 					<ChoiceSelect
@@ -358,7 +378,7 @@
 							: 'Drop SPR files here or choose files'}
 					</span>
 					<span class="text-xs text-muted-foreground">
-						One or more single-player replays · {fileSize(maxBytes)} each at most
+						One or more single-player replays - {fileSize(maxBytes)} each at most
 					</span>
 					<input
 						id="spr-files"
@@ -439,11 +459,11 @@
 										</p>
 										<p class="mt-0.5 text-xs text-muted-foreground">
 											{#if item.status === 'accepted' && item.hotlap}
-												{eraTitle(item.hotlap.era_id)} · {item.hotlap.track} · {item
+												{eraTitle(item.hotlap.era_id)} - {item.hotlap.track} - {item
 													.hotlap.vehicle ??
-													item.hotlap.submission?.raw_vehicle_name} · {lapTime(
+													item.hotlap.submission?.raw_vehicle_name} - {lapTime(
 													item.hotlap.lap_time_ms,
-												)} ·
+												)} -
 												{hotlapStates[item.hotlap.state].label}
 											{:else if item.status === 'failed'}
 												<span class="font-medium text-destructive"
@@ -452,7 +472,7 @@
 											{:else if item.status === 'uploading'}
 												Uploading {fileSize(item.file.size)}...
 											{:else if item.header}
-												LFS {item.header.version} · {item.header.track} · {fileSize(
+												LFS {item.header.version} - {item.header.track} - {fileSize(
 													item.file.size,
 												)}
 											{/if}

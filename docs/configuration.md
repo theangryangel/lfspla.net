@@ -87,3 +87,23 @@ Other platforms ignore unrecognized fields in `lfs` and return an unsupported
 error for those operations. Linux rejects unknown fields in `lfs`; other sections
 retain their existing validation on every platform. Installation trimming uses portable filesystem code.
 The unsupported implementation is also compiled and tested on Linux.
+
+## Site notice and upload pause
+
+```yaml
+web:
+  site_notice: "This is a test site; data may be deleted."
+hotlaps:
+  allow_uploads: true
+```
+
+`web.site_notice` is optional; omit it, set it to null, or use an empty string
+to hide the banner. The notice is rendered as plain text.
+`hotlaps.allow_uploads` defaults to true. Set it to false to reject new API
+uploads with HTTP 503 (`uploads_paused`) while keeping browsing and existing
+validation jobs available. Per-account and per-era restrictions still apply.
+
+Restart the web process after changing configuration. Open frontend tabs refresh
+`/api/v1/me` every five minutes while visible, and when the tab becomes visible.
+The refresh updates the banner and upload controls without reloading the page;
+the API enforces the pause even before a tab refreshes.

@@ -78,7 +78,7 @@
 					class="h-10 pl-10"
 					aria-label="Search drivers"
 					aria-controls="driver-results"
-					placeholder="Search by username or display name…"
+					placeholder="Search by username or display name..."
 					value={search}
 					oninput={(e) => searchDrivers(e.currentTarget.value)}
 				/>
@@ -94,7 +94,7 @@
 			{#if data.players?.length}
 				<p role="status" class="text-right text-sm text-muted-foreground">
 					{#if searching}
-						Searching…
+						Searching...
 					{:else}
 						{#if data.players.length >= 25}
 							Showing the first 25 matches
@@ -109,7 +109,7 @@
 					{searchError}
 				</p>{/if}
 			{#if searching && !data.players?.length}
-				<div role="status"><Empty title="Searching for drivers…" /></div>
+				<div role="status"><Empty title="Searching for drivers..." /></div>
 			{:else if !data.players}
 				<Empty title="Search for a driver">
 					<p>Type a username or display name to search the directory.</p>

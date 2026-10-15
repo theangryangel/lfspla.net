@@ -122,14 +122,14 @@
 		}}
 	>
 		<Dialog.Header class="pr-8">
-			<Dialog.Title class="racing-section-title">Choose a ranking</Dialog.Title>
+			<Dialog.Title>Choose a ranking</Dialog.Title>
 			<Dialog.Description
-				>{era.title} · Rankings available in this era.</Dialog.Description
+				>{era.title} - Rankings available in this era.</Dialog.Description
 			>
 		</Dialog.Header>
 		<Input
 			aria-label="Search rankings"
-			placeholder="Search rankings…"
+			placeholder="Search rankings..."
 			bind:value={search}
 		/>
 		<div class="flex flex-wrap items-center justify-between gap-2">
@@ -162,7 +162,7 @@
 				onclick={session.signIn}>Sign in to see your progress</Button
 			>
 		{:else if loading}
-			<p class="text-muted-foreground" role="status">Loading your progress…</p>
+			<p class="text-muted-foreground" role="status">Loading your progress...</p>
 		{:else if failed}
 			<div class="flex items-center gap-2" role="status">
 				<span class="text-muted-foreground"

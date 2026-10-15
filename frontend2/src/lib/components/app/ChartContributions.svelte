@@ -38,7 +38,7 @@
 				title="Rankings this chart contributes to"
 			>
 				<InfoIcon class="size-4" aria-hidden="true" />
-				Contributes toward rankings…
+				Contributes toward rankings...
 			</Button>
 		{/snippet}
 	</Dialog.Trigger>
@@ -46,7 +46,7 @@
 		class="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-sm sm:max-w-2xl"
 	>
 		<Dialog.Header class="pr-8">
-			<Dialog.Title class="racing-section-title">Contributes to</Dialog.Title>
+			<Dialog.Title>Contributes to</Dialog.Title>
 			<Dialog.Description
 				>Personal bests on {track} / {vehicle} count towards these rankings in {era.title}.</Dialog.Description
 			>

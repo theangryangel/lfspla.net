@@ -12,6 +12,8 @@ export interface MeResponse {
   allow_uploads: boolean;
   /** Whether a current player was found. */
   authenticated: boolean;
+  /** Optional plain-text site notice; null hides the banner. */
+  site_notice: string | null;
   /**
    * Token required in `X-CSRF-Token` for state-changing requests. Empty
    * when logged out, because every such request requires authentication.

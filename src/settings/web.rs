@@ -22,7 +22,7 @@ pub struct WebSettings {
     /// Whether the browser should only send the session cookie over HTTPS.
     #[serde(default = "default_cookie_secure")]
     pub cookie_secure: bool,
-    /// Legacy frontend setting, accepted for configuration compatibility.
+    /// Optional plain-text notice displayed across the frontend.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub site_notice: Option<String>,
     /// Maximum time allowed for one inbound HTTP request.

@@ -59,7 +59,6 @@
 	);
 </script>
 
-<svelte:head><title>Compare drivers · lfspla.net</title></svelte:head>
 <main id="main" class="w-full min-w-0 flex-1">
 	<PageIdentity label="Driver comparison identity">
 		{#snippet overlay()}<CornerRibbon />{/snippet}

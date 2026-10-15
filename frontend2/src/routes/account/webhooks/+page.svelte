@@ -130,7 +130,6 @@
 	}
 </script>
 
-<svelte:head><title>Webhooks · lfspla.net</title></svelte:head>
 
 {#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 {#if notice}<p role="status" class="text-sm">{notice}</p>{/if}
@@ -251,9 +250,9 @@
 					<p class="text-sm text-muted-foreground">
 						{data.options?.formats.find(
 							(option) => option.value === webhook.format,
-						)?.label ?? webhook.format} · {data.options?.events.find(
+						)?.label ?? webhook.format} - {data.options?.events.find(
 							(option) => option.value === webhook.event_kind,
-						)?.label ?? webhook.event_kind} · {webhook.enabled
+						)?.label ?? webhook.event_kind} - {webhook.enabled
 							? 'Active'
 							: 'Paused'}
 					</p>
@@ -298,14 +297,14 @@
 								<p class="text-sm">{statusLabel(notification.status)}</p>
 							</div>
 							<p class="text-sm text-muted-foreground">
-								Created {dateTime(notification.created_at)} · {notification.attempt_count}
+								Created {dateTime(notification.created_at)} - {notification.attempt_count}
 								{notification.attempt_count === 1 ? 'attempt' : 'attempts'}
 								{#if notification.next_attempt_at}
-									· Next try {dateTime(notification.next_attempt_at)}{/if}
+									- Next try {dateTime(notification.next_attempt_at)}{/if}
 								{#if notification.delivered_at}
-									· Delivered {dateTime(notification.delivered_at)}{/if}
+									- Delivered {dateTime(notification.delivered_at)}{/if}
 								{#if notification.failed_at}
-									· Failed {dateTime(notification.failed_at)}{/if}
+									- Failed {dateTime(notification.failed_at)}{/if}
 							</p>
 							{#if notification.error_detail}
 								<p class="text-sm text-destructive">
@@ -326,7 +325,7 @@
 <Dialog.Root bind:open={confirmOpen}>
 	<Dialog.Content>
 		<Dialog.Header
-			><Dialog.Title class="racing-section-title">Delete webhook?</Dialog.Title
+			><Dialog.Title>Delete webhook?</Dialog.Title
 			><Dialog.Description
 				>Delete “{target?.name}” and its queued notifications? You can add the
 				destination again later.</Dialog.Description

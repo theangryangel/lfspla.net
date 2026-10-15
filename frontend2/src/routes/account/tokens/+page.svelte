@@ -100,9 +100,37 @@
 	}
 </script>
 
-<svelte:head><title>Personal access tokens · lfspla.net</title></svelte:head>
 
-<div class="racing-data max-w-2xl">
+<div class="racing-data max-w-2xl space-y-6">
+	<aside
+		aria-label="Using the API"
+		class="space-y-2 border-l-2 border-primary bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
+	>
+		<p>
+			You only need a token when a tool needs to act <strong
+				class="text-foreground">as you</strong
+			>, such as uploading replays or accessing your private account data.
+			Public, read-only API requests do not need a token.
+		</p>
+		<p>
+			Please use the API considerately: cache responses, avoid aggressive
+			polling, and don’t hammer the server. This is a community project with
+			shared resources.
+		</p>
+		<p>
+			For supported events, use <a
+				class="text-primary underline underline-offset-4"
+				href="/account/webhooks">webhooks</a
+			>
+			instead of polling. Need a webhook format we don’t currently support?
+			<a
+				class="text-primary underline underline-offset-4"
+				href="https://www.lfs.net/forum/565-LFS-Planet-Forum"
+				target="_blank"
+				rel="noopener noreferrer">Get in touch on the forum</a
+			>.
+		</p>
+	</aside>
 	<Panel title="Create a token" appearance="data" surface={false}>
 		<form onsubmit={create} class="space-y-4">
 			<div class="grid gap-4 sm:grid-cols-[1fr_10rem]">
@@ -243,7 +271,7 @@
 <Dialog.Root bind:open={confirmOpen}>
 	<Dialog.Content>
 		<Dialog.Header>
-			<Dialog.Title class="racing-section-title">Revoke token?</Dialog.Title>
+			<Dialog.Title>Revoke token?</Dialog.Title>
 			<Dialog.Description
 				>Tools using “{target?.name}” will lose access immediately. This cannot
 				be undone.</Dialog.Description

@@ -29,7 +29,6 @@
 	}
 </script>
 
-<svelte:head><title>Tracks | LFS Planet</title></svelte:head>
 
 <main id="main" class="w-full min-w-0 flex-1">
 	<PageIdentity label="Track directory identity">
@@ -58,7 +57,7 @@
 						class="h-10 pl-10"
 						aria-label="Search tracks"
 						aria-controls="track-results"
-						placeholder="Search by name or code…"
+						placeholder="Search by name or code..."
 					/>
 				</div>
 				<Button type="submit" class="h-10" disabled={loading}>Search</Button>
@@ -70,7 +69,7 @@
 				{searchError}
 			</p>{/if}
 		{#if loading}<p role="status" class="text-sm text-muted-foreground">
-				Loading tracks…
+				Loading tracks...
 			</p>{/if}
 		<section
 			id="track-results"
