@@ -68,7 +68,7 @@ pub(crate) fn router() -> OpenApiRouter<ApiState> {
 /// Serves a file by its public UUID.
 #[utoipa::path(get, path = "/api/v1/attachments/{attachment}", operation_id = "download_attachment", tag = "attachments",
     params(("attachment" = String, Path, format = "uuid", description = "Public attachment UUID")),
-    responses((status = 200, description = "Stored file streamed with 24-hour browser caching"), (status = 404, description = "Attachment unavailable", body = ErrorResponse)))]
+    responses((status = 200, description = "Stored file streamed with one-week public caching"), (status = 404, description = "Attachment unavailable", body = ErrorResponse)))]
 pub(crate) async fn download(
     Path(id): Path<Uuid>,
     State(state): State<ApiState>,
@@ -90,7 +90,7 @@ pub(crate) async fn download(
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, &attachment.media_type)
         .header(header::CONTENT_LENGTH, file.meta.size)
-        .header(header::CACHE_CONTROL, "private, max-age=86400")
+        .header(header::CACHE_CONTROL, "public, max-age=604800")
         .header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")
         .header(header::CONTENT_DISPOSITION, disposition)
         .body(Body::from_stream(file.into_stream()))
@@ -129,7 +129,7 @@ mod tests {
 
     #[sqlx::test]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
-    async fn downloads_stream_bytes_with_filenames_and_browser_caching(
+    async fn downloads_stream_bytes_with_filenames_and_public_caching(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
@@ -202,7 +202,7 @@ mod tests {
             assert_eq!(response.status(), StatusCode::OK);
             assert_eq!(
                 response.headers()[header::CACHE_CONTROL],
-                "private, max-age=86400"
+                "public, max-age=604800"
             );
             assert_eq!(response.headers()[header::CONTENT_TYPE], file.media_type);
             assert_eq!(

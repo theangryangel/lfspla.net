@@ -8,10 +8,10 @@ Each attachment has its own UUID and filename; paths can be shared.
 Anyone with the UUID can download it.
 
 All attachments are streamed through the API for every storage backend and
-cached in the browser for 24 hours (`Cache-Control: private, max-age=86400`).
+cached in browsers and shared caches for one week (`Cache-Control: public, max-age=604800`).
 Content types and download filenames come from the attachment record, so existing
 objects need no metadata repair. Replacing a file creates a new attachment UUID
-and URL. A previously cached file can remain available for up to 24 hours after
+and URL. A previously cached file can remain available for up to one week after
 its attachment is deleted. Missing attachments and objects return uncached 404s.
 
 ## Configuration
