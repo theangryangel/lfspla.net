@@ -168,9 +168,17 @@ mod tests {
                 TrackSummary::new(
                     crate::track_id::TrackId(insim_core::track::Track::Bl1),
                     "Blackwood GP".to_owned(),
-                    crate::models::track::TrackLocation::Bl,
+                    crate::api::v1::track_locations::TrackLocationSummary {
+                        code: "BL".into(),
+                        name: "Blackwood".into(),
+                        description: None,
+                        sequence: 0,
+                        image: None,
+                    },
                     false,
                     false,
+                    None,
+                    None,
                 ),
                 VehicleSummary::new(
                     "XFG".parse().unwrap(),

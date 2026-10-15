@@ -6,6 +6,9 @@ import * as LfsplanetApi from "../index.js";
  * Stable code and display name for an LFS location.
  */
 export interface TrackLocationSummary {
-  code: LfsplanetApi.TrackLocation;
+  code: string;
+  description: string | null;
+  image: LfsplanetApi.Attachment | null;
   name: string;
+  sequence: number;
 }

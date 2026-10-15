@@ -140,9 +140,10 @@ export class TracksClient {
     request: LfsplanetApi.ListTracksRequest = {},
     requestOptions?: TracksClient.RequestOptions,
   ): Promise<core.WithRawResponse<LfsplanetApi.PaginatedResponseTrackSummary>> {
-    const { q, page, per_page: perPage } = request;
+    const { q, location, page, per_page: perPage } = request;
     const _queryParams: Record<string, unknown> = {
       q,
+      location,
       page,
       per_page: perPage,
     };

@@ -1,6 +1,6 @@
 # Attachment storage
 
-SPR, RAF, and vehicle images share one store. New files use
+SPR, RAF, vehicle images, and track artwork share one store. New files use
 `<first-two-hash-characters>/<sha256>.<extension>`.
 
 For existing database, paths may stay unchanged.
@@ -55,3 +55,8 @@ Use a dedicated bucket or prefix. Do not mix and match.
 
 GC scans the whole store and deletes unreferenced files after 24 hours by default.
 Deleting a hotlap removes its references; shared files remain until unused.
+
+GC discovers foreign keys to `attachment.id` from PostgreSQL rather than keeping
+an asset-type list. Any referenced attachment retains its object, including
+when other attachment rows share that object key. Unreferenced attachment rows
+and objects remain eligible under the normal minimum-age rules.

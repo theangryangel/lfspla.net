@@ -28,12 +28,7 @@
 )}
 	<span class="flex min-w-0 items-center gap-3 py-2">
 		{#if code}
-			<Thumbnail
-				{kind}
-				{code}
-				src={image}
-				class="w-16 shrink-0 bg-transparent sm:w-24"
-			/>
+			<Thumbnail src={image} class="w-16 shrink-0 bg-transparent sm:w-24" />
 		{/if}
 		<span class="min-w-0 flex-1">
 			<button
@@ -69,7 +64,12 @@
 		class="grid min-w-0 content-center items-center gap-x-8 gap-y-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"
 	>
 		<h1 class="min-w-0">
-			{@render selector('track', track?.code, track?.name, null)}
+			{@render selector(
+				'track',
+				track?.code,
+				track?.name,
+				track?.image?.url ?? track?.outline?.url ?? null,
+			)}
 		</h1>
 		<div
 			class="min-w-0 border-t pt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"

@@ -6,7 +6,6 @@ export type {
   NationContributionResponse as NationContribution,
   NationRankingEntryResponse as NationRankingEntry,
   PersonalRankingEntryResponse as PersonalRankingEntry,
-  TrackLocation as TrackLocationCode,
   TrackLocationSummary as TrackLocation,
 } from "@lfsplanet/sdk/types";
 export type {

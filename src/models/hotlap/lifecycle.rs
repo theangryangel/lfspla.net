@@ -175,7 +175,7 @@ LIMIT 1
         max_outstanding: u64,
     ) -> Result<Hotlap, InsertError> {
         let transaction = database.begin().await?;
-        crate::db::lock_admission(&transaction).await?;
+        crate::db::lock_catalogue_read(&transaction).await?;
         let chart = crate::models::Chart::find_combination(
             &transaction,
             new.era_id,
@@ -308,7 +308,7 @@ LIMIT 1
         player_id: i64,
     ) -> Result<Option<(i64, bool)>, sea_orm::DbErr> {
         let transaction = database.begin().await?;
-        crate::db::lock_admission(&transaction).await?;
+        crate::db::lock_catalogue_read(&transaction).await?;
         let Some(hotlap) = HotlapEntity::find_by_id(hotlap_id)
             .uploads()
             .owned_by(player_id)
@@ -346,7 +346,7 @@ LIMIT 1
         player_id: i64,
     ) -> Result<Option<(Hotlap, Era)>, TestValidationError> {
         let transaction = database.begin().await?;
-        crate::db::lock_admission(&transaction).await?;
+        crate::db::lock_catalogue_read(&transaction).await?;
         let Some(model) = HotlapEntity::find_by_id(hotlap_id)
             .uploads()
             .owned_by(player_id)

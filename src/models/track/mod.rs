@@ -1,8 +1,4 @@
-//! Stable track metadata, synchronization, and eligibility.
-
-use insim_core::track::Track;
-
-use sea_orm::{ActiveValue::Set, ConnectionTrait, EntityTrait, sea_query::OnConflict};
+//! Stable track metadata and eligibility.
 
 use sea_orm::entity::prelude::*;
 
@@ -12,9 +8,9 @@ use sea_orm::{
     sea_query::{Expr, extension::postgres::PgExpr},
 };
 
-mod location;
+pub(crate) mod location;
 
-pub use location::TrackLocation;
+pub use location::Model as TrackLocation;
 
 /// One canonical LFS track configuration.
 #[sea_orm::model]
@@ -25,49 +21,18 @@ pub struct Model {
     pub id: crate::track_id::TrackId,
     pub name: String,
     pub license: String,
-    pub location: crate::models::track::TrackLocation,
+    pub location: String,
+    #[sea_orm(belongs_to, from = "location", to = "id")]
+    pub location_record: HasOne<location::Entity>,
     pub reverse: bool,
     pub open_configuration: bool,
     pub sequence: i32,
+    pub outline_attachment_id: Option<i64>,
+    pub image_attachment_id: Option<i64>,
     #[sea_orm(has_many)]
     pub charts: HasMany<crate::models::chart::Entity>,
     #[sea_orm(has_many)]
     pub hotlaps: HasMany<crate::models::hotlap::Entity>,
-}
-
-/// Synchronizes every canonical track known by this binary.
-impl Model {
-    pub(crate) async fn sync(database: &impl ConnectionTrait) -> Result<(), sea_orm::DbErr> {
-        Entity::insert_many(Track::ALL.iter().enumerate().map(|(sequence, track)| {
-            ActiveModel {
-                id: Set((*track).into()),
-                name: Set(track.complete_name().to_owned()),
-                license: Set(track.license().to_string().to_ascii_lowercase()),
-                location: Set((*track).into()),
-                reverse: Set(track.is_reverse()),
-                open_configuration: Set(track.is_open()),
-                sequence: Set(i32::try_from(sequence)
-                    .expect("the compiled track catalogue is far smaller than i32::MAX")),
-            }
-        }))
-        .on_conflict(
-            OnConflict::column(Column::Id)
-                .update_columns([
-                    Column::Name,
-                    Column::License,
-                    Column::Location,
-                    Column::Reverse,
-                    Column::OpenConfiguration,
-                    Column::Sequence,
-                ])
-                .to_owned(),
-        )
-        .exec(database)
-        .await?;
-
-        tracing::info!(tracks = Track::ALL.len(), "canonical tracks synchronized");
-        Ok(())
-    }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

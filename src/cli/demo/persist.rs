@@ -24,7 +24,7 @@ pub(super) async fn populate(
     let transaction = database.begin().await?;
     progress(
         "Waiting for the catalogue lock",
-        crate::db::lock_rebuild(&transaction),
+        crate::db::lock_catalogue_write(&transaction),
     )
     .await?;
     let era = progress(
@@ -191,9 +191,31 @@ async fn progress<T, E>(label: &str, task: impl Future<Output = Result<T, E>>) -
     }
 }
 
-async fn create_era(database: &impl ConnectionTrait) -> anyhow::Result<Era> {
-    crate::models::Track::sync(database).await?;
-    crate::models::Vehicle::sync_builtin(database).await?;
+async fn create_era(database: &sea_orm::DatabaseTransaction) -> anyhow::Result<Era> {
+    // Demo generation explicitly supplies every canonical track and standard vehicle.
+    for track in insim_core::track::Track::ALL {
+        crate::services::catalogue::tracks::TrackDefinition {
+            id: *track,
+            outline: None,
+            image: None,
+        }
+        .apply(
+            database,
+            None,
+            false,
+            std::path::Path::new("demo"),
+            crate::models::track::location::canonical_code(*track),
+        )
+        .await?;
+    }
+    for (vehicle, _) in crate::models::vehicle::STANDARD_VEHICLES {
+        crate::services::catalogue::vehicles::VehicleDefinition {
+            id: *vehicle,
+            image: None,
+        }
+        .apply(database, None, false, std::path::Path::new("demo"))
+        .await?;
+    }
     database
         .execute_raw(Statement::from_string(
             DbBackend::Postgres,

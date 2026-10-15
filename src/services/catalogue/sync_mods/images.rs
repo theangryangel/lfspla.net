@@ -1,59 +1,17 @@
-//! Store built-in artwork and cache remote Vehicle Mod covers.
+//! Cache remote Vehicle Mod covers.
 use crate::{
     models::attachment::Model as Attachment,
     models::vehicle::{Column as VehicleColumn, Entity as VehicleEntity},
 };
-use anyhow::Context;
 use futures::stream::{self, StreamExt};
 use lfsplanet_lfs_api::{LfsClient, RemoteVehicleMod};
 use object_store::ObjectStore;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, TransactionTrait, sea_query::Expr,
 };
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 const IMAGE_DOWNLOAD_CONCURRENCY: usize = 4;
 
-/// Seeds version-controlled built-in vehicle images into object storage.
-///
-/// Each known built-in vehicle must have a PNG named after its canonical code.
-/// Their database rows point at the deterministic object keys after this
-/// succeeds, so API image delivery does not need a special built-in branch.
-pub(crate) async fn seed_builtin_images(
-    database: &DatabaseConnection,
-    object_store: Arc<dyn ObjectStore>,
-    directory: &Path,
-) -> anyhow::Result<usize> {
-    let mut seeded = 0;
-    for (vehicle, _) in crate::models::vehicle::STANDARD_VEHICLES {
-        let id = vehicle.to_string();
-        let source = directory.join(format!("{id}.png"));
-        let bytes = std::fs::read(&source).with_context(|| {
-            format!("failed to read built-in vehicle image {}", source.display())
-        })?;
-        let transaction = database.begin().await?;
-        let attachment = Attachment::store(
-            &transaction,
-            &*object_store,
-            bytes,
-            "png",
-            "image/png",
-            source.file_name().and_then(|name| name.to_str()),
-        )
-        .await?;
-        VehicleEntity::update_many()
-            .filter(VehicleColumn::Id.eq(&id))
-            .col_expr(VehicleColumn::ImageAttachmentId, Expr::value(attachment.id))
-            .col_expr(
-                VehicleColumn::ImageFetchedAt,
-                Expr::value(time::OffsetDateTime::now_utc()),
-            )
-            .exec(&transaction)
-            .await?;
-        transaction.commit().await?;
-        seeded += 1;
-    }
-    Ok(seeded)
-}
 /// Downloads covers for new Mods and when their LFS revision changes.
 ///
 /// A failed refresh leaves a previously cached image intact. This keeps
@@ -96,6 +54,7 @@ pub(crate) async fn cache_images(
                     .await
                     .map_err(anyhow::Error::from)?;
                 let transaction = database.begin().await?;
+                crate::db::lock_catalogue_write(&transaction).await?;
                 let extension = image_extension(&cover.content_type);
                 let attachment = Attachment::store(
                     &transaction,

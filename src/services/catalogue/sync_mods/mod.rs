@@ -1,31 +1,17 @@
-//! Synchronise canonical tracks, vehicles, upstream mod metadata, and artwork.
+//! Synchronise upstream Vehicle Mod metadata and covers.
 mod images;
 use crate::settings::Settings;
 use anyhow::Context;
 use sea_orm::DatabaseConnection;
-pub(crate) async fn sync(
+pub(crate) async fn sync_mods(
     settings: &Settings,
     database: &DatabaseConnection,
-    standard_vehicle_images_dir: Option<&std::path::Path>,
 ) -> anyhow::Result<()> {
     let client = settings.lfs.to_api_client()?.context(
-        "LFS OAuth credentials are required for catalogue synchronization; configure lfs.oauth",
+        "LFS OAuth credentials are required for Vehicle Mod synchronization; configure lfs.oauth",
     )?;
 
-    crate::models::Track::sync(database)
-        .await
-        .context("canonical track synchronization failed")?;
-    crate::models::Vehicle::sync_builtin(database)
-        .await
-        .context("built-in vehicle synchronization failed")?;
     let object_store = crate::storage::build(&settings.storage)?;
-    let builtin_images = match standard_vehicle_images_dir {
-        Some(directory) => images::seed_builtin_images(database, object_store.clone(), directory)
-            .await
-            .context("built-in vehicle image seeding failed")?,
-        None => 0,
-    };
-
     let previous_images = crate::models::Vehicle::image_cache_state(database)
         .await
         .context("Vehicle Mods image state loading failed")?;
@@ -41,6 +27,6 @@ pub(crate) async fn sync(
         .context("Vehicle Mods cover synchronization failed")?;
     let mods = remote.len();
 
-    tracing::info!(mods, images, builtin_images, "catalogue synchronized");
+    tracing::info!(mods, images, "Vehicle Mods synchronized");
     Ok(())
 }

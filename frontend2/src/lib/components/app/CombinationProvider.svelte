@@ -157,9 +157,9 @@
 			class="flex h-9 flex-1 items-center gap-2 rounded-md border bg-secondary pr-1 pl-2 text-sm sm:flex-none"
 		>
 			<Thumbnail
-				kind={holding.kind}
-				code={holding.of.code}
-				src={holding.kind === 'vehicle' ? holding.of.image?.url : null}
+				src={holding.kind === 'vehicle'
+					? holding.of.image?.url
+					: (holding.of.image?.url ?? holding.of.outline?.url)}
 				class="w-10 shrink-0 rounded-sm ring-1 ring-border"
 			/>
 			<span

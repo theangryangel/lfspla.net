@@ -1,0 +1,29 @@
+kind: Location
+id: BL
+name: Blackwood
+sequence: 0
+description: |
+  The Blackwood circuit has two road courses and one rallycross course (plus reversed directions), situated in England's countryside. Blackwood is known for its versatility, because it contains a bit of everything.
+
+  Blackwood has been revamped thrice in the history of LFS - once at the start of S2 (0.5P), once for 0.5Y and once again for version 0.6R. The S2 version added a better pit lane and removed some rather large bumps, and 0.5Y made more improvements to the facilities and tightening the chicane. Version 0.6R revamped the whole Blackwood environment.
+tracks:
+  - id: BL1
+    outline: ./BL1.svg
+  - id: BL1R
+    outline: ./BL1R.svg
+  - id: BL2
+    outline: ./BL2.svg
+  - id: BL2R
+    outline: ./BL2R.svg
+  - id: BL3
+    outline: ./BL3.svg
+  - id: BL3R
+    outline: ./BL3R.svg
+  - id: BL1X
+  - id: BL1Y
+  - id: BL2X
+  - id: BL2Y
+  - id: BL3X
+  - id: BL3Y
+  - id: BL4
+  - id: BL4X

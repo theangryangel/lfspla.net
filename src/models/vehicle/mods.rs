@@ -54,6 +54,7 @@ impl crate::models::Vehicle {
         remote: &[RemoteVehicleMod],
     ) -> Result<(), sea_orm::DbErr> {
         let transaction = database.begin().await?;
+        crate::db::lock_catalogue_write(&transaction).await?;
         let observed_at = time::OffsetDateTime::now_utc();
 
         VehicleEntity::update_many()

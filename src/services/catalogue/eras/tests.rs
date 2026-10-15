@@ -1,10 +1,30 @@
 use super::*;
+use crate::models::era::definition;
 use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, SqlxPostgresConnector};
+
+async fn apply(
+    database: &DatabaseConnection,
+    desired: &[EraDefinition],
+    review: impl FnOnce(&[EraChange]) -> anyhow::Result<()>,
+) -> anyhow::Result<Vec<EraSlug>> {
+    let sources = desired
+        .iter()
+        .map(|era| crate::services::catalogue::load::SourceDefinition {
+            source: std::path::PathBuf::from(format!("{}.yaml", era.id)),
+            definition: crate::services::catalogue::CatalogueDefinition::Era(era.clone()),
+        })
+        .collect::<Vec<_>>();
+    Ok(
+        crate::services::catalogue::seed(database, &sources, None, false, review)
+            .await?
+            .eras,
+    )
+}
 
 async fn setup(pool: sqlx::PgPool) -> anyhow::Result<DatabaseConnection> {
     let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
-    crate::models::Track::sync(&database).await?;
-    crate::models::Vehicle::sync_builtin(&database).await?;
+    crate::services::catalogue::fixtures::tracks(&database).await?;
+    crate::services::catalogue::fixtures::vehicles(&database).await?;
     Ok(database)
 }
 

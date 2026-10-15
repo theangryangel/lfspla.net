@@ -225,10 +225,17 @@ mod tests {
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-        crate::models::Track::sync(&database).await?;
-        crate::models::Vehicle::sync_builtin(&database).await?;
+        crate::services::catalogue::fixtures::tracks(&database).await?;
+        crate::services::catalogue::fixtures::vehicles(&database).await?;
         let desired = definition::test_definitions();
-        crate::services::apply_eras::apply(&database, &desired, |_| Ok(())).await?;
+        let sources = desired
+            .iter()
+            .map(|era| crate::services::catalogue::load::SourceDefinition {
+                source: std::path::PathBuf::from(format!("{}.yaml", era.id)),
+                definition: crate::services::catalogue::CatalogueDefinition::Era(era.clone()),
+            })
+            .collect::<Vec<_>>();
+        crate::services::catalogue::seed(&database, &sources, None, false, |_| Ok(())).await?;
         let first = Era::find_by_slug(&database, &desired[0].id).await?.unwrap();
         let second = Era::find_by_slug(&database, &desired[1].id).await?.unwrap();
         let pair = desired[0].rankings[0].combinations.pairs().next().unwrap();

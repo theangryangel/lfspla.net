@@ -1,0 +1,45 @@
+kind: Location
+id: FE
+name: Fern Bay
+sequence: 2
+description: |
+  Fern Bay situated in the sunny outlands of Jamaica contains four road and two rallycross configurations, plus reverse, including the longest S1 road configuation at 4.1 miles (6.6 km).
+
+  Fern Bay has been revamped once in the history of LFS, for the release of S2 (0.5P). 0.5Y provided minor fixes and improvements for the environment.
+tracks:
+  - id: FE1
+    outline: ./FE1.svg
+  - id: FE1R
+    outline: ./FE1R.svg
+  - id: FE2
+    outline: ./FE2.svg
+  - id: FE2R
+    outline: ./FE2R.svg
+  - id: FE3
+    outline: ./FE3.svg
+  - id: FE3R
+    outline: ./FE3R.svg
+  - id: FE4
+    outline: ./FE4.svg
+  - id: FE4R
+    outline: ./FE4R.svg
+  - id: FE5
+    outline: ./FE5.svg
+  - id: FE5R
+    outline: ./FE5R.svg
+  - id: FE6
+    outline: ./FE6.svg
+  - id: FE6R
+    outline: ./FE6R.svg
+  - id: FE1X
+  - id: FE1Y
+  - id: FE2X
+  - id: FE2Y
+  - id: FE3X
+  - id: FE3Y
+  - id: FE4X
+  - id: FE4Y
+  - id: FE5X
+  - id: FE5Y
+  - id: FE6X
+  - id: FE6Y

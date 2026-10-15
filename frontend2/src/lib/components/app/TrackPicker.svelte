@@ -13,12 +13,7 @@
 
 	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
 	import TrackCard from '$lib/components/app/TrackCard.svelte';
-	import {
-		useApi,
-		type TrackLocation,
-		type TrackLocationCode,
-		type VehicleSummary,
-	} from '$lib/api.js';
+	import { useApi, type VehicleSummary } from '$lib/api.js';
 
 	const api = useApi();
 
@@ -45,7 +40,7 @@
 	} = $props();
 
 	let term = $state('');
-	let locationFilter = $state<TrackLocationCode | 'all'>('all');
+	let locationFilter = $state<string>('all');
 	let filters = $state<HTMLDivElement | null>(null);
 	let tracks = $state<TrackSummary[] | null>(null);
 	let failed = $state(false);
@@ -53,23 +48,12 @@
 
 	const contains = (text: string) =>
 		text.toLowerCase().includes(term.trim().toLowerCase());
-	const locationOrder: TrackLocationCode[] = [
-		'BL',
-		'SO',
-		'FE',
-		'KY',
-		'AS',
-		'WE',
-		'RO',
-		'OTHER',
-	];
 	const locations = $derived(
-		locationOrder
-			.map(
-				(code) =>
-					tracks?.find((track) => track.location.code === code)?.location,
-			)
-			.filter((location): location is TrackLocation => location !== undefined),
+		Array.from(
+			new Map(
+				(tracks ?? []).map((track) => [track.location.code, track.location]),
+			).values(),
+		).sort((a, b) => a.sequence - b.sequence || a.code.localeCompare(b.code)),
 	);
 	const shown = $derived(
 		(tracks ?? []).filter(
@@ -145,8 +129,7 @@
 		size="lg"
 		class="w-full flex-wrap"
 		aria-label="Filter tracks by location"
-		onValueChange={(value) =>
-			(locationFilter = (value || 'all') as TrackLocationCode | 'all')}
+		onValueChange={(value) => (locationFilter = value || 'all')}
 	>
 		<ToggleGroup.Item value="all" class="flex-initial sm:flex-auto"
 			>All</ToggleGroup.Item

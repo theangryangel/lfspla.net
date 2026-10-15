@@ -19,7 +19,7 @@
 </script>
 
 {#snippet content()}
-	<Thumbnail kind="track" code={track.code} />
+	<Thumbnail src={track.image?.url ?? track.outline?.url} />
 	<div class="flex items-center gap-1.5 p-2">
 		<div class="min-w-0 flex-1">
 			<svelte:element

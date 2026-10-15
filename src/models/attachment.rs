@@ -89,6 +89,33 @@ impl Model {
     }
 }
 
+/// SQL predicate for any single-column foreign key to attachment.id.
+/// Database-side identifier quoting makes this independent of parent models.
+pub(crate) async fn reference_predicate(
+    transaction: &DatabaseTransaction,
+) -> anyhow::Result<String> {
+    let predicate = transaction
+        .query_one_raw(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT COALESCE(string_agg(format(
+            'EXISTS (SELECT 1 FROM %I.%I AS owner WHERE owner.%I = a.id)',
+            namespace.nspname, parent.relname, column_name.attname), ' OR '), 'FALSE') AS predicate
+         FROM pg_constraint fk
+         JOIN pg_class parent ON parent.oid = fk.conrelid
+         JOIN pg_namespace namespace ON namespace.oid = parent.relnamespace
+         JOIN pg_attribute column_name ON column_name.attrelid = fk.conrelid
+             AND column_name.attnum = fk.conkey[1]
+         JOIN pg_attribute target ON target.attrelid = fk.confrelid
+             AND target.attnum = fk.confkey[1]
+         WHERE fk.contype = 'f' AND fk.confrelid = 'attachment'::regclass
+             AND cardinality(fk.conkey) = 1 AND target.attname = 'id'",
+        ))
+        .await?
+        .context("attachment reference query returned no row")?
+        .try_get::<String>("", "predicate")?;
+    Ok(predicate)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

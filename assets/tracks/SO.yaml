@@ -1,0 +1,46 @@
+kind: Location
+id: SO
+name: South City
+sequence: 1
+description: |
+  Mimicking a city environment, the South City track is distinguished by tight turns and Armco barriers, and is the most popular S1 track. It contains six road configurations, plus reverse. These tracks are good for both starting and seasoned racers.
+
+  South City has been revamped twice in the history of LFS - once for the release of S2 (0.5P) and once for 0.5Y. The latter introduced the Chicane Route configuration.
+tracks:
+  - id: SO1
+    outline: ./SO1.svg
+  - id: SO1R
+    outline: ./SO1R.svg
+  - id: SO2
+    outline: ./SO2.svg
+  - id: SO2R
+    outline: ./SO2R.svg
+  - id: SO3
+    outline: ./SO3.svg
+  - id: SO3R
+    outline: ./SO3R.svg
+  - id: SO4
+    outline: ./SO4.svg
+  - id: SO4R
+    outline: ./SO4R.svg
+  - id: SO5
+    outline: ./SO5.svg
+  - id: SO5R
+    outline: ./SO5R.svg
+  - id: SO6
+    outline: ./SO6.svg
+  - id: SO6R
+    outline: ./SO6R.svg
+  - id: SO1X
+  - id: SO1Y
+  - id: SO2X
+  - id: SO2Y
+  - id: SO3X
+  - id: SO3Y
+  - id: SO4X
+  - id: SO4Y
+  - id: SO5X
+  - id: SO5Y
+  - id: SO6X
+  - id: SO6Y
+  - id: SO7
