@@ -4,7 +4,7 @@ import { toQueryString } from "./qs.js";
  * Creates a fluent builder for constructing URL query strings.
  *
  * Each `.add()` call serializes its value immediately (like C#'s builder),
- * so no format tracking is needed - the style is applied at add-time.
+ * so no format tracking is needed — the style is applied at add-time.
  *
  * Usage (generated code):
  *
