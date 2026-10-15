@@ -3,9 +3,7 @@
 use insim_core::vehicle::Vehicle;
 
 use sea_orm::{
-    ActiveValue::Set,
-    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    sea_query::{Expr, OnConflict},
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, sea_query::Expr,
 };
 
 use sea_orm::entity::prelude::*;
@@ -74,58 +72,6 @@ pub(crate) const STANDARD_VEHICLES: &[(Vehicle, &str)] = &[
 ];
 
 impl Model {
-    /// Synchronizes every built-in vehicle known by this binary without touching
-    /// mutable Vehicle Mods metadata.
-    pub(crate) async fn sync_builtin(
-        database: &impl sea_orm::ConnectionTrait,
-    ) -> Result<(), sea_orm::DbErr> {
-        Entity::insert_many(STANDARD_VEHICLES.iter().enumerate().map(
-            |(sequence, (vehicle, name))| {
-                ActiveModel {
-                    id: Set(crate::vehicle_id::VehicleId(*vehicle)),
-                    kind: Set(KIND_STANDARD.to_owned()),
-                    sequence: Set(i32::try_from(sequence)
-                        .expect("the compiled vehicle catalogue is far smaller than i32::MAX")),
-                    name: Set((*name).to_owned()),
-                    normalized_name: Set(Self::normalize_name(name)),
-                    license: Set(vehicle.license().to_string().to_ascii_lowercase()),
-                    version: Set(None),
-                    class: Set(None),
-                    author_username: Set(None),
-                    work_in_progress: Set(false),
-                    published_at: Set(None),
-                    available: Set(true),
-                    metadata: Set(None),
-                    fetched_at: Set(None),
-                    last_seen_at: Set(None),
-                    image_attachment_id: Set(None),
-                    image_fetched_at: Set(None),
-                    image_version: Set(None),
-                }
-            },
-        ))
-        .on_conflict(
-            OnConflict::column(Column::Id)
-                .update_columns([
-                    Column::Kind,
-                    Column::Sequence,
-                    Column::Name,
-                    Column::NormalizedName,
-                    Column::License,
-                    Column::Available,
-                ])
-                .to_owned(),
-        )
-        .exec(database)
-        .await?;
-
-        tracing::info!(
-            vehicles = STANDARD_VEHICLES.len(),
-            "built-in vehicles synchronized"
-        );
-        Ok(())
-    }
-
     pub(crate) fn normalize_name(value: &str) -> String {
         value
             .split_whitespace()

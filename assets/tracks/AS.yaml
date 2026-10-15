@@ -1,0 +1,63 @@
+kind: Location
+id: AS
+name: Aston
+sequence: 4
+description: |
+  The Aston Racetrack in the middle of England has several longer and shorter configurations within a nice countryside full of forest and light hills. The 7 configurations include the longest in S2 with 8.8 kilometers. Fast and slow turns, some altitude changes and a great chicane are the ingredients to this racetrack.
+
+  Aston was introduced with the release of S2 (0.5P). On April 21, 2006, the April Update 0.5S added the Grand Touring (AS6) and North (AS7) configurations to the environment.[
+tracks:
+  - id: AS1
+    outline: ./AS1.svg
+  - id: AS1R
+    outline: ./AS1R.svg
+  - id: AS2
+    outline: ./AS2.svg
+  - id: AS2R
+    outline: ./AS2R.svg
+  - id: AS3
+    outline: ./AS3.svg
+  - id: AS3R
+    outline: ./AS3R.svg
+  - id: AS4
+    outline: ./AS4.svg
+  - id: AS4R
+    outline: ./AS4R.svg
+  - id: AS5
+    outline: ./AS5.svg
+  - id: AS5R
+    outline: ./AS5R.svg
+  - id: AS6
+    outline: ./AS6.svg
+  - id: AS6R
+    outline: ./AS6R.svg
+  - id: AS7
+    outline: ./AS7.svg
+  - id: AS7R
+    outline: ./AS7R.svg
+  - id: AS8
+    outline: ./AS8.svg
+  - id: AS8R
+    outline: ./AS8R.svg
+  - id: AS9
+    outline: ./AS9.svg
+  - id: AS9R
+    outline: ./AS9R.svg
+  - id: AS1X
+  - id: AS1Y
+  - id: AS2X
+  - id: AS2Y
+  - id: AS3X
+  - id: AS3Y
+  - id: AS4X
+  - id: AS4Y
+  - id: AS5X
+  - id: AS5Y
+  - id: AS6X
+  - id: AS6Y
+  - id: AS7X
+  - id: AS7Y
+  - id: AS8X
+  - id: AS8Y
+  - id: AS9X
+  - id: AS9Y

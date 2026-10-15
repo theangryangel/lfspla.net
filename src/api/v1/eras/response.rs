@@ -1,6 +1,7 @@
 //! Shared chart identity and catalogue metadata used by era and spotlight responses.
 
 use super::{tracks::TrackSummary, vehicles::VehicleSummary};
+use crate::api::v1::track_locations::TrackLocationSummary;
 use crate::{
     api::ApiError,
     era_slug::EraSlug,
@@ -63,15 +64,30 @@ impl Chart {
                 .all(database),
         )
         .map_err(ApiError::database)?;
-        let tracks: HashMap<_, _> = tracks
-            .into_iter()
-            .map(|track| (track.id, TrackSummary::from(track)))
-            .collect();
         let attachments = crate::api::v1::attachments::load(
             database,
-            vehicles.iter().filter_map(|v| v.image_attachment_id),
+            vehicles
+                .iter()
+                .filter_map(|v| v.image_attachment_id)
+                .chain(
+                    tracks
+                        .iter()
+                        .flat_map(|track| [track.image_attachment_id, track.outline_attachment_id])
+                        .flatten(),
+                )
+                .collect::<Vec<_>>(),
         )
         .await?;
+        let locations = TrackLocationSummary::load(database).await?;
+        let tracks: HashMap<_, _> = tracks
+            .into_iter()
+            .map(|track| {
+                Ok((
+                    track.id,
+                    TrackSummary::from_record(track, &attachments, &locations)?,
+                ))
+            })
+            .collect::<Result<_, ApiError>>()?;
         let vehicles: HashMap<_, _> = vehicles
             .into_iter()
             .map(|vehicle| {

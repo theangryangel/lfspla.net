@@ -1,0 +1,55 @@
+kind: Location
+id: KY
+name: Kyoto Ring
+sequence: 3
+description: |
+  Kyoto Ring is a fictional circuit in S2. In this Japanese environment, the atmosphere is set by the tri-oval - the 'ring', which links together all configurations. The configurations vary a lot - both slow and fast racing is good fun here.
+tracks:
+  - id: KY1
+    outline: ./KY1.svg
+  - id: KY1R
+    outline: ./KY1R.svg
+  - id: KY2
+    outline: ./KY2.svg
+  - id: KY2R
+    outline: ./KY2R.svg
+  - id: KY3
+    outline: ./KY3.svg
+  - id: KY3R
+    outline: ./KY3R.svg
+  - id: KY4
+    outline: ./KY4.svg
+  - id: KY4R
+    outline: ./KY4R.svg
+  - id: KY5R
+    outline: ./KY5R.svg
+  - id: KY6R
+    outline: ./KY6R.svg
+  - id: KY7R
+    outline: ./KY7R.svg
+  - id: KY8R
+    outline: ./KY8R.svg
+  - id: Ky5
+    outline: ./KY5.svg
+  - id: Ky6
+    outline: ./KY6.svg
+  - id: Ky7
+    outline: ./KY7.svg
+  - id: Ky8
+    outline: ./KY8.svg
+  - id: KY1X
+  - id: KY1Y
+  - id: KY2X
+  - id: KY2Y
+  - id: KY3X
+  - id: KY3Y
+  - id: KY4X
+  - id: KY4Y
+  - id: KY5X
+  - id: KY5Y
+  - id: KY6X
+  - id: KY6Y
+  - id: KY7X
+  - id: KY7Y
+  - id: KY8X
+  - id: KY8Y

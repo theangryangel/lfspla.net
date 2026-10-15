@@ -101,7 +101,7 @@ pub(crate) async fn submit(
 
     let digest = hex::encode(Sha256::digest(&bytes));
     let transaction = database.begin().await?;
-    crate::db::lock_admission(&transaction).await?;
+    crate::db::lock_catalogue_read(&transaction).await?;
     let attachment = Attachment::store(
         &transaction,
         object_store,

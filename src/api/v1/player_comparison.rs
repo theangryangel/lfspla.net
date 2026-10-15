@@ -216,8 +216,8 @@ mod tests {
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-        crate::models::Track::sync(&database).await?;
-        crate::models::Vehicle::sync_builtin(&database).await?;
+        crate::services::catalogue::fixtures::tracks(&database).await?;
+        crate::services::catalogue::fixtures::vehicles(&database).await?;
         sqlx::raw_sql(include_str!("../../services/validate_hotlap/fixtures.sql"))
             .execute(&pool)
             .await?;

@@ -29,7 +29,7 @@ impl Era {
         // Acquire before reading: publication and catalogue edits use this same
         // lock. It also serializes rebuilds, without taking a stale snapshot
         // before waiting for another rebuild to finish.
-        crate::db::lock_rebuild(&transaction).await?;
+        crate::db::lock_catalogue_write(&transaction).await?;
         let calculated = self.calculate_badges(&transaction).await?;
         let count =
             crate::models::badge::Model::replace_era(&transaction, self.id, calculated).await?;

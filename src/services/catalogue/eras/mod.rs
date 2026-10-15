@@ -7,7 +7,7 @@ use crate::{
         Era,
         era::{
             ActiveModel as EraMutation, Column as EraColumn, Entity as EraEntity,
-            definition::{self, EraDefinition, combination_keys},
+            definition::{EraDefinition, combination_keys},
         },
         ranking::{
             ActiveModel as RankingMutation, Column as RankingColumn, Entity as RankingEntity,
@@ -21,8 +21,7 @@ use sea_orm::{
     DatabaseTransaction, DbBackend, EntityTrait, IntoActiveModel, QueryFilter, Set, Statement,
     TransactionTrait,
 };
-use std::collections::{HashMap, HashSet};
-use validator::Validate;
+use std::collections::HashMap;
 pub(crate) struct AffectedHotlaps {
     pub(crate) track: String,
     pub(crate) vehicle: String,
@@ -35,88 +34,9 @@ pub(crate) struct EraChange {
     pub(crate) affected: Vec<AffectedHotlaps>,
 }
 
-/// Review runs with the catalogue lock held, before any changes are persisted.
-/// Returning an error cancels the transaction.
-pub(crate) async fn apply(
-    database: &DatabaseConnection,
-    desired: &[EraDefinition],
-    review: impl FnOnce(&[EraChange]) -> anyhow::Result<()>,
-) -> anyhow::Result<Vec<EraSlug>> {
-    let mut ids = HashSet::new();
-    for definition in desired {
-        definition
-            .validate()
-            .with_context(|| format!("invalid era definition {}", definition.id))?;
-        ensure!(
-            ids.insert(&definition.id),
-            "duplicate era {} in input",
-            definition.id
-        );
-    }
-    let transaction = database.begin().await?;
-    db::lock_rebuild(&transaction).await?;
-    let existing_models = EraEntity::find().all(&transaction).await?;
-    let existing_definitions = definition::list(&transaction).await?;
-    let mut changes = Vec::new();
-    for desired in desired {
-        let model = existing_models
-            .iter()
-            .find(|model| model.slug == desired.id);
-        let existing = existing_definitions
-            .iter()
-            .find(|era| era.id == desired.id)
-            .cloned();
-        let affected = if let Some(model) = model {
-            affected_hotlaps(&transaction, model.id, desired).await?
-        } else {
-            Vec::new()
-        };
-        changes.push(EraChange {
-            existing,
-            desired: desired.clone(),
-            affected,
-        });
-    }
-    review(&changes)?;
-    let changed = changes
-        .iter()
-        .filter(|change| change.existing.as_ref() != Some(&change.desired))
-        .collect::<Vec<_>>();
-    for change in &changed {
-        let existing = existing_models
-            .iter()
-            .find(|model| model.slug == change.desired.id)
-            .cloned();
-        persist(&transaction, existing, &change.desired).await?;
-    }
-    crate::models::Era::validate_version_requirements(&transaction)
-        .await
-        .context("the proposed era would make the catalogue invalid")?;
-    let mut changed_eras = Vec::new();
-    for change in &changed {
-        let era = Era::find_by_slug(&transaction, &change.desired.id)
-            .await?
-            .expect("persisted era must exist");
-        era.rebuild_personal_bests(&transaction).await?;
-        changed_eras.push(era);
-    }
-    transaction.commit().await?;
-    let mut applied = Vec::new();
-    for era in changed_eras {
-        era.rebuild_badges(database).await.with_context(|| {
-            format!(
-                "era {} was applied, but badge rebuilding failed; run hotlap rebadge --all",
-                era.slug
-            )
-        })?;
-        applied.push(era.slug);
-    }
-    Ok(applied)
-}
-
 pub(crate) async fn delete(database: &DatabaseConnection, id: &EraSlug) -> anyhow::Result<()> {
     let transaction = database.begin().await?;
-    db::lock_rebuild(&transaction).await?;
+    db::lock_catalogue_write(&transaction).await?;
     let result = EraEntity::delete_many()
         .filter(EraColumn::Slug.eq(id.clone()))
         .exec(&transaction)
@@ -138,7 +58,7 @@ pub(crate) async fn set_open(
     open: bool,
 ) -> anyhow::Result<bool> {
     let transaction = database.begin().await?;
-    db::lock_rebuild(&transaction).await?;
+    db::lock_catalogue_write(&transaction).await?;
     let model = Era::find_by_slug(&transaction, id)
         .await?
         .with_context(|| format!("era {id:?} was not found"))?;
@@ -154,7 +74,7 @@ pub(crate) async fn set_open(
 }
 
 #[allow(clippy::too_many_lines)]
-async fn persist(
+pub(super) async fn persist(
     transaction: &DatabaseTransaction,
     existing: Option<Era>,
     desired: &EraDefinition,
@@ -284,7 +204,7 @@ async fn persist(
     Ok(())
 }
 
-async fn affected_hotlaps<C: ConnectionTrait>(
+pub(super) async fn affected_hotlaps<C: ConnectionTrait>(
     database: &C,
     era_id: i64,
     desired: &EraDefinition,

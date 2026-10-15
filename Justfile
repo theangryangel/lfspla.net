@@ -187,7 +187,7 @@ generate-config:
     cargo run --locked -- generate-config --development > "$config_tmp"
     mv "$config_tmp" planet.yaml
 
-# Run database migrations, sync the catalogue, and apply eras.
+# Run database migrations, synchronize Vehicle Mods, and seed catalogue definitions.
 seed:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -202,24 +202,24 @@ seed:
     fi
     docker compose up -d --wait postgres
     cargo run --locked -- -c planet.yaml migrate
-    cargo run --locked -- -c planet.yaml maintenance catalogue-sync --standard-vehicle-images-dir assets/builtin-vehicles
-    cargo run --locked -- -c planet.yaml era apply assets/eras/*.yaml --yes
+    cargo run --locked -- -c planet.yaml maintenance sync-mods
+    cargo run --locked -- -c planet.yaml seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml --yes
 
 # Deploy demo data
 demo:
     cargo run --locked -- -c planet.yaml demo --yes
 
-# Build the backend and frontend, then deploy the site and eras with pyinfra.
+# Build the backend and frontend, then deploy the site and catalogue with pyinfra.
 deploy:
     cargo build --locked --release
     npm --prefix frontend2 ci
     npm --prefix frontend2 run build
     uv run --directory deploy --with-requirements requirements.txt pyinfra inventory.py deploy.py
-    uv run --directory deploy --with-requirements requirements.txt pyinfra inventory.py eras.py
+    uv run --directory deploy --with-requirements requirements.txt pyinfra inventory.py catalogue.py
 
-# Deploy updated eras.
-deploy-eras:
-    uv run --directory deploy --with-requirements requirements.txt pyinfra inventory.py eras.py
+# Deploy catalogue definitions and artwork, and synchronize Vehicle Mods.
+deploy-catalogue:
+    uv run --directory deploy --with-requirements requirements.txt pyinfra inventory.py catalogue.py
 
 # Run database migrations.
 migrate:

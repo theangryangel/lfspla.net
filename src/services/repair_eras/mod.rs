@@ -30,7 +30,7 @@ pub(crate) struct RepairSummary {
 /// Reclassifies every hotlap, rebuilding personal bests and chart positions.
 pub(crate) async fn repair(database: &DatabaseConnection) -> anyhow::Result<RepairSummary> {
     let transaction = database.begin().await?;
-    crate::db::lock_rebuild(&transaction).await?;
+    crate::db::lock_catalogue_write(&transaction).await?;
     let eras = EraEntity::find()
         .order_by_asc(EraColumn::Id)
         .all(&transaction)

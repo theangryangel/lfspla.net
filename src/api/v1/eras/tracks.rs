@@ -1,11 +1,9 @@
 //! Track metadata endpoints scoped to an era.
 
+use crate::api::v1::track_locations::TrackLocationSummary;
 use crate::{
     api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
-    models::{
-        Track as TrackRecord,
-        track::{TrackLocation, TrackOrder},
-    },
+    models::{Track as TrackRecord, track::TrackOrder},
 };
 use axum::{
     Json,
@@ -24,6 +22,10 @@ pub(crate) struct TrackSummary {
     location: TrackLocationSummary,
     reverse: bool,
     open_configuration: bool,
+    #[schema(required)]
+    image: Option<crate::api::v1::attachments::Attachment>,
+    #[schema(required)]
+    outline: Option<crate::api::v1::attachments::Attachment>,
 }
 
 /// Narrowing for the era track catalogue.
@@ -32,13 +34,6 @@ pub(crate) struct TrackSummary {
 pub(crate) struct TrackSearchQuery {
     /// Restrict tracks to those paired with this canonical vehicle.
     vehicle: Option<String>,
-}
-
-/// Stable code and display name for an LFS location.
-#[derive(Debug, Clone, Serialize, ToSchema)]
-pub(crate) struct TrackLocationSummary {
-    code: TrackLocation,
-    name: String,
 }
 
 /// Builds era-scoped track routes.
@@ -97,11 +92,21 @@ pub(crate) async fn list_for_era(
         .all(&state.database)
         .await
         .map_err(ApiError::database)?;
+    let attachments = crate::api::v1::attachments::load(
+        &state.database,
+        tracks
+            .iter()
+            .flat_map(|track| [track.image_attachment_id, track.outline_attachment_id])
+            .flatten()
+            .collect::<Vec<_>>(),
+    )
+    .await?;
+    let locations = TrackLocationSummary::load(&state.database).await?;
     Ok(Json(ListResponse::from(
         tracks
             .into_iter()
-            .map(TrackSummary::from)
-            .collect::<Vec<_>>(),
+            .map(|track| TrackSummary::from_record(track, &attachments, &locations))
+            .collect::<Result<Vec<_>, _>>()?,
     )))
 }
 
@@ -109,37 +114,42 @@ impl TrackSummary {
     pub(crate) fn new(
         code: crate::track_id::TrackId,
         name: String,
-        location: TrackLocation,
+        location: TrackLocationSummary,
         reverse: bool,
         open_configuration: bool,
+        image: Option<crate::api::v1::attachments::Attachment>,
+        outline: Option<crate::api::v1::attachments::Attachment>,
     ) -> Self {
         Self {
             code: code.to_string(),
             name,
-            location: location.into(),
+            location,
             reverse,
             open_configuration,
+            image,
+            outline,
         }
     }
 }
 
-impl From<TrackRecord> for TrackSummary {
-    fn from(track: TrackRecord) -> Self {
-        Self::new(
+impl TrackSummary {
+    pub(crate) fn from_record(
+        track: TrackRecord,
+        attachments: &std::collections::HashMap<i64, crate::api::v1::attachments::Attachment>,
+        locations: &std::collections::HashMap<String, TrackLocationSummary>,
+    ) -> Result<Self, ApiError> {
+        Ok(Self::new(
             track.id,
             track.name,
-            track.location,
+            TrackLocationSummary::find(locations, &track.location)?,
             track.reverse,
             track.open_configuration,
-        )
-    }
-}
-
-impl From<TrackLocation> for TrackLocationSummary {
-    fn from(location: TrackLocation) -> Self {
-        Self {
-            code: location,
-            name: location.name().to_owned(),
-        }
+            track
+                .image_attachment_id
+                .and_then(|id| attachments.get(&id).cloned()),
+            track
+                .outline_attachment_id
+                .and_then(|id| attachments.get(&id).cloned()),
+        ))
     }
 }

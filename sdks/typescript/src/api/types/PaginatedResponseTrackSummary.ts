@@ -19,9 +19,11 @@ export namespace PaginatedResponseTrackSummary {
      */
     export interface Item {
       code: string;
+      image: LfsplanetApi.Attachment | null;
       location: LfsplanetApi.TrackLocationSummary;
       name: string;
       open_configuration: boolean;
+      outline: LfsplanetApi.Attachment | null;
       reverse: boolean;
     }
   }

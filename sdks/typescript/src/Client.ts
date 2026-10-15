@@ -10,6 +10,7 @@ import { PersonalAccessTokensClient } from "./api/resources/personalAccessTokens
 import { PlayersClient } from "./api/resources/players/client/Client.js";
 import { RankingClient } from "./api/resources/ranking/client/Client.js";
 import { StatsClient } from "./api/resources/stats/client/Client.js";
+import { TrackLocationsClient } from "./api/resources/trackLocations/client/Client.js";
 import { TracksClient } from "./api/resources/tracks/client/Client.js";
 import { VehiclesClient } from "./api/resources/vehicles/client/Client.js";
 import { WebhooksClient } from "./api/resources/webhooks/client/Client.js";
@@ -41,6 +42,7 @@ export class LfsplanetApiClient {
   protected _personalAccessTokens: PersonalAccessTokensClient | undefined;
   protected _webhooks: WebhooksClient | undefined;
   protected _stats: StatsClient | undefined;
+  protected _trackLocations: TrackLocationsClient | undefined;
 
   constructor(options: LfsplanetApiClient.Options) {
     this._options = normalizeClientOptionsWithAuth(options);
@@ -98,6 +100,10 @@ export class LfsplanetApiClient {
 
   public get stats(): StatsClient {
     return (this._stats ??= new StatsClient(this._options));
+  }
+
+  public get trackLocations(): TrackLocationsClient {
+    return (this._trackLocations ??= new TrackLocationsClient(this._options));
   }
 
   /**

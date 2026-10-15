@@ -14,6 +14,7 @@ mod maintenance;
 mod migrate;
 mod openapi;
 mod player;
+mod seed;
 mod storage;
 mod worker;
 
@@ -38,6 +39,8 @@ pub struct Args {
 /// Backend process to run.
 #[derive(Clone, Debug, Eq, PartialEq, Subcommand)]
 pub enum Command {
+    /// Apply tagged catalogue YAML definitions.
+    Seed(seed::SeedArgs),
     /// Generate synthetic players and hotlaps for a development database.
     #[cfg(debug_assertions)]
     Demo(demo::DemoArgs),
@@ -81,6 +84,7 @@ pub enum Command {
 /// Dispatches one parsed command.
 pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     match &args.command {
+        Command::Seed(options) => seed::run(args, options).await,
         #[cfg(debug_assertions)]
         Command::Demo(options) => demo::run(args, options).await,
         Command::GenerateConfig(options) => config::run(options),
@@ -93,5 +97,19 @@ pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
         Command::Era { action } => era::run(args, action).await,
         Command::Player { action } => player::run(args, action).await,
         Command::Maintenance { action } => maintenance::run(args, action).await,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn catalogue_commands_require_the_current_names() {
+        assert!(Args::try_parse_from(["lfsplanet", "maintenance", "sync-mods"]).is_ok());
+        assert!(Args::try_parse_from(["lfsplanet", "seed", "era.yaml"]).is_ok());
+        assert!(Args::try_parse_from(["lfsplanet", "maintenance", "catalogue-sync"]).is_err());
+        assert!(Args::try_parse_from(["lfsplanet", "maintenance", "mods-sync"]).is_err());
+        assert!(Args::try_parse_from(["lfsplanet", "era", "apply", "era.yaml"]).is_err());
     }
 }

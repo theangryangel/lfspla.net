@@ -101,8 +101,8 @@
 							</div>
 							<div class="flex min-w-0 items-center gap-2">
 								<Thumbnail
-									kind="track"
-									code={combo.chart.track.code}
+									src={combo.chart.track.image?.url ??
+										combo.chart.track.outline?.url}
 									class="w-14 shrink-0 bg-transparent"
 								/>
 								<div class="min-w-0">
@@ -116,8 +116,6 @@
 							</div>
 							<div class="flex min-w-0 items-center gap-2">
 								<Thumbnail
-									kind="vehicle"
-									code={combo.chart.vehicle.code}
 									src={combo.chart.vehicle.image?.url}
 									class="w-14 shrink-0 bg-transparent"
 								/>

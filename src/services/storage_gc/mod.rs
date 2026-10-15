@@ -111,6 +111,7 @@ async fn process_batch(
     // Uploaders hold a shared lock until their parent reference is committed.
     // Under this exclusive lock, references and physical bytes cannot race GC.
     attachment::lock(&transaction, true).await?;
+    let references = attachment::reference_predicate(&transaction).await?;
     let keys: Vec<String> = batch
         .iter()
         .map(|object| object.location.to_string())
@@ -118,9 +119,7 @@ async fn process_batch(
     let rows = transaction
         .query_all_raw(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "SELECT object_key FROM attachment a WHERE object_key = ANY($1::text[]) AND (
-            EXISTS (SELECT 1 FROM hotlap WHERE spr_attachment_id = a.id OR raf_attachment_id = a.id)
-            OR EXISTS (SELECT 1 FROM vehicle WHERE image_attachment_id = a.id))",
+            format!("SELECT object_key FROM attachment a WHERE object_key = ANY($1::text[]) AND ({references})"),
             [keys.clone().into()],
         ))
         .await?;
@@ -130,9 +129,8 @@ async fn process_batch(
         .collect::<Result<HashSet<_>, _>>()?;
     if delete {
         transaction.execute_raw(Statement::from_sql_and_values(DbBackend::Postgres,
-            "DELETE FROM attachment a WHERE object_key = ANY($1::text[]) AND created_at < to_timestamp($2::bigint)
-             AND NOT EXISTS (SELECT 1 FROM hotlap WHERE spr_attachment_id = a.id OR raf_attachment_id = a.id)
-             AND NOT EXISTS (SELECT 1 FROM vehicle WHERE image_attachment_id = a.id)",
+            format!("DELETE FROM attachment a WHERE object_key = ANY($1::text[]) AND created_at < to_timestamp($2::bigint)
+             AND NOT ({references})"),
             [keys.into(), i64::try_from(cutoff)?.into()])).await?;
     }
     summary.stored += batch.len();

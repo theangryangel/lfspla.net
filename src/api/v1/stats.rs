@@ -74,47 +74,68 @@ pub(crate) async fn get_stats(
     let totals = SiteStats::load(&state.database)
         .await
         .map_err(ApiError::database)?;
+    let locations = super::track_locations::TrackLocationSummary::load(&state.database).await?;
     Ok(Json(StatsResponse {
         validated_hotlaps: totals.validated_hotlaps,
         drivers: totals.drivers,
         combinations: totals.combinations,
         eras: totals.eras,
         spotlight_uploads: totals.spotlight_uploads,
-        combo_spotlight: totals.combo_spotlight.map(|combo| ComboSpotlightResponse {
-            chart: Chart::new(
-                combo.era_id,
-                combo.era_title,
-                TrackSummary::new(
-                    combo.track,
-                    combo.track_name,
-                    combo.track_location,
-                    combo.track_reverse,
-                    combo.track_open_configuration,
-                ),
-                VehicleSummary::new(
-                    combo.vehicle,
-                    combo.vehicle_name,
-                    combo.vehicle_license,
-                    combo.vehicle_image_public_id.map(|id| {
-                        crate::api::v1::attachments::Attachment::new(
-                            id,
-                            combo.vehicle_image_original_filename,
-                        )
-                    }),
-                ),
-            ),
-            recent_uploads: combo.recent_uploads,
-            leaders: combo
-                .leaders
-                .into_iter()
-                .map(|entry| SpotlightBestResponse {
-                    player: entry.player.into(),
-                    position: entry.position,
-                    lap_time_ms: entry.lap_time_ms,
-                    distance_to_world_record_ms: entry.distance_to_world_record_ms,
+        combo_spotlight: totals
+            .combo_spotlight
+            .map(|combo| -> Result<_, ApiError> {
+                Ok(ComboSpotlightResponse {
+                    chart: Chart::new(
+                        combo.era_id,
+                        combo.era_title,
+                        TrackSummary::new(
+                            combo.track,
+                            combo.track_name,
+                            super::track_locations::TrackLocationSummary::find(
+                                &locations,
+                                &combo.track_location,
+                            )?,
+                            combo.track_reverse,
+                            combo.track_open_configuration,
+                            combo.track_image_public_id.map(|id| {
+                                crate::api::v1::attachments::Attachment::new(
+                                    id,
+                                    combo.track_image_original_filename,
+                                )
+                            }),
+                            combo.track_outline_public_id.map(|id| {
+                                crate::api::v1::attachments::Attachment::new(
+                                    id,
+                                    combo.track_outline_original_filename,
+                                )
+                            }),
+                        ),
+                        VehicleSummary::new(
+                            combo.vehicle,
+                            combo.vehicle_name,
+                            combo.vehicle_license,
+                            combo.vehicle_image_public_id.map(|id| {
+                                crate::api::v1::attachments::Attachment::new(
+                                    id,
+                                    combo.vehicle_image_original_filename,
+                                )
+                            }),
+                        ),
+                    ),
+                    recent_uploads: combo.recent_uploads,
+                    leaders: combo
+                        .leaders
+                        .into_iter()
+                        .map(|entry| SpotlightBestResponse {
+                            player: entry.player.into(),
+                            position: entry.position,
+                            lap_time_ms: entry.lap_time_ms,
+                            distance_to_world_record_ms: entry.distance_to_world_record_ms,
+                        })
+                        .collect(),
                 })
-                .collect(),
-        }),
+            })
+            .transpose()?,
         driver_spotlight: totals
             .driver_spotlight
             .map(|driver| DriverSpotlightResponse {

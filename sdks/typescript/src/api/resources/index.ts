@@ -19,6 +19,8 @@ export * from "./players/client/requests/index.js";
 export * as ranking from "./ranking/index.js";
 export * from "./ranking/client/requests/index.js";
 export * as stats from "./stats/index.js";
+export * as trackLocations from "./trackLocations/index.js";
+export * from "./trackLocations/client/requests/index.js";
 export * as tracks from "./tracks/index.js";
 export * from "./tracks/client/requests/index.js";
 export * as vehicles from "./vehicles/index.js";

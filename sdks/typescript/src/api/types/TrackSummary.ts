@@ -7,8 +7,10 @@ import * as LfsplanetApi from "../index.js";
  */
 export interface TrackSummary {
   code: string;
+  image: LfsplanetApi.Attachment | null;
   location: LfsplanetApi.TrackLocationSummary;
   name: string;
   open_configuration: boolean;
+  outline: LfsplanetApi.Attachment | null;
   reverse: boolean;
 }

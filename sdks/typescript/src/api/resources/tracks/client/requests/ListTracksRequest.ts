@@ -7,6 +7,8 @@
 export interface ListTracksRequest {
   /** Case-insensitive track code or name search. Omit to browse all configurations. */
   q?: string;
+  /** Restrict configurations to this location code. */
+  location?: string;
   /** One-based page number; defaults to 1. */
   page?: number;
   /** Results per page, from 1 to 100; defaults to 50. */

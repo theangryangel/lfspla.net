@@ -1,0 +1,19 @@
+kind: Location
+id: OTHER
+name: Other
+sequence: 7
+tracks:
+  - id: AU3
+    outline: ./AU3.svg
+  - id: AU4
+    outline: ./AU4.svg
+  - id: AU1
+  - id: AU1X
+  - id: AU2
+  - id: AU2X
+  - id: AU3X
+  - id: AU4X
+  - id: LA1
+  - id: LA1X
+  - id: LA2
+  - id: LA2X

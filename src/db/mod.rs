@@ -13,9 +13,9 @@ static MIGRATOR: Migrator = sqlx::migrate!();
 /// Serializes catalogue changes with admission and validation decisions.
 pub(crate) const CATALOGUE_LOCK: i64 = 7_104_152_026;
 
-/// Allows concurrent admission decisions while excluding catalogue rebuilds.
+/// Allows concurrent catalogue readers while excluding catalogue writes.
 /// Call inside the owning transaction; released when that transaction ends.
-pub(crate) async fn lock_admission<C: sea_orm::ConnectionTrait>(
+pub(crate) async fn lock_catalogue_read<C: sea_orm::ConnectionTrait>(
     database: &C,
 ) -> Result<(), sea_orm::DbErr> {
     database
@@ -28,9 +28,9 @@ pub(crate) async fn lock_admission<C: sea_orm::ConnectionTrait>(
     Ok(())
 }
 
-/// Excludes admissions and PB mutations during bulk repairs.
+/// Serializes catalogue writes with admissions, validation, and PB mutations.
 /// Call inside the owning transaction; released when that transaction ends.
-pub(crate) async fn lock_rebuild<C: sea_orm::ConnectionTrait>(
+pub(crate) async fn lock_catalogue_write<C: sea_orm::ConnectionTrait>(
     database: &C,
 ) -> Result<(), sea_orm::DbErr> {
     database

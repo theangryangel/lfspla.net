@@ -6,7 +6,8 @@ app_root = "/opt/lfsplanet"
 config_dir = "/etc/lfsplanet"
 state_dir = "/var/lib/lfsplanet"
 eras_source = "../assets/eras"
-builtin_vehicle_images_source = "../assets/builtin-vehicles"
+tracks_source = "../assets/tracks"
+vehicles_source = "../assets/vehicles"
 max_spr_upload_bytes = "2 MiB"
 webhook_workers = 3
 

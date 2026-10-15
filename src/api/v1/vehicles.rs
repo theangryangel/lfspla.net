@@ -106,7 +106,7 @@ mod tests {
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
-        crate::models::Vehicle::sync_builtin(&database).await?;
+        crate::services::catalogue::fixtures::vehicles(&database).await?;
         crate::models::Vehicle::refresh(
             &database,
             &[lfsplanet_lfs_api::RemoteVehicleMod {

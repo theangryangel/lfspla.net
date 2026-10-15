@@ -19,7 +19,7 @@
 </script>
 
 {#snippet content()}
-	<Thumbnail kind="vehicle" code={vehicle.code} src={vehicle.image?.url} />
+	<Thumbnail src={vehicle.image?.url} />
 	<div class="flex items-center gap-1.5 p-2">
 		<div class="min-w-0 flex-1">
 			<svelte:element

@@ -37,9 +37,13 @@ pub(crate) struct ComboSpotlight {
     pub era_title: String,
     pub track: TrackId,
     pub track_name: String,
-    pub track_location: crate::models::track::TrackLocation,
+    pub track_location: String,
     pub track_reverse: bool,
     pub track_open_configuration: bool,
+    pub track_image_public_id: Option<sea_orm::prelude::Uuid>,
+    pub track_image_original_filename: Option<String>,
+    pub track_outline_public_id: Option<sea_orm::prelude::Uuid>,
+    pub track_outline_original_filename: Option<String>,
     pub vehicle: VehicleId,
     pub vehicle_name: String,
     pub vehicle_license: String,
@@ -105,6 +109,10 @@ SELECT chart.id AS chart_id, era.slug AS era_id, era.title AS era_title,
        chart.track_id AS track, track.name AS track_name,
        track.location AS track_location, track.reverse AS track_reverse,
        track.open_configuration AS track_open_configuration,
+       track_image.public_id AS track_image_public_id,
+       track_image.original_filename AS track_image_original_filename,
+       track_outline.public_id AS track_outline_public_id,
+       track_outline.original_filename AS track_outline_original_filename,
        chart.vehicle_id AS vehicle, vehicle.name AS vehicle_name, vehicle.license AS vehicle_license,
        CASE WHEN vehicle.available THEN image.public_id END AS vehicle_image_public_id,
        CASE WHEN vehicle.available THEN image.original_filename END AS vehicle_image_original_filename,
@@ -114,7 +122,9 @@ JOIN chart ON chart.id = selected.chart_id
 JOIN era ON era.id = chart.era_id
 JOIN track ON track.id = chart.track_id
 JOIN vehicle ON vehicle.id = chart.vehicle_id
-LEFT JOIN attachment image ON image.id = vehicle.image_attachment_id"
+LEFT JOIN attachment image ON image.id = vehicle.image_attachment_id
+LEFT JOIN attachment track_image ON track_image.id = track.image_attachment_id
+LEFT JOIN attachment track_outline ON track_outline.id = track.outline_attachment_id"
             ),
             [SPOTLIGHT_UPLOAD_LIMIT.into()],
         ))

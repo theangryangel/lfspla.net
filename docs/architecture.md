@@ -13,16 +13,16 @@ flowchart LR
         Worker[worker]
         subgraph Commands[One-off commands]
             Migrate[migrate]
-            Eras[era apply]
+            Seed[seed]
             Maintenance[maintenance]
         end
     end
 
     App --> Database[(PostgreSQL)]
-    App --> Storage[Object storage\nReplays and vehicle images]
+    App --> Storage[Object storage\nReplays and catalogue artwork]
     Worker --> Game[LFS HLVC\nBubblewrapped sandbox]
     Config[Configuration\nplanet.yaml or config.yaml] --> App
-    EraFiles["assets/eras/*.yaml"] --> Eras
+    CatalogueFiles["assets/{tracks,vehicles,eras}/*.yaml"] --> Seed
 ```
 
 ## Application code
@@ -62,22 +62,30 @@ CLI command groups keep their argument definitions beside dispatch in `mod.rs`.
 arguments. Small LFS command adapters live directly in `cli/lfs/mod.rs`, while
 trim confirmation and output remain in `cli/lfs/trim.rs`.
 
-| Service           | Responsibility                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| `submit_hotlap`   | Parse a replay, resolve its vehicle, store its bytes, and admit the submission            |
-| `validate_hotlap` | Run LFS validation, publish the result, update personal bests, and queue notifications    |
-| `apply_eras`      | Review and apply catalogue changes under one transaction and rebuild affected projections |
-| `deliver_webhook` | Send queued notifications and record delivery, cooldown, and retry outcomes               |
-| `sync_catalogue`  | Synchronise tracks, vehicles, upstream mod metadata, and artwork                          |
+| Service                | Responsibility                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `submit_hotlap`        | Parse a replay, resolve its vehicle, store its bytes, and admit the submission             |
+| `validate_hotlap`      | Run LFS validation, publish the result, update personal bests, and queue notifications     |
+| `catalogue::seed`      | Apply local definitions and artwork under one transaction and rebuild affected projections |
+| `catalogue::eras`      | Persist era policy and manage era lifecycle changes                                        |
+| `deliver_webhook`      | Send queued notifications and record delivery, cooldown, and retry outcomes                |
+| `catalogue::sync_mods` | Synchronise upstream Vehicle Mod metadata and covers                                       |
 
 The validation and delivery services implement `lfsplanet_jobs::Processor`
 directly. `cli/worker.rs` constructs and registers them with the generic runner;
 there is no separate application jobs layer.
 
 HTTP handlers own request parsing, authentication, and response formatting.
-CLI commands own file input, operator confirmation, and terminal output. Both
+CLI commands own operator confirmation and terminal output. `catalogue::load`
+owns tagged YAML input and retains each definition’s source path. Both
 call services and model operations. Services and models do not depend on these
 entrypoints.
+
+Each catalogue definition applies its own data within the batch transaction;
+locations also apply their nested tracks and report those changes together. Track
+and vehicle definitions persist their own canonical metadata and optional artwork.
+The batch owns era review, projection rebuilds, and commit. Imports without era
+documents skip era definition queries and review preparation.
 
 `src/db` owns connection setup, migrations, shared advisory locks, SQL binding
 helpers, and checked PostgreSQL value conversions. Feature SQL stays with its
@@ -90,18 +98,20 @@ Catalogue changes retain their exclusive lock through projection rebuilding.
 External LFS runtime operations use the standalone `lfsplanet_lfs` crate and its
 platform-selected implementation.
 
-## Eras
+## Catalogue
 
-The YAML files in `assets/eras/` are setup files. Apply them explicitly:
+The YAML files in `assets/tracks/`, `assets/vehicles/`, and `assets/eras/` are
+setup files. Apply them explicitly:
 
 ```sh
-lfsplanet maintenance catalogue-sync
-lfsplanet era apply assets/eras/*.yaml
+lfsplanet maintenance sync-mods
+lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml
 ```
 
-`catalogue-sync` adds tracks and vehicles. `era apply` checks and saves eras in
-one transaction. New eras need no confirmation; changes need `--yes`. Startup
-does not apply these files.
+`sync-mods` refreshes Vehicle Mods. `seed` applies location definitions with nested tracks, vehicle artwork, and era
+definitions in one transaction. New eras need no confirmation; changes need `--yes`. Startup
+does not apply these files. See [catalogue seeding](catalogue.md) for document
+formats and artwork handling.
 
 ## HLVC worker
 

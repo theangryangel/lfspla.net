@@ -40,7 +40,7 @@ impl Processor for HotlapValidation {
         let transaction = self.database.begin().await?;
         // Preserve the application's lock order: catalogue, hotlap, chart.
         // This shared lock allows other admissions/validators but delays bulk repairs.
-        crate::db::lock_admission(&transaction).await?;
+        crate::db::lock_catalogue_read(&transaction).await?;
         let now = time::OffsetDateTime::now_utc();
         let Some(hotlap) = HotlapEntity::find()
             .uploads()

@@ -41,7 +41,7 @@ uv run --directory deploy --with-requirements requirements.txt pyinfra inventory
 
 This briefly restarts PostgreSQL. On a replacement host, [restore first](runbooks/backups.md#restore).
 
-Build and deploy the application and eras:
+Build and deploy the application and catalogue:
 
 ```sh
 just deploy
@@ -50,13 +50,17 @@ just deploy
 ## Releases
 
 Run `just deploy` from the repository root. It builds the API and frontend,
-deploys both, then syncs eras. Reprovision only for host or backup configuration
-changes.
+deploys both, then runs `catalogue.py` to synchronize Vehicle Mods, seed track
+and standard vehicle artwork, and apply changed era files. Reprovision only for
+host or backup configuration changes.
 
-Deploy era changes alone with `just deploy-eras`. To replace an existing era,
-review the change and set `replace_existing_eras = True` in `inventory.py`;
-reset it afterwards. If an era apply fails after syncing, retry `era apply`
-manually on the host.
+Deploy catalogue changes alone with `just deploy-catalogue`. To replace an
+existing era, review the change and set `replace_existing_eras = True` in `inventory.py`;
+reset it afterwards. If era seeding fails after syncing, retry `seed`
+manually on the host. See [catalogue seeding](../docs/catalogue.md) for input
+formats and artwork handling. Catalogue deployment also removes the previous
+per-track YAML files corresponding to bundled SVGs; the new location documents
+replace them without deleting database records or artwork.
 
 See [operations](../docs/operations.md#deployment-and-releases) for release checks
 and failures, and [backups](runbooks/backups.md) for backup checks and recovery.

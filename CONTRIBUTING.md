@@ -39,8 +39,10 @@ already run elsewhere. Era files in `assets/eras/` are inputs: changing one
 does not change a running site until it is applied.
 
 Track outlines in `assets/tracks/` are generated and kept in Git. Regenerate
-and commit them when the generator or an LFS track path file changes. Vehicle
-artwork in `assets/builtin-vehicles/` is added by hand; see the README there.
+and commit them when the generator or an LFS track path file changes. Seed
+the corresponding `kind: Location` documents in `assets/tracks/*.yaml` to publish
+their nested track outlines as attachments. See [catalogue seeding](docs/catalogue.md). Vehicle
+artwork in `assets/vehicles/` is added by hand; see the README there.
 Neither is covered by the MIT License; see [NOTICE](NOTICE.md).
 
 ## Discussion and conduct

@@ -7,7 +7,6 @@ web:
   public_base_url: {{ ("https://" ~ site_domain) | tojson }}
   cookie_secure: true
   site_notice: "Hold on tight. Uploads are currently paused in preparation for LFS World migration."
-  allow_uploads: false
 
 storage:
   object_store_root: {{ object_store_root | tojson }}
@@ -15,6 +14,7 @@ storage:
 hotlaps:
   allow_test_validation: false
   max_spr_upload_bytes: {{ max_spr_upload_bytes | tojson }}
+  allow_uploads: false
 
 worker:
   hlvc:

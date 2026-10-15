@@ -8,7 +8,6 @@ use crate::{
 use anyhow::{Context, bail};
 use clap::Subcommand;
 use sea_orm::DatabaseConnection;
-use std::path::PathBuf;
 use time::Duration;
 use tower_sessions::session_store::ExpiredDeletion;
 use tower_sessions_sqlx_store::PostgresStore;
@@ -23,13 +22,9 @@ pub(crate) enum MaintenanceCommand {
     AccessTokensGc,
     /// Retry badge refreshes left pending after publication or catalogue changes.
     BadgesRefresh,
-    /// Synchronize canonical tracks, built-in vehicles, and Vehicle Mods.
-    CatalogueSync {
-        /// Directory containing PNGs named after built-in vehicle codes.
-        #[arg(long, value_name = "DIR")]
-        standard_vehicle_images_dir: Option<PathBuf>,
-    },
-    /// Find replay, RAF telemetry, and vehicle image objects without references.
+    /// Synchronize Vehicle Mods metadata and covers from the LFS API.
+    SyncMods,
+    /// Find attachment objects without references.
     StorageGc {
         /// Delete eligible objects instead of only reporting them.
         #[arg(long)]
@@ -60,15 +55,8 @@ pub(crate) async fn run(args: &Args, action: &MaintenanceCommand) -> anyhow::Res
         MaintenanceCommand::BadgesRefresh => {
             Ok(crate::models::badge::retry_badge_refreshes(&database).await?)
         }
-        MaintenanceCommand::CatalogueSync {
-            standard_vehicle_images_dir,
-        } => {
-            crate::services::sync_catalogue::sync(
-                &settings,
-                &database,
-                standard_vehicle_images_dir.as_deref(),
-            )
-            .await
+        MaintenanceCommand::SyncMods => {
+            crate::services::catalogue::sync_mods(&settings, &database).await
         }
         MaintenanceCommand::StorageGc {
             delete,
@@ -138,8 +126,8 @@ async fn run_all(
         .await,
     );
     record(
-        "catalogue-sync",
-        crate::services::sync_catalogue::sync(settings, database, None).await,
+        "sync-mods",
+        crate::services::catalogue::sync_mods(settings, database).await,
     );
 
     if failures.is_empty() {

@@ -25,8 +25,9 @@ just deploy
 ```
 
 It builds the locked Rust release, installs the locked frontend dependencies,
-builds the frontend, deploys the application, then deploys the era files. It
-expects `uv`, SSH access to the host, and the deployment environment variables
+builds the frontend, deploys the application, then deploys catalogue definitions
+and artwork. It expects `uv`, SSH access to the host, and the deployment
+environment variables
 described in [deployment](../deploy/README.md).
 
 The deploy puts the site into maintenance mode, stops the web process,
@@ -36,8 +37,9 @@ Maintenance mode stays on if the deploy fails, so an old process cannot run
 against a partly changed database.
 
 The application deployment does not by itself apply changed era definitions.
-`just deploy` follows it with the era deployment. A new era can be applied
-normally. To replace an existing era, first review the change and set
+`just deploy` follows it with `deploy/catalogue.py`. Run `just deploy-catalogue`
+to deploy catalogue changes alone. A new era can be applied normally. To replace
+an existing era, first review the change and set
 `replace_existing_eras = True` in the deployment inventory for that release.
 Turn it off again afterwards.
 
@@ -65,14 +67,16 @@ For a new database:
 
 ```sh
 lfsplanet --config /etc/lfsplanet/config.yaml migrate
-lfsplanet --config /etc/lfsplanet/config.yaml maintenance catalogue-sync --standard-vehicle-images-dir /etc/lfsplanet/builtin-vehicles
-lfsplanet --config /etc/lfsplanet/config.yaml era apply /etc/lfsplanet/eras/*.yaml
+lfsplanet --config /etc/lfsplanet/config.yaml maintenance sync-mods
+lfsplanet --config /etc/lfsplanet/config.yaml seed /etc/lfsplanet/tracks/*.yaml /etc/lfsplanet/vehicles/*.yaml /etc/lfsplanet/eras/*.yaml
 ```
 
-`catalogue-sync` requires LFS OAuth credentials and adds tracks, built-in
-vehicles, and Vehicle Mods. Pass `--standard-vehicle-images-dir` to seed
-built-in image files into object storage. Apply `assets/eras/` files yourself.
-PostgreSQL serves requests; startup does not apply era files.
+`sync-mods` requires LFS OAuth credentials and refreshes Vehicle Mods and
+their covers. `seed` imports local track and standard vehicle artwork plus era
+policy; it needs no LFS OAuth credentials. Canonical tracks and standard vehicles
+are populated when their definitions are seeded. Apply these files explicitly.
+PostgreSQL serves requests; startup does not apply catalogue files. See
+[catalogue seeding](catalogue.md) for document formats and artwork handling.
 
 ## Routine maintenance
 
@@ -80,14 +84,14 @@ PostgreSQL serves requests; startup does not apply era files.
 lfsplanet maintenance sessions-gc
 lfsplanet maintenance access-tokens-gc
 lfsplanet maintenance badges-refresh
-lfsplanet maintenance catalogue-sync
+lfsplanet maintenance sync-mods
 lfsplanet maintenance storage-gc
 lfsplanet maintenance run-all
 ```
 
 `sessions-gc` removes expired browser sessions. `access-tokens-gc` retains
 expired or revoked personal access tokens for 90 days before removal.
-`catalogue-sync` requires LFS OAuth credentials. It also resolves hotlaps
+`sync-mods` requires LFS OAuth credentials. It also resolves hotlaps
 waiting on Vehicle Mods metadata and caches covers for new Mods and new Mod
 revisions in local object storage. Failed cover downloads leave a previously
 cached image available and do not fail the catalogue refresh. The cached image

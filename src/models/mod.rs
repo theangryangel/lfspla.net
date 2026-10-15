@@ -25,7 +25,7 @@ pub(crate) use hotlap::Model as Hotlap;
 pub(crate) use personal_access_token::Model as PersonalAccessToken;
 pub(crate) use player::Model as Player;
 pub(crate) use ranking::Model as Ranking;
-pub(crate) use track::Model as Track;
+pub(crate) use track::{Model as Track, TrackLocation};
 pub(crate) use vehicle::Model as Vehicle;
 pub(crate) use webhook::Model as Webhook;
 pub(crate) use webhook_notification::Model as WebhookNotification;
