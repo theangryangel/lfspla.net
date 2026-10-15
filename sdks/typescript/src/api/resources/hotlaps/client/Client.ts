@@ -43,6 +43,7 @@ export class HotlapsClient {
    * @throws {@link LfsplanetApi.ContentTooLargeError}
    * @throws {@link LfsplanetApi.UnprocessableEntityError}
    * @throws {@link LfsplanetApi.TooManyRequestsError}
+   * @throws {@link LfsplanetApi.ServiceUnavailableError}
    *
    * @example
    *     import { createReadStream } from "fs";
@@ -149,6 +150,11 @@ export class HotlapsClient {
           );
         case 429:
           throw new LfsplanetApi.TooManyRequestsError(
+            _response.error.body as LfsplanetApi.ErrorResponse,
+            _response.rawResponse,
+          );
+        case 503:
+          throw new LfsplanetApi.ServiceUnavailableError(
             _response.error.body as LfsplanetApi.ErrorResponse,
             _response.rawResponse,
           );
