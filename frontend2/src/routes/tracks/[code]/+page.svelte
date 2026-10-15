@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TrackCredits from '$lib/components/app/TrackCredits.svelte';
 	import { navigating, page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -40,14 +41,15 @@
 		<div class="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:gap-6">
 			<Thumbnail
 				src={data.location.image?.url}
-				class="w-full shrink-0 rounded-md sm:w-64"
+				fit="cover"
+				class="w-full shrink-0 rounded-md sm:w-64 lg:w-80"
 			/>
-			<div class="min-w-0 space-y-3">
+			<div class="min-w-0 flex-1 space-y-3">
 				<PageHeading title={data.location.name}
 					><span class="font-mono">{data.location.code}</span></PageHeading
 				>
 				{#if data.location.description}<p
-						class="max-w-prose whitespace-pre-line text-sm text-muted-foreground"
+						class="whitespace-pre-line text-sm text-muted-foreground"
 					>
 						{data.location.description}
 					</p>{/if}
@@ -116,5 +118,6 @@
 			pagination={data.tracks.pagination}
 			label="configurations"
 		/>
+		<TrackCredits />
 	</div>
 </main>

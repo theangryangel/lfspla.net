@@ -6,7 +6,7 @@ pub(crate) mod eras;
 #[cfg(test)]
 pub(crate) mod fixtures;
 pub(crate) mod load;
-mod locations;
+pub(crate) mod locations;
 mod sync_mods;
 pub(crate) use apply::{Applied, seed};
 pub(crate) use sync_mods::sync_mods;

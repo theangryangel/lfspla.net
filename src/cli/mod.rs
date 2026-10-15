@@ -16,6 +16,7 @@ mod openapi;
 mod player;
 mod seed;
 mod storage;
+mod track_location;
 mod worker;
 
 /// lfspla.net command-line arguments.
@@ -69,6 +70,11 @@ pub enum Command {
         #[command(subcommand)]
         action: era::EraCommand,
     },
+    /// List track locations and delete empty locations.
+    TrackLocation {
+        #[command(subcommand)]
+        action: track_location::TrackLocationCommand,
+    },
     /// Inspect and change player account restrictions.
     Player {
         #[command(subcommand)]
@@ -95,6 +101,7 @@ pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
         Command::Hotlap { action } => hotlap::run(args, action).await,
         Command::Lfs { action } => lfs::run(args, action).await,
         Command::Era { action } => era::run(args, action).await,
+        Command::TrackLocation { action } => track_location::run(args, action).await,
         Command::Player { action } => player::run(args, action).await,
         Command::Maintenance { action } => maintenance::run(args, action).await,
     }

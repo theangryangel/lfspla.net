@@ -1,0 +1,17 @@
+kind: Location
+id: AU
+name: Autocross
+sequence: 7
+description: |
+  Autocross (also known as Test Area), is the area that does not contain closed circuits. Instead, setup testing and free racing on the autocross area or skid pad and drags can be done here. This is a good place to use the Autocross Editor, enabling you to create your own courses on the big open spaces here.
+tracks:
+  - id: AU3
+    outline: ./AU3.svg
+  - id: AU4
+    outline: ./AU4.svg
+  - id: AU1
+  - id: AU1X
+  - id: AU2
+  - id: AU2X
+  - id: AU3X
+  - id: AU4X

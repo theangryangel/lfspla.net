@@ -206,11 +206,11 @@ fn seed_rejects_stdin_without_reading_it() {
 }
 
 #[test]
-fn locations_reject_standalone_tracks_wrong_membership_and_duplicate_tracks() {
+fn locations_reject_standalone_tracks_unknown_ids_and_duplicate_tracks() {
     let directory = tempfile::tempdir().unwrap();
     for input in [
         "kind: Track\nid: BL1\n",
-        "kind: Location\nid: BL\nname: Blackwood\ntracks:\n  - id: FE1\n",
+        "kind: Location\nid: BL\nname: Blackwood\ntracks:\n  - id: UNKNOWN\n",
         "kind: Location\nid: BL\nname: Blackwood\ntracks:\n  - id: BL1\n  - id: BL1\n",
     ] {
         let path = write_definition(directory.path(), "invalid.yaml", input);
@@ -226,4 +226,29 @@ fn locations_reject_standalone_tracks_wrong_membership_and_duplicate_tracks() {
             .to_string()
             .contains("duplicate location")
     );
+}
+
+#[test]
+fn yaml_nesting_defines_location_membership_and_tracks_remain_unique_across_locations() {
+    let directory = tempfile::tempdir().unwrap();
+    let first = write_definition(
+        directory.path(),
+        "autocross.yaml",
+        "kind: Location\nid: AU\nname: Autocross\ntracks:\n  - id: AU3\n",
+    );
+    let second = write_definition(
+        directory.path(),
+        "custom.yaml",
+        "kind: Location\nid: CUSTOM\nname: Custom grouping\ntracks:\n  - id: BL1\n  - id: LA1\n",
+    );
+    assert!(files(&[first.clone(), second.clone()]).is_ok());
+    std::fs::write(
+        &second,
+        "kind: Location\nid: CUSTOM\nname: Custom grouping\ntracks:\n  - id: AU3\n",
+    )
+    .unwrap();
+    let error = files(&[first, second]).err().unwrap();
+    let message = format!("{error:#}");
+    assert!(message.contains("duplicate track AU3"), "{message}");
+    assert!(message.contains("custom.yaml"), "{message}");
 }

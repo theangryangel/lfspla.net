@@ -4,16 +4,18 @@
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
 	import { useCombinationPicker } from '$lib/picker.js';
-	import type { TrackSummary, VehicleSummary } from '$lib/api.js';
+	import Flag from './Flag.svelte';
+	import { lapTime } from '$lib/format.js';
+	import type { Hotlap, TrackSummary, VehicleSummary } from '$lib/api.js';
 
 	let {
 		track = null,
 		vehicle = null,
-		recordTime = null,
+		worldRecord = null,
 	}: {
 		track?: TrackSummary | null;
 		vehicle?: VehicleSummary | null;
-		recordTime?: string | null;
+		worldRecord?: Hotlap | null;
 	} = $props();
 	const picker = useCombinationPicker();
 	const selectorClass =
@@ -83,23 +85,26 @@
 		</div>
 	</div>
 	{#snippet highlight()}
-		{#if recordTime !== null}
+		{#if worldRecord !== null}
 			<RecordHighlight title="World record" variant="purple">
 				<p
 					class="relative text-right whitespace-nowrap font-mono text-2xl font-bold tabular-nums lg:text-3xl"
 				>
-					{recordTime}
+					{lapTime(worldRecord.lap_time_ms)}
 				</p>
 				<div
-					class="relative flex items-center justify-end gap-2 text-sm"
-					aria-label="Record holder unavailable"
+					class="relative flex flex-wrap items-center justify-end gap-2 text-sm"
 				>
-					<span>Record holder <span aria-hidden="true">-</span></span>
-					<span
-						class="inline-flex size-6 shrink-0 items-center justify-center border border-dashed border-black/40 text-xs"
-						title="Badge unavailable"
-						aria-label="Badge unavailable">-</span
+					<a
+						class="flex min-w-0 items-center gap-2 font-medium hover:underline"
+						href={`/drivers/${encodeURIComponent(worldRecord.player.lfs_username)}`}
 					>
+						<Flag
+							code={worldRecord.player.flag_code}
+							fallback={worldRecord.player.country_code}
+						/>
+						<span class="break-words">{worldRecord.player.display_name}</span>
+					</a>
 				</div>
 			</RecordHighlight>
 		{/if}

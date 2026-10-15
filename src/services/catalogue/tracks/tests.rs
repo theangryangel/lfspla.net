@@ -5,6 +5,77 @@ use std::time::{Duration, SystemTime};
 
 #[sqlx::test]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+async fn moving_a_nested_track_updates_its_location_and_preserves_references(
+    pool: sqlx::PgPool,
+) -> anyhow::Result<()> {
+    sqlx::raw_sql(include_str!("../../validate_hotlap/fixtures.sql"))
+        .execute(&pool)
+        .await?;
+    let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+    let directory = tempfile::tempdir()?;
+    let original_yaml = directory.path().join("BL.yaml");
+    let destination_yaml = directory.path().join("custom.yaml");
+    let store = object_store::memory::InMemory::new();
+    std::fs::write(directory.path().join("BL1.svg"), "<svg/>")?;
+    std::fs::write(
+        &original_yaml,
+        "kind: Location\nid: BL\nname: Blackwood\ntracks:\n  - id: BL1\n    outline: ./BL1.svg\n",
+    )?;
+    let documents = catalogue::load::files(std::slice::from_ref(&original_yaml))?;
+    catalogue::seed(&database, &documents, Some(&store), false, |_| Ok(())).await?;
+    let original = Entity::find_by_id(crate::track_id::TrackId(Track::Bl1))
+        .one(&database)
+        .await?
+        .unwrap();
+    assert!(original.outline_attachment_id.is_some());
+
+    std::fs::write(&original_yaml, "kind: Location\nid: BL\nname: Blackwood\n")?;
+    std::fs::write(
+        &destination_yaml,
+        "kind: Location\nid: CUSTOM\nname: Custom grouping\ntracks:\n  - id: BL1\n",
+    )?;
+    let documents = catalogue::load::files(&[original_yaml, destination_yaml])?;
+    let preview = catalogue::seed(&database, &documents, None, true, |_| Ok(())).await?;
+    assert_eq!(preview.tracks, ["BL1"]);
+    assert_eq!(
+        Entity::find_by_id(original.id)
+            .one(&database)
+            .await?
+            .unwrap(),
+        original
+    );
+    let applied = catalogue::seed(&database, &documents, None, false, |_| Ok(())).await?;
+    assert_eq!(applied.tracks, ["BL1"]);
+    let mut expected = original;
+    expected.location = "CUSTOM".into();
+    assert_eq!(
+        Entity::find_by_id(expected.id)
+            .one(&database)
+            .await?
+            .unwrap(),
+        expected
+    );
+    // Moving a track keeps existing chart and hotlap identities intact.
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>(
+            "SELECT count(*) FROM hotlap JOIN chart ON chart.id = hotlap.chart_id \
+             WHERE chart.track_id = 'BL1' AND hotlap.track = 'BL1'"
+        )
+        .fetch_one(&pool)
+        .await?,
+        1
+    );
+    assert!(
+        catalogue::seed(&database, &documents, None, false, |_| Ok(()))
+            .await?
+            .tracks
+            .is_empty()
+    );
+    Ok(())
+}
+
+#[sqlx::test]
+#[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn artwork_attachments_are_stable_and_gc_discovers_all_parent_references(
     pool: sqlx::PgPool,
 ) -> anyhow::Result<()> {

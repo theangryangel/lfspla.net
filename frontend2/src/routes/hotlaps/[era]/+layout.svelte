@@ -14,7 +14,7 @@
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import EraIdentity from '$lib/components/app/EraIdentity.svelte';
 	import CombinationCard from '$lib/components/app/CombinationCard.svelte';
-	import { lapTime, delta } from '$lib/format.js';
+	import { delta } from '$lib/format.js';
 	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
 	import { navigationTextClass } from '$lib/components/app/navigation.js';
 	import HotlapUpload from '$lib/components/app/HotlapUpload.svelte';
@@ -55,13 +55,6 @@
 		page.route.id === '/hotlaps/[era]/submissions',
 	);
 	const onOverview = $derived(page.route.id === '/hotlaps/[era]');
-	const chartRecord = $derived.by(() => {
-		if (!onChart) return null;
-		const entry = page.data.chart?.items[0];
-		return entry && entry.distance_to_world_record_ms !== null
-			? lapTime(entry.lap_time_ms - entry.distance_to_world_record_ms)
-			: null;
-	});
 	// Support bookmarks to the former chart picker entry point.
 	afterNavigate(() => {
 		if (page.url.searchParams.get('picker') === 'charts') openPicker();
@@ -255,7 +248,7 @@
 				<CombinationCard
 					track={page.data.track}
 					vehicle={page.data.vehicle}
-					recordTime={chartRecord}
+					worldRecord={page.data.chart?.world_record ?? null}
 				/>
 			{/if}
 			<div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6">

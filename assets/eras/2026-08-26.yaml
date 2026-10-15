@@ -808,3 +808,35 @@ rankings:
         - AS4
         - AS5
       vehicles: [BF1]
+  - id: drag
+    title: Drag Strip Rank
+    description: You don't need a 10-second car when you've got family.
+    rules:
+      benchmark_percent: 103
+      nation_max_points: 10
+      nation_driver_limit: 3
+    combinations:
+      type: matrix
+      tracks:
+        - AU3
+      vehicles:
+        - XFG
+        - XRG
+        - FBM
+        - XRT
+        - RB4
+        - FXO
+        - LX4
+        - LX6
+        - MRT
+        - UF1
+        - RAC
+        - FZ5
+        - FOX
+        - XFR
+        - UFR
+        - FO8
+        - FXR
+        - XRR
+        - FZR
+        - BF1

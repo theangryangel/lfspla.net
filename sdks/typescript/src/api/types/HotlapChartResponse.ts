@@ -10,4 +10,5 @@ export interface HotlapChartResponse
   chart: LfsplanetApi.Chart;
   /** Rankings that include this combination */
   contributes_to: LfsplanetApi.RankingContribution[];
+  world_record: LfsplanetApi.Hotlap | null;
 }

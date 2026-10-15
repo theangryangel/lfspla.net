@@ -63,6 +63,10 @@ pub(crate) struct HotlapChartPath {
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct HotlapChartResponse {
     chart: Chart,
+    /// Current chart leader, independent of leaderboard filters, sorting and pagination.
+    /// Null when the chart has no ranked valid laps.
+    #[schema(required)]
+    world_record: Option<Hotlap>,
     #[serde(flatten)]
     page: PaginatedResponse<Hotlap>,
     /// Rankings that include this combination
@@ -125,6 +129,21 @@ pub(crate) async fn best(
     )
     .await
     .map_err(ApiError::from)?;
+    let record_page = HotlapModel::list(
+        &state.database,
+        HotlapListFilters {
+            rank: Some(1),
+            ..HotlapListFilters::for_chart(&chart)
+        },
+        HotlapListPage {
+            column: HotlapListColumn::Rank,
+            order: Ordering::Asc,
+            offset: 0,
+            limit: 1,
+        },
+    )
+    .await
+    .map_err(ApiError::from)?;
     let contributes_to = page
         .chart_contributions
         .as_ref()
@@ -132,18 +151,32 @@ pub(crate) async fn best(
         .unwrap_or_default();
     let attachments = crate::api::v1::attachments::load(
         &state.database,
-        page.entries.iter().flat_map(|entry| {
-            [
-                entry.hotlap.spr_attachment_id,
-                entry.hotlap.raf_attachment_id,
-            ]
-            .into_iter()
-            .flatten()
-        }),
+        page.entries
+            .iter()
+            .chain(&record_page.entries)
+            .flat_map(|entry| {
+                [
+                    entry.hotlap.spr_attachment_id,
+                    entry.hotlap.raf_attachment_id,
+                ]
+                .into_iter()
+                .flatten()
+            }),
     )
     .await?;
     Ok(Json(HotlapChartResponse {
         chart: chart_response,
+        world_record: list_response(
+            record_page,
+            &PaginationQuery {
+                page: 1,
+                per_page: 1,
+            },
+            None,
+            &attachments,
+        )
+        .items
+        .pop(),
         contributes_to,
         page: list_response(page, &pagination, None, &attachments),
     }))
@@ -187,6 +220,7 @@ mod tests {
                     None,
                 ),
             ),
+            world_record: None,
             page: PaginatedResponse {
                 items: vec![],
                 pagination: PaginationQuery::default().metadata(0),
@@ -201,11 +235,87 @@ mod tests {
             json["chart"]["vehicle"]["image"]["url"],
             serde_json::Value::Null
         );
+        assert_eq!(json["world_record"], serde_json::Value::Null);
         assert_eq!(json["items"], serde_json::json!([]));
         assert_eq!(json["pagination"]["total_items"], 0);
         for old in ["era_id", "track", "vehicle"] {
             assert!(json.get(old).is_none());
         }
+    }
+
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn world_record_is_independent_of_the_leaderboard_query(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        use sea_orm::EntityTrait;
+
+        sqlx::raw_sql(include_str!(
+            "../../../services/validate_hotlap/fixtures.sql"
+        ))
+        .execute(&pool)
+        .await?;
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
+        let original = crate::models::hotlap::Entity::find()
+            .one(&database)
+            .await?
+            .unwrap();
+        let state = ApiState {
+            database,
+            oauth: None,
+            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+            hotlaps: Default::default(),
+            site_notice: None,
+        };
+        // Pending uploads do not provide a world record.
+        let load = |search: &str| {
+            best(
+                Path(HotlapChartPath {
+                    era: "2026-09-23".into(),
+                    track: "BL1".into(),
+                    vehicle: "XFG".into(),
+                }),
+                Query(serde_urlencoded::from_str::<ChartHotlapQuery>(search).unwrap()),
+                Query(serde_urlencoded::from_str::<PaginationQuery>(search).unwrap()),
+                State(state.clone()),
+            )
+        };
+        assert!(load("").await?.0.world_record.is_none());
+        HotlapModel::validate_owned_for_testing(&state.database, original.id, original.player_id)
+            .await?
+            .unwrap();
+        for search in [
+            "",
+            "column=driver&order=desc",
+            "page=2&per_page=1",
+            "controller=mouse",
+            "country=GB&controller=mouse&column=lap_time&order=desc&page=2",
+        ] {
+            let Json(response) = load(search).await?;
+            if search.contains("page=2") || search.contains("controller=mouse") {
+                assert!(response.page.items.is_empty(), "{search}");
+            }
+            let record = response.world_record.unwrap();
+            assert_eq!(record.id, original.id, "{search}");
+            assert_eq!(record.lap_time_ms, original.lap_time_ms);
+            assert_eq!(record.position, Some(1));
+            assert_eq!(
+                record.distance_to_world_record_ms,
+                Some(crate::milliseconds::Milliseconds::ZERO)
+            );
+            assert!(record.distance_to_benchmark_ms.is_some());
+            assert!(record.spr.is_some());
+            assert!(record.contributes_to.is_some());
+            assert!(record.submission.is_none());
+            let json = serde_json::to_value(record)?;
+            assert_eq!(json["player"]["lfs_username"], "worker-test");
+            assert!(json["player"]["badges"].is_array());
+        }
+        HotlapModel::delete_owned(&state.database, original.id, original.player_id)
+            .await?
+            .unwrap();
+        assert!(load("").await?.0.world_record.is_none());
+        Ok(())
     }
 
     #[test]

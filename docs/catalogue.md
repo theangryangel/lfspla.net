@@ -62,8 +62,11 @@ lfsplanet seed assets/tracks/*.yaml
 
 Artwork paths, including nested track paths, are relative to the location YAML
 file. SVG, PNG, JPEG, WebP, and AVIF are supported. Track IDs use
-`insim_core::Track` and must belong to their declared location. Duplicate locations
-or track IDs are rejected across the input batch. Standalone `kind: Track`
+`insim_core::Track`. YAML nesting determines each track's location; the track code
+does not restrict which location can contain it. Move a track entry to another
+location document and reapply to update its stored location. Duplicate locations
+or track IDs are rejected across the input batch, so remove the entry from its
+previous document when moving it. Standalone `kind: Track`
 documents are no longer accepted.
 
 Location rows store their name, optional description and image, and display
@@ -73,6 +76,18 @@ persists its own canonical metadata without changing existing attachment referen
 Tracks without artwork still need an explicit nested `id` entry; seeding does not
 populate omitted tracks or vehicles. Identical content preserves the current
 attachment ID and public URL. Dry runs read and validate assets without uploading.
+
+List stored locations with their track counts, or delete an empty location:
+
+```sh
+lfsplanet track-location list
+lfsplanet track-location delete OTHER --yes
+```
+
+Deletion refuses locations that still contain tracks. Move those tracks in YAML
+and seed the updated definitions first. Remove the old location definition from
+the seed inputs too; seeding it again would recreate the location. Deleting a
+location leaves its image attachment for the normal storage garbage collector.
 
 Track API summaries include stored location metadata (`code`, `name`,
 `description`, `sequence`, and `image`), plus track `image` and `outline` attachments.

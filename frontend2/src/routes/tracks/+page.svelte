@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Empty from '$lib/components/app/Empty.svelte';
 	import TrackLocationCard from '$lib/components/app/TrackLocationCard.svelte';
+	import TrackCredits from '$lib/components/app/TrackCredits.svelte';
 	import CornerRibbon from '$lib/components/app/CornerRibbon.svelte';
 	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
 	import PageHeading from '$lib/components/app/PageHeading.svelte';
@@ -42,5 +43,6 @@
 		{:else}
 			<Empty title="No locations available" />
 		{/if}
+		<TrackCredits />
 	</div>
 </main>

@@ -6,6 +6,7 @@ description: |
   The board of the Westhill Circuit has invested heavily in creating a state of the art environment for racers of any type. The main tracks provide fast and wide turns, spiced up with interesting chicanes and the widest, most beautiful finish straight in S2 with a blind first corner. Recently two karting tracks have been constructed – one small, one large - providing a challenge for even the fittest of racers.
 
   Starting with version 0.6H (released on 2 Apr 2015), Westhill gained a single alternative racing track, two configurations for kart racing and a car park configuration. The renaming of Westhill International might be a source of confusion: before 0.6H, being the only Westhill configuration, International had the short codename WE1. Since 0.6H, the new National track config usurped WE1, and International was renamed to WE2.
+image: ./WE.webp
 tracks:
   - id: WE1
     outline: ./WE1.svg

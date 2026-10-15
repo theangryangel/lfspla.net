@@ -4,6 +4,7 @@ name: Rockingham
 sequence: 6
 description: |
   Rockingham: Europe's fastest racing circuit located at the heart of England, recreated with laser precision. It is the only real track in the game so far and the first track to require an S3 license.
+image: ./RO.webp
 tracks:
   - id: RO1
     outline: ./RO1.svg

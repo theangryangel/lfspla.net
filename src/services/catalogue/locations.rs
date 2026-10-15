@@ -1,10 +1,13 @@
 //! Locations own authored metadata and their nested canonical track definitions.
 
 use super::{Applied, assets, tracks::TrackDefinition};
-use crate::models::track::location::{self, ActiveModel, Entity};
+use crate::models::track::location::{ActiveModel, Entity};
 use anyhow::{Context, ensure};
 use object_store::ObjectStore;
-use sea_orm::{ActiveModelTrait, DatabaseTransaction, EntityTrait, IntoActiveModel, Set};
+use sea_orm::{
+    ActiveModelTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, IntoActiveModel,
+    ModelTrait, PaginatorTrait, Set, TransactionTrait,
+};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -23,6 +26,27 @@ pub(crate) struct LocationDefinition {
     pub(crate) tracks: Vec<TrackDefinition>,
 }
 
+/// Delete an empty location without changing tracks or their artwork.
+pub(crate) async fn delete(database: &DatabaseConnection, id: &str) -> anyhow::Result<()> {
+    let transaction = database.begin().await?;
+    crate::db::lock_catalogue_write(&transaction).await?;
+    let location = Entity::find_by_id(id)
+        .one(&transaction)
+        .await?
+        .with_context(|| format!("track location {id:?} was not found"))?;
+    let tracks = location
+        .find_related(crate::models::track::Entity)
+        .count(&transaction)
+        .await?;
+    ensure!(
+        tracks == 0,
+        "track location {id:?} still contains {tracks} track(s); move them in YAML and reapply before deleting it"
+    );
+    location.delete(&transaction).await?;
+    transaction.commit().await?;
+    Ok(())
+}
+
 impl LocationDefinition {
     pub(super) fn validate(&self, source: &Path) -> anyhow::Result<()> {
         ensure!(
@@ -39,13 +63,6 @@ impl LocationDefinition {
             assets::read(source, file)?;
         }
         for track in &self.tracks {
-            ensure!(
-                location::canonical_code(track.id) == self.id,
-                "track {} does not belong to location {} in {}",
-                track.id,
-                self.id,
-                source.display()
-            );
             track.validate(source)?;
         }
         Ok(())
@@ -134,5 +151,53 @@ impl LocationDefinition {
             }
         }
         Ok(applied)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn deletion_requires_an_empty_existing_location(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        sqlx::raw_sql(include_str!("../validate_hotlap/fixtures.sql"))
+            .execute(&pool)
+            .await?;
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+        let error = delete(&database, "BL").await.unwrap_err();
+        assert!(error.to_string().contains("still contains 1 track(s)"));
+        assert!(Entity::find_by_id("BL").one(&database).await?.is_some());
+        let error = delete(&database, "MISSING").await.unwrap_err();
+        assert!(error.to_string().contains("was not found"));
+
+        // An empty location's image is left for storage GC, not deleted inline.
+        let attachment_id: i64 = sqlx::query_scalar(
+            "INSERT INTO attachment (object_key, media_type, extension) \
+             VALUES ('location.svg', 'image/svg+xml', 'svg') RETURNING id",
+        )
+        .fetch_one(&pool)
+        .await?;
+        sqlx::query("UPDATE track_location SET image_attachment_id = $1 WHERE id = 'OTHER'")
+            .bind(attachment_id)
+            .execute(&pool)
+            .await?;
+        delete(&database, "OTHER").await?;
+        assert!(Entity::find_by_id("OTHER").one(&database).await?.is_none());
+        assert!(
+            crate::models::attachment::Entity::find_by_id(attachment_id)
+                .one(&database)
+                .await?
+                .is_some()
+        );
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM hotlap")
+                .fetch_one(&pool)
+                .await?,
+            1
+        );
+        Ok(())
     }
 }

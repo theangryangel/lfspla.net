@@ -6,6 +6,7 @@ description: |
   The Aston Racetrack in the middle of England has several longer and shorter configurations within a nice countryside full of forest and light hills. The 7 configurations include the longest in S2 with 8.8 kilometers. Fast and slow turns, some altitude changes and a great chicane are the ingredients to this racetrack.
 
   Aston was introduced with the release of S2 (0.5P). On April 21, 2006, the April Update 0.5S added the Grand Touring (AS6) and North (AS7) configurations to the environment.[
+image: ./AS.webp
 tracks:
   - id: AS1
     outline: ./AS1.svg

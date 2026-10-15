@@ -4,9 +4,11 @@
 
 	let {
 		src = null,
+		fit = 'contain',
 		class: className,
 	}: {
 		src?: string | null;
+		fit?: 'contain' | 'cover';
 		class?: string;
 	} = $props();
 </script>
@@ -23,6 +25,14 @@
 			aria-hidden="true"
 		/>
 	{:else}
-		<img {src} alt="" loading="lazy" class="size-full object-contain p-[5%]" />
+		<img
+			{src}
+			alt=""
+			loading="lazy"
+			class={cn(
+				'size-full',
+				fit === 'cover' ? 'object-cover' : 'object-contain p-[5%]',
+			)}
+		/>
 	{/if}
 </div>
