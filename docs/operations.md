@@ -78,6 +78,32 @@ are populated when their definitions are seeded. Apply these files explicitly.
 PostgreSQL serves requests; startup does not apply catalogue files. See
 [catalogue seeding](catalogue.md) for document formats and artwork handling.
 
+## Importing LFSWorld hotlaps
+
+Run migrations and install the required era definitions, then import one or more
+CSV exports:
+
+```sh
+lfsplanet hotlap import-lfsworld tmp/s2hotlaps.csv --spr-dir tmp/sprs
+```
+
+`--spr-dir` is optional. When supplied, the importer scans its subdirectories
+once and matches the CSV's SPR filenames case-insensitively. On Unix it also
+recognises Windows-1252 and Latin-1 filenames extracted from older archives,
+without renaming the original files. Directory symlinks are not followed.
+
+Matching replay headers must agree with the CSV's username, track, car and lap
+time. Missing files leave the lap without an attachment; ambiguous filenames,
+unreadable files, invalid headers and metadata mismatches are skipped with a
+warning. The final attachment summary reports attached, missing, skipped and
+already attached laps. Replays go into the configured attachment store.
+
+Imported laps retain the CSV import's published state and do not enter the HLVC
+queue. Rerun the command to attach files added later. Existing attachments are
+preserved, including when rerunning without `--spr-dir`. Attachment writes commit
+individually after the CSV import; a storage or database failure stops the pass,
+and rerunning resumes with laps that still lack attachments.
+
 ## Routine maintenance
 
 ```sh

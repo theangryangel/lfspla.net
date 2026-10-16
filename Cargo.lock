@@ -2230,6 +2230,7 @@ dependencies = [
  "celes",
  "clap",
  "csv",
+ "encoding_rs",
  "fake",
  "futures",
  "hex",

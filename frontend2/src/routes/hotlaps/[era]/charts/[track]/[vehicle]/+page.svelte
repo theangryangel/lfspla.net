@@ -336,10 +336,8 @@
 													: lapTime(splits[index])}
 											</Table.Cell>
 										{/each}
-										<Table.Cell>
-											<div
-												class="inline-flex items-center gap-1.5 whitespace-nowrap"
-											>
+										<Table.Cell class="max-w-64 whitespace-normal">
+											<div class="flex max-w-60 flex-wrap items-center gap-1.5">
 												<Badge
 													variant="outline"
 													class="font-normal text-muted-foreground"

@@ -28,6 +28,9 @@ pub(crate) enum HotlapCommand {
         /// Paths to LFSWorld v1 hotlap CSV exports; shell globs may be used.
         #[arg(value_name = "HOTLAPS_CSV", required = true)]
         hotlaps_csv: Vec<PathBuf>,
+        /// Recursively search this directory for matching SPR attachments.
+        #[arg(long, value_name = "DIRECTORY")]
+        spr_dir: Option<PathBuf>,
     },
     /// Reclassify hotlaps and rebuild personal bests and chart positions.
     FixEras,
@@ -67,9 +70,10 @@ use crate::cli::Args;
 pub(crate) async fn run(args: &Args, action: &HotlapCommand) -> anyhow::Result<()> {
     match action {
         HotlapCommand::Inspect { replay } => inspect::run(replay),
-        HotlapCommand::ImportLfsworld { hotlaps_csv } => {
-            import_lfsworld::run(args, hotlaps_csv).await
-        }
+        HotlapCommand::ImportLfsworld {
+            hotlaps_csv,
+            spr_dir,
+        } => import_lfsworld::run(args, hotlaps_csv, spr_dir.as_deref()).await,
         HotlapCommand::FixEras => fix_eras::run(args).await,
         HotlapCommand::Rebadge { scope } => rebadge::run(args, scope).await,
         HotlapCommand::Validate {

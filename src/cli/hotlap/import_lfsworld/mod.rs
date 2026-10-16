@@ -5,6 +5,7 @@ use crate::era_slug::EraSlug;
 use crate::milliseconds::Milliseconds;
 
 mod persist;
+mod replays;
 
 use crate::models::era::definition as era_definitions;
 use crate::{
@@ -130,6 +131,7 @@ struct CsvHotlap {
 #[derive(Debug)]
 struct ImportedHotlap {
     fingerprint: String,
+    spr_filename: String,
     lfs_username: String,
     era_slug: EraSlug,
     era_id: i64,
@@ -161,8 +163,17 @@ struct ImportData {
 }
 
 /// Imports an LFSWorld v1 hotlap CSV export.
-pub(super) async fn run(args: &Args, hotlaps_csv: &[PathBuf]) -> anyhow::Result<()> {
+pub(super) async fn run(
+    args: &Args,
+    hotlaps_csv: &[PathBuf],
+    spr_dir: Option<&Path>,
+) -> anyhow::Result<()> {
+    let replays = spr_dir.map(replays::ReplayIndex::load).transpose()?;
     let settings = Settings::load(&args.config)?;
+    let object_store = replays
+        .as_ref()
+        .map(|_| crate::storage::build(&settings.storage))
+        .transpose()?;
     let database = db::connect(&settings.database, 2).await?;
     let eras = era_definitions::list(&database).await?;
     let mut data = load(hotlaps_csv, &eras)?;
@@ -211,6 +222,9 @@ pub(super) async fn run(args: &Args, hotlaps_csv: &[PathBuf]) -> anyhow::Result<
         {
             era.rebuild_badges(&database).await?;
         }
+    }
+    if let (Some(replays), Some(store)) = (replays, object_store) {
+        replays.attach(&database, store.as_ref(), &data).await?;
     }
     Ok(())
 }
@@ -442,6 +456,7 @@ fn parse_row(
         // LFSWorld restarted item numbers when the incompatible hotlap table
         // was archived, so the era is part of the durable import identity.
         fingerprint: format!("{}:{}", era.id, row.itemnr),
+        spr_filename: row.spr.clone(),
         lfs_username: row.user.clone(),
         era_slug: era.id.clone(),
         era_id: 0,

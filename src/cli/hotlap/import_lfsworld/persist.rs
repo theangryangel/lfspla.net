@@ -7,7 +7,7 @@ use sea_orm::{
     sqlx::{self, Postgres, QueryBuilder},
 };
 use std::collections::{HashMap, HashSet};
-const SOURCE: &str = "lfsworld_v1";
+pub(super) const SOURCE: &str = "lfsworld_v1";
 
 #[allow(clippy::too_many_lines)]
 pub(super) async fn persist(
@@ -254,6 +254,7 @@ mod tests {
             .collect(),
             hotlaps: vec![ImportedHotlap {
                 fingerprint: "2006-01-01:1".into(),
+                spr_filename: "import-chart-test_BL1_XFG_100000.spr".into(),
                 lfs_username: "import-chart-test".into(),
                 era_slug: first.slug.clone(),
                 era_id: first.id,
@@ -270,6 +271,68 @@ mod tests {
         };
         assert_eq!(persist(&database, &data).await?, 1);
         assert_eq!(persist(&database, &data).await?, 0);
+        // Replays may arrive after the CSV import. Missing and invalid files
+        // leave the lap published; subsequent runs attach once and preserve it.
+        let replay_root = tempfile::tempdir()?;
+        let store = object_store::memory::InMemory::new();
+        super::super::replays::ReplayIndex::load(replay_root.path())?
+            .attach(&database, &store, &data)
+            .await?;
+        let path = replay_root.path().join(&data.hotlaps[0].spr_filename);
+        std::fs::write(&path, b"invalid replay")?;
+        super::super::replays::ReplayIndex::load(replay_root.path())?
+            .attach(&database, &store, &data)
+            .await?;
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM attachment")
+                .fetch_one(&pool)
+                .await?,
+            0
+        );
+        let bytes = super::super::replays::tests::replay_bytes(
+            "import-chart-test",
+            &pair.track.to_string(),
+            &pair.vehicle.to_string(),
+        );
+        std::fs::write(&path, &bytes)?;
+        let index = super::super::replays::ReplayIndex::load(replay_root.path())?;
+        index.attach(&database, &store, &data).await?;
+        let attachment_id: i64 = sqlx::query_scalar("SELECT spr_attachment_id FROM hotlap")
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(
+            sqlx::query_scalar::<_, String>("SELECT state::text FROM hotlap")
+                .fetch_one(&pool)
+                .await?,
+            "valid"
+        );
+        assert_eq!(persist(&database, &data).await?, 0);
+        index.attach(&database, &store, &data).await?;
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT spr_attachment_id FROM hotlap")
+                .fetch_one(&pool)
+                .await?,
+            attachment_id
+        );
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM attachment")
+                .fetch_one(&pool)
+                .await?,
+            1
+        );
+        use object_store::ObjectStoreExt;
+        let key: String = sqlx::query_scalar("SELECT object_key FROM attachment")
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(
+            store
+                .get(&object_store::path::Path::from(key))
+                .await?
+                .bytes()
+                .await?
+                .as_ref(),
+            bytes.as_slice()
+        );
         let chart = crate::models::Chart::find_combination(
             &database,
             first.id,
