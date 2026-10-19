@@ -100,12 +100,12 @@ platform-selected implementation.
 
 ## Catalogue
 
-The YAML files in `assets/tracks/`, `assets/vehicles/`, and `assets/eras/` are
+The YAML files in `assets/tracks/`, `assets/vehicles/`, `assets/eras/`, and `assets/community/` are
 setup files. Apply them explicitly:
 
 ```sh
 lfsplanet maintenance sync-mods
-lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml
+lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml
 ```
 
 `sync-mods` refreshes Vehicle Mods. `seed` applies location definitions with nested tracks, vehicle artwork, and era

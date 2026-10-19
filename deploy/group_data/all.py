@@ -8,6 +8,7 @@ state_dir = "/var/lib/lfsplanet"
 eras_source = "../assets/eras"
 tracks_source = "../assets/tracks"
 vehicles_source = "../assets/vehicles"
+community_source = "../assets/community"
 max_spr_upload_bytes = "2 MiB"
 webhook_workers = 3
 

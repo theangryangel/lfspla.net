@@ -1,19 +1,19 @@
 # Catalogue seeding
 
 Catalogue definitions are versioned YAML documents under `assets/tracks/`,
-`assets/vehicles/`, and `assets/eras/`. PostgreSQL is the source of truth at
+`assets/vehicles/`, `assets/eras/`, and `assets/community/`. PostgreSQL is the source of truth at
 runtime; startup does not apply these files.
 
 ## Applying definitions
 
 ```sh
 lfsplanet migrate
-lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml --dry-run
-lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml
+lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml --dry-run
+lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml
 ```
 
 `seed` accepts one or more explicit YAML file paths, including shell-expanded
-globs. Each document requires `kind: Location`, `kind: Vehicle`, or `kind: Era`.
+globs. Each document requires `kind: Location`, `kind: Vehicle`, `kind: Era`, or `kind: CommunityCard`.
 Untagged YAML and stdin are rejected. All supplied files are parsed and validated
 before application, and database changes are applied in one transaction.
 
@@ -151,6 +151,129 @@ Standard vehicle images are served through the same attachment endpoint as mod
 covers. No track or vehicle artwork is bundled into the frontend. Seed the
 artwork before deploying a frontend that depends on these URLs. Local artwork
 is seeded exclusively through YAML definitions.
+
+## Community cards
+
+`kind: CommunityCard` documents populate the homepage's **Community & partners**
+carousel. Apply them independently with:
+
+```sh
+lfsplanet migrate
+lfsplanet seed assets/community/*.yaml --dry-run
+lfsplanet seed assets/community/*.yaml
+```
+
+Each document has a stable lowercase `id`, a `title`, and typed `content`.
+Cards share one layout: title and text on the left, with an optional image in a
+rectangular image panel on the right. When content has a destination link, the
+entire card is a single clickable link; there are no separate buttons inside it.
+
+Supported templates:
+
+| `content.type` | Content fields                                                                | Image         |
+| -------------- | ----------------------------------------------------------------------------- | ------------- |
+| `partner`      | `description`, `link` (`label`, `url`), optional `fit`                        | Optional logo |
+| `image`        | `alt`, optional `description`, optional `link`, and `fit: cover` or `contain` | Required      |
+| `announcement` | `body`, optional `link` and `fit`                                             | Optional      |
+
+For example, a community resource card:
+
+```yaml
+kind: CommunityCard
+id: example-partner
+title: Example community project
+sequence: 20
+enabled: false
+sponsored: false
+theme: purple
+image: ./images/project.webp
+content:
+  type: partner
+  description: A short introduction to the project.
+  link:
+    label: Visit the project
+    url: https://example.com/
+```
+
+An image banner uses the same attachment workflow:
+
+```yaml
+kind: CommunityCard
+id: example-banner
+title: Community event
+enabled: false
+image: ./images/event.webp
+content:
+  type: image
+  alt: Event name, date and location
+  description: Join the community for an evening of racing.
+  fit: contain
+  link:
+    label: Event details
+    url: https://example.com/event
+```
+
+Themes are `neutral` (default), `cyan`, `purple`, and `yellow`; they control the
+link hover accent. The image panel has no coloured backing. Every template accepts
+`content.fit`: `cover` crops a photo to fill the image panel, while `contain`
+preserves the image proportions. Partner and announcement cards default to
+`contain`; image cards default to `cover`.
+No HTML, arbitrary CSS, or scripts are accepted.
+Links accept absolute HTTP(S) URLs without embedded credentials, or site paths
+starting with a single `/`. Text is rendered as plain text. Titles are limited to
+120 characters; descriptions to 500 and announcement bodies to 1,000.
+
+Images resolve relative to their YAML file and use the same formats, attachment
+storage, content reuse, and dry-run behaviour as catalogue artwork. Image cards
+require nonempty `alt` text; other templates treat their optional logo as decorative.
+
+### Publication and ordering
+
+Each card supports these independent controls:
+
+```yaml
+enabled: true
+sequence: 20
+starts_at: "2026-11-01T00:00:00Z"
+ends_at: "2026-12-01T00:00:00Z"
+```
+
+`enabled: false` hides the card regardless of its dates. Lower `sequence` values
+appear first; equal values are ordered by `id`. Defaults are `enabled: true` and
+`sequence: 0`.
+
+Both date fields are optional. Omit `starts_at` for immediate availability; omit
+`ends_at` to keep the card available indefinitely. Supply quoted RFC 3339 timestamps
+with `Z` for UTC or an explicit offset such as `+01:00`; dates and local times
+without an offset are rejected. The start is inclusive and the end is exclusive.
+When both exist, `ends_at` must be later than `starts_at`.
+
+The API evaluates visibility on every request using server time, so scheduling
+requires no background job or frontend date logic. An already open homepage picks
+up publication changes when reloaded. Seeding a supplied card without its previous
+dates clears that schedule.
+
+Defaults are `sequence: 0`, `enabled: true`, and `sponsored: false`. Set
+`sponsored: true` for a directly sponsored card; this adds a visible label and
+marks its card link as sponsored. These cards do not embed AdSense code.
+
+Each supplied document replaces **all** fields of its stored card: omitting
+`image` clears an old image reference, and omitting other optional fields restores
+their defaults. Omitting a whole document from a seed batch leaves its row untouched.
+To withdraw a card, keep its document and seed it with `enabled: false`; simply
+deleting the YAML file does not unpublish it.
+
+`GET /api/v1/community-cards` returns `{ "items": [...] }` containing only enabled cards within their publication window, sorted by `sequence` then `id`. Responses include typed content, presentation
+settings, and public attachment URLs. The homepage loads these independently of
+statistics. When no cards are available, the community column is hidden and the
+spotlight carousel uses the full row. A single card
+is displayed without carousel controls. Content changes take effect on the next
+page load after seeding; the frontend requires no rebuild.
+
+The bookmarks/link-list template is retired. The presentation migration removes
+previously seeded `links` cards; catalogue files with that type are rejected.
+`assets/community/preview/` includes temporary examples of the three supported
+templates. Load them explicitly with `lfsplanet seed assets/community/preview/*.yaml`.
 
 ## Deployment
 

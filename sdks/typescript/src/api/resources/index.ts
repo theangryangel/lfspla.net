@@ -5,6 +5,7 @@ export * from "./authentication/client/requests/index.js";
 export * as charts from "./charts/index.js";
 export * from "./charts/client/requests/index.js";
 export * from "./charts/types/index.js";
+export * as communityCards from "./communityCards/index.js";
 export * as countries from "./countries/index.js";
 export * from "./countries/client/requests/index.js";
 export * as eras from "./eras/index.js";

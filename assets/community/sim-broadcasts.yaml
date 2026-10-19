@@ -1,0 +1,13 @@
+kind: CommunityCard
+id: sim-broadcasts
+title: Sim Broadcasts
+sequence: 20
+theme: purple
+image: ./images/sim-broadcasts.jpg
+content:
+  type: partner
+  fit: cover
+  description: Follow Live for Speed racing with live broadcasts, commentary and race replays from a team of passionate sim racing fans.
+  link:
+    label: Watch Sim Broadcasts
+    url: https://simbroadcasts.tv/

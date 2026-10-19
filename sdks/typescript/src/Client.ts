@@ -3,6 +3,7 @@
 import { AttachmentsClient } from "./api/resources/attachments/client/Client.js";
 import { AuthenticationClient } from "./api/resources/authentication/client/Client.js";
 import { ChartsClient } from "./api/resources/charts/client/Client.js";
+import { CommunityCardsClient } from "./api/resources/communityCards/client/Client.js";
 import { CountriesClient } from "./api/resources/countries/client/Client.js";
 import { ErasClient } from "./api/resources/eras/client/Client.js";
 import { HotlapsClient } from "./api/resources/hotlaps/client/Client.js";
@@ -30,6 +31,7 @@ export declare namespace LfsplanetApiClient {
 export class LfsplanetApiClient {
   protected readonly _options: NormalizedClientOptionsWithAuth<LfsplanetApiClient.Options>;
   protected _attachments: AttachmentsClient | undefined;
+  protected _communityCards: CommunityCardsClient | undefined;
   protected _players: PlayersClient | undefined;
   protected _countries: CountriesClient | undefined;
   protected _eras: ErasClient | undefined;
@@ -50,6 +52,10 @@ export class LfsplanetApiClient {
 
   public get attachments(): AttachmentsClient {
     return (this._attachments ??= new AttachmentsClient(this._options));
+  }
+
+  public get communityCards(): CommunityCardsClient {
+    return (this._communityCards ??= new CommunityCardsClient(this._options));
   }
 
   public get players(): PlayersClient {

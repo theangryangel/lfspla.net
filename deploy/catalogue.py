@@ -70,6 +70,24 @@ vehicles = files.sync(
     delete=False,
 )
 
+files.sync(
+    name="Deploy community card definitions and artwork",
+    src=host.data.community_source,
+    dest=f"{config_dir}/community",
+    user="root",
+    group=app_group,
+    mode="0640",
+    dir_mode="0750",
+    delete=False,
+)
+
+# The bookmark template was retired. Keep its old managed file out of the seed glob.
+files.file(
+    name="Remove obsolete bookmarks definition",
+    path=f"{config_dir}/community/bookmarks.yaml",
+    present=False,
+)
+
 server.shell(
     name="Synchronize Vehicle Mods",
     commands=[
@@ -80,10 +98,10 @@ server.shell(
 )
 
 server.shell(
-    name="Seed locations, tracks and standard vehicles",
+    name="Seed locations, tracks, standard vehicles and community cards",
     commands=[
         f"{app_root}/lfsplanet --config {config_dir}/config.yaml seed "
-        f"{config_dir}/tracks/*.yaml {config_dir}/vehicles/*.yaml"
+        f"{config_dir}/tracks/*.yaml {config_dir}/vehicles/*.yaml {config_dir}/community/*.yaml"
     ],
     _sudo_user=app_user,
     _env=storage_environment,

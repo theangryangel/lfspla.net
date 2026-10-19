@@ -16,6 +16,7 @@ pub(crate) mod vehicle;
 pub(crate) mod webhook;
 
 pub(crate) mod chart;
+pub(crate) mod community_card;
 pub(crate) mod ranking_chart_membership;
 pub(crate) mod webhook_notification;
 

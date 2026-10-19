@@ -1,0 +1,12 @@
+kind: CommunityCard
+id: preview-announcement
+title: Template preview - Announcement
+sequence: 1030
+theme: cyan
+image: ../images/lfs-manual.png
+content:
+  type: announcement
+  body: A community update with text on the left and an image in the corner. The whole card links to the LFS Manual.
+  link:
+    label: Read the LFS Manual
+    url: https://www.lfsmanual.net/

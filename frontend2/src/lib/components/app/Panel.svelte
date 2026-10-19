@@ -11,6 +11,7 @@
 		flush = false,
 		surface = true,
 		appearance = 'default',
+		stretch = false,
 		action,
 		children,
 	}: {
@@ -21,12 +22,13 @@
 		flush?: boolean;
 		surface?: boolean;
 		appearance?: 'default' | 'data';
+		stretch?: boolean;
 		action?: Snippet;
 		children: Snippet;
 	} = $props();
 </script>
 
-<section class="space-y-3">
+<section class={stretch ? 'flex min-h-0 flex-1 flex-col gap-3' : 'space-y-3'}>
 	<header class="flex flex-wrap items-start justify-between gap-3">
 		<div class="space-y-1">
 			<h2
@@ -52,11 +54,14 @@
 		</Card.Root>
 	{:else}
 		<div
-			class={flush
-				? ''
-				: appearance === 'data'
-					? 'space-y-4 border-t py-4'
-					: 'space-y-4 py-4'}
+			class={[
+				flush
+					? ''
+					: appearance === 'data'
+						? 'space-y-4 border-t py-4'
+						: 'space-y-4 py-4',
+				stretch && 'flex min-h-0 flex-1 flex-col',
+			]}
 		>
 			{@render children()}
 		</div>

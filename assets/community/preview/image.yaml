@@ -1,0 +1,14 @@
+kind: CommunityCard
+id: preview-image
+title: Template preview - Image
+sequence: 1020
+theme: neutral
+image: ../images/sim-broadcasts.jpg
+content:
+  type: image
+  description: Live sim racing coverage, commentary and replays from Sim Broadcasts.
+  alt: Sim Broadcasts logo in blue, red and yellow beside the Sim Broadcasts name.
+  fit: cover
+  link:
+    label: Visit Sim Broadcasts
+    url: https://simbroadcasts.tv/
