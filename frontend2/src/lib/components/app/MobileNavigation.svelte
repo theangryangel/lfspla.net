@@ -82,7 +82,7 @@
 					</section>
 				{/each}
 			</div>
-			{#each [{ label: 'Drivers', href: '/drivers' }, { label: 'Vehicles', href: '/vehicles' }, { label: 'Tracks', href: '/tracks' }] as item}
+			{#each [{ label: 'Drivers', href: '/drivers' }, { label: 'Vehicles', href: '/vehicles' }, { label: 'Tracks', href: '/tracks' }, { label: 'Events', href: 'https://www.lfs.net/leagues/calendar' }] as item}
 				<a
 					class={`mt-3 flex h-9 items-center rounded-md px-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${isActive(item.href) ? 'bg-accent text-accent-foreground' : ''}`}
 					href={item.href}
