@@ -1,6 +1,7 @@
 export * from "./Attachment.js";
 export * from "./Chart.js";
 export * from "./CodeNameSummary.js";
+export * from "./Combination.js";
 export * from "./CombinationCheck.js";
 export * from "./CombinationRejection.js";
 export * from "./ComboSpotlightResponse.js";
@@ -38,7 +39,7 @@ export * from "./MeResponse.js";
 export * from "./Milliseconds.js";
 export * from "./NationContributionResponse.js";
 export * from "./NationRankingEntryResponse.js";
-export * from "./PaginatedResponseChart.js";
+export * from "./PaginatedResponseCombination.js";
 export * from "./PaginatedResponseHotlap.js";
 export * from "./PaginatedResponseTrackSummary.js";
 export * from "./PaginatedResponseVehicleSummary.js";

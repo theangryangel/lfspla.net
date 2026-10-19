@@ -43,6 +43,13 @@ ordered pages shared by the hotlap collection and chart leaderboard routes.
 HTTP adapters resolve ownership and chart scope, and API conversion builds
 public responses. Services own complete workflows rather than these reads.
 
+The era combinations listing includes `participants`, counting drivers with a
+current valid personal best on each chart. `column=participants&order=desc`
+provides the era overview's "Most hotlapped combos" tab. PostgreSQL counts using
+the existing personal-best chart indexes and sorts before pagination; repeated
+uploads do not inflate the counts. Catalogue sorts retain their existing default
+order and only count participants for the returned page.
+
 `src/services` owns complete application workflows:
 
 `manage_lfs/mod.rs` owns installation downloads and caching, installation and

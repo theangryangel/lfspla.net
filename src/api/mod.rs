@@ -446,8 +446,8 @@ mod tests {
             "#/components/schemas/Chart"
         );
         assert_eq!(
-            schemas["PaginatedResponse_Chart"]["properties"]["items"]["items"],
-            *chart
+            schemas["Combination"]["allOf"][0]["$ref"],
+            "#/components/schemas/Chart"
         );
     }
 

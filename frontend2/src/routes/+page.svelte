@@ -227,7 +227,7 @@
 		title="Activity"
 		appearance="data"
 		refreshKey={data.stats}
-		views={['all', 'world_records', 'mine']}
+		views={['all', 'world_records', 'longest_standing', 'mine']}
 		perPage={10}
 		eras={data.eras}
 	/>

@@ -188,7 +188,7 @@ export class ErasClient {
   public listEraCombinations(
     request: LfsplanetApi.ListEraCombinationsRequest,
     requestOptions?: ErasClient.RequestOptions,
-  ): core.HttpResponsePromise<LfsplanetApi.PaginatedResponseChart> {
+  ): core.HttpResponsePromise<LfsplanetApi.PaginatedResponseCombination> {
     return core.HttpResponsePromise.fromPromise(
       this.__listEraCombinations(request, requestOptions),
     );
@@ -197,11 +197,21 @@ export class ErasClient {
   private async __listEraCombinations(
     request: LfsplanetApi.ListEraCombinationsRequest,
     requestOptions?: ErasClient.RequestOptions,
-  ): Promise<core.WithRawResponse<LfsplanetApi.PaginatedResponseChart>> {
-    const { era, track, vehicle, page, per_page: perPage } = request;
+  ): Promise<core.WithRawResponse<LfsplanetApi.PaginatedResponseCombination>> {
+    const {
+      era,
+      track,
+      vehicle,
+      column,
+      order,
+      page,
+      per_page: perPage,
+    } = request;
     const _queryParams: Record<string, unknown> = {
       track,
       vehicle,
+      column: column != null ? column : undefined,
+      order: order != null ? order : undefined,
       page,
       per_page: perPage,
     };
@@ -233,7 +243,7 @@ export class ErasClient {
     });
     if (_response.ok) {
       return {
-        data: _response.body as LfsplanetApi.PaginatedResponseChart,
+        data: _response.body as LfsplanetApi.PaginatedResponseCombination,
         rawResponse: _response.rawResponse,
       };
     }

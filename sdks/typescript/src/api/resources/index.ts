@@ -10,6 +10,7 @@ export * as countries from "./countries/index.js";
 export * from "./countries/client/requests/index.js";
 export * as eras from "./eras/index.js";
 export * from "./eras/client/requests/index.js";
+export * from "./eras/types/index.js";
 export * as hotlaps from "./hotlaps/index.js";
 export * from "./hotlaps/client/requests/index.js";
 export * from "./hotlaps/types/index.js";
