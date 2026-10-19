@@ -1,7 +1,8 @@
 # Deployment
 
 pyinfra deploys the Rust API and frontend to a Debian host using PostgreSQL 18,
-systemd and Caddy. Requires SSH, sudo and [uv](https://docs.astral.sh/uv/).
+systemd and Caddy. Requires SSH, sudo, rsync and [uv](https://docs.astral.sh/uv/)
+on your workstation. Provisioning installs rsync on the host.
 
 ## Configuration
 
@@ -61,6 +62,11 @@ manually on the host. See [catalogue seeding](../docs/catalogue.md) for input
 formats and artwork handling. Catalogue deployment also removes the previous
 per-track YAML files corresponding to bundled SVGs; the new location documents
 replace them without deleting database records or artwork.
+
+Frontend releases and catalogue definitions and artwork transfer through rsync
+without deleting extra server files. Eras retain file change detection to control
+when they are applied. Existing hosts need rsync installed before deploying; rerun
+provisioning or install the `rsync` package on the host.
 
 See [operations](../docs/operations.md#deployment-and-releases) for release checks
 and failures, and [backups](runbooks/backups.md) for backup checks and recovery.

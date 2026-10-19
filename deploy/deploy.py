@@ -14,6 +14,7 @@ API, so a frontend change no longer needs the binary rebuilt and swapped.
 
 import hashlib
 from pathlib import Path
+from shlex import quote
 
 from object_storage import quote_environment, storage_configuration, storage_image_policy
 
@@ -173,14 +174,18 @@ server.shell(
 
 # Upload into the release directory before anything goes down. Nothing serves it
 # until `current` moves, so this is invisible to visitors and safe to repeat.
-files.sync(
-    name="Upload the frontend release",
-    src=str(frontend_dist),
-    dest=frontend_release,
+files.directory(
+    name="Ensure the frontend release directory exists",
+    path=frontend_release,
     user="root",
     group="root",
-    mode="0644",
-    dir_mode="0755",
+    mode="0755",
+)
+files.rsync(
+    name="Upload the frontend release",
+    src=quote(str(frontend_dist) + "/"),
+    dest=quote(frontend_release + "/"),
+    flags=["-ac", "--chown=root:root", "--chmod=D755,F644"],
 )
 
 systemd.daemon_reload(name="Reload systemd after lfsplanet unit changes")

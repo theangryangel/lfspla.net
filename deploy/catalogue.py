@@ -8,6 +8,7 @@ intended. New eras never require that flag.
 """
 
 from pathlib import Path
+from shlex import quote
 
 from object_storage import storage_configuration
 
@@ -35,51 +36,46 @@ era_sync = files.sync(
     delete=False,
 )
 
-track_sync = files.sync(
-    name="Deploy location definitions and track artwork",
-    src=host.data.tracks_source,
-    dest=f"{config_dir}/tracks",
-    user="root",
-    group=app_group,
-    mode="0640",
-    dir_mode="0750",
-    delete=False,
-)
+# Transfer each tree in one rsync session instead of checking files individually
+# over SSH. Keep the small era sync above for its did_change condition.
+for directory, source in (
+    ("tracks", host.data.tracks_source),
+    ("vehicles", host.data.vehicles_source),
+    ("community", host.data.community_source),
+):
+    files.directory(
+        name=f"Ensure the {directory} catalogue directory exists",
+        path=f"{config_dir}/{directory}",
+        user="root",
+        group=app_group,
+        mode="0750",
+    )
+    files.rsync(
+        name=f"Deploy {directory} definitions and artwork",
+        src=quote(str((Path(__file__).resolve().parent / source).resolve()) + "/"),
+        dest=quote(f"{config_dir}/{directory}/"),
+        # Explicit flags avoid pyinfra's default --delete. Preserve operator
+        # files and use checksums so content changes never depend on timestamps.
+        flags=[
+            "-ac",
+            quote(f"--chown=root:{app_group}"),
+            "--chmod=D750,F640",
+        ],
+    )
 
 # Previous releases copied one kind: Track document per SVG. Remove only those
 # managed definition paths so the seed glob cannot include the obsolete format.
 # Database records and artwork are retained; operator-created filenames are untouched.
 track_source = Path(__file__).resolve().parent / host.data.tracks_source
-for outline in sorted(track_source.glob("*.svg")):
-    files.file(
-        name=f"Remove obsolete standalone track definition {outline.stem}",
-        path=f"{config_dir}/tracks/{outline.stem}.yaml",
-        present=False,
+obsolete_tracks = [
+    quote(f"{config_dir}/tracks/{outline.stem}.yaml")
+    for outline in sorted(track_source.glob("*.svg"))
+]
+if obsolete_tracks:
+    server.shell(
+        name="Remove obsolete standalone track definitions",
+        commands=["rm -f -- " + " ".join(obsolete_tracks)],
     )
-
-vehicles = files.sync(
-    name="Deploy standard vehicle definitions and artwork",
-    src=host.data.vehicles_source,
-    dest=f"{config_dir}/vehicles",
-    user="root",
-    group=app_group,
-    mode="0640",
-    dir_mode="0750",
-    # Images may be removed from a future release only through an explicit
-    # object-storage cleanup policy.
-    delete=False,
-)
-
-files.sync(
-    name="Deploy community card definitions and artwork",
-    src=host.data.community_source,
-    dest=f"{config_dir}/community",
-    user="root",
-    group=app_group,
-    mode="0640",
-    dir_mode="0750",
-    delete=False,
-)
 
 # The bookmark template was retired. Keep its old managed file out of the seed glob.
 files.file(
