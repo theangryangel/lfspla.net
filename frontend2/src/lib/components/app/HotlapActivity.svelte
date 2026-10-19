@@ -15,6 +15,7 @@
 	import CompareButton from '$lib/components/app/CompareButton.svelte';
 	import Empty from '$lib/components/app/Empty.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
+	import PlayerBadge from '$lib/components/app/PlayerBadge.svelte';
 	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import SortableHead from '$lib/components/app/SortableHead.svelte';
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
@@ -272,6 +273,9 @@
 												lap.player.lfs_username,
 											)}">{lap.player.display_name}</a
 										>
+										{#each lap.player.badges ?? [] as badge (badge.id)}
+											<PlayerBadge {badge} />
+										{/each}
 										<CompareButton driver={lap.player} />
 									</div>
 								</Table.Cell>

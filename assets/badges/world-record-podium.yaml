@@ -1,0 +1,14 @@
+kind: Badge
+id: world-record-podium
+name: Chart podium
+description: Current individual-chart podium positions
+sequence: 50
+variants:
+  standard:
+    image: ./images/ranking-standard.svg
+  gold:
+    image: ./images/ranking-gold.svg
+  silver:
+    image: ./images/ranking-silver.svg
+  bronze:
+    image: ./images/ranking-bronze.svg

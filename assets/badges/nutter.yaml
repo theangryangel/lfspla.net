@@ -1,0 +1,14 @@
+kind: Badge
+id: nutter
+name: Nutter
+description: Nutter Rank
+sequence: 20
+variants:
+  standard:
+    image: ./images/nutter-standard.svg
+  gold:
+    image: ./images/nutter-gold.svg
+  silver:
+    image: ./images/nutter-silver.svg
+  bronze:
+    image: ./images/nutter-bronze.svg

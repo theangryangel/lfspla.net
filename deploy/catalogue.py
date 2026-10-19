@@ -42,6 +42,7 @@ for directory, source in (
     ("tracks", host.data.tracks_source),
     ("vehicles", host.data.vehicles_source),
     ("community", host.data.community_source),
+    ("badges", host.data.badges_source),
 ):
     files.directory(
         name=f"Ensure the {directory} catalogue directory exists",
@@ -94,10 +95,10 @@ server.shell(
 )
 
 server.shell(
-    name="Seed locations, tracks, standard vehicles and community cards",
+    name="Seed locations, tracks, standard vehicles, community cards and badges",
     commands=[
         f"{app_root}/lfsplanet --config {config_dir}/config.yaml seed "
-        f"{config_dir}/tracks/*.yaml {config_dir}/vehicles/*.yaml {config_dir}/community/*.yaml"
+        f"{config_dir}/tracks/*.yaml {config_dir}/vehicles/*.yaml {config_dir}/community/*.yaml {config_dir}/badges/*.yaml"
     ],
     _sudo_user=app_user,
     _env=storage_environment,

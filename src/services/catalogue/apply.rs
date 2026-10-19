@@ -21,6 +21,7 @@ use validator::Validate;
 #[derive(Default)]
 pub(crate) struct Applied {
     pub(crate) eras: Vec<EraSlug>,
+    pub(crate) badges: Vec<String>,
     pub(crate) locations: Vec<String>,
     pub(crate) tracks: Vec<String>,
     pub(crate) vehicles: Vec<String>,
@@ -30,6 +31,7 @@ pub(crate) struct Applied {
 impl Applied {
     fn extend(&mut self, other: Self) {
         self.eras.extend(other.eras);
+        self.badges.extend(other.badges);
         self.locations.extend(other.locations);
         self.tracks.extend(other.tracks);
         self.vehicles.extend(other.vehicles);
@@ -50,7 +52,8 @@ pub(crate) async fn seed(
         .iter()
         .filter_map(|source| match &source.definition {
             CatalogueDefinition::Era(era) => Some((source, era)),
-            CatalogueDefinition::Location(_)
+            CatalogueDefinition::Badge(_)
+            | CatalogueDefinition::Location(_)
             | CatalogueDefinition::Vehicle(_)
             | CatalogueDefinition::CommunityCard(_) => None,
         })
@@ -119,6 +122,7 @@ pub(crate) async fn seed(
             .await
             .context("the proposed era would make the catalogue invalid")?;
     }
+    super::badges::validate_ranking_references(&transaction).await?;
     if dry_run {
         transaction.rollback().await?;
         applied.eras.clear();

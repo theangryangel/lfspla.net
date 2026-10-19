@@ -1,0 +1,14 @@
+kind: Badge
+id: world-record-leader
+name: World records
+description: Leading holders of current world records
+sequence: 40
+variants:
+  standard:
+    image: ./images/wr-standard.svg
+  gold:
+    image: ./images/wr-gold.svg
+  silver:
+    image: ./images/wr-silver.svg
+  bronze:
+    image: ./images/wr-bronze.svg

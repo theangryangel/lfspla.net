@@ -23,10 +23,17 @@
 	<PageIdentity label="Driver identity">
 		<div class="space-y-3 py-2">
 			<div class="flex min-w-0 items-center gap-3">
-				<Flag code={player.flag_code} fallback={player.country_code} size="lg" />
+				<Flag
+					code={player.flag_code}
+					fallback={player.country_code}
+					size="lg"
+				/>
 				<h1 class="racing-page-title min-w-0 flex-1 break-words">
 					{player.display_name}
 				</h1>
+				{#each player.badges as badge (badge.id)}
+					<PlayerBadge {badge} />
+				{/each}
 				<div class="shrink-0"><CompareButton driver={player} /></div>
 			</div>
 			<div

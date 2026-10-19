@@ -9,7 +9,7 @@ rankings:
     title: Main Hotlap Rank
     description: A varied selection of 18 charts, pairing each standard car with a selected track configuration.
     badge:
-      label: MHR
+      id: mhr
       qualification:
         type: ranked
         limit: 3
@@ -58,9 +58,9 @@ rankings:
     title: Nutter Rank
     description: "The exhaustive rank: every standard car and track configuration selected for this era."
     badge:
-      label: NUTTER
+      id: nutter
       completion:
-        label: GABOR
+        id: gabor
       qualification:
         type: ranked
         limit: 3

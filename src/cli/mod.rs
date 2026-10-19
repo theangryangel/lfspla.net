@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
+mod badge;
 mod config;
 #[cfg(debug_assertions)]
 mod demo;
@@ -42,6 +43,11 @@ pub struct Args {
 pub enum Command {
     /// Apply tagged catalogue YAML definitions.
     Seed(seed::SeedArgs),
+    /// Grant, list, and revoke manual catalogue badges.
+    Badge {
+        #[command(subcommand)]
+        action: badge::BadgeCommand,
+    },
     /// Generate synthetic players and hotlaps for a development database.
     #[cfg(debug_assertions)]
     Demo(demo::DemoArgs),
@@ -91,6 +97,7 @@ pub enum Command {
 pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     match &args.command {
         Command::Seed(options) => seed::run(args, options).await,
+        Command::Badge { action } => badge::run(args, action).await,
         #[cfg(debug_assertions)]
         Command::Demo(options) => demo::run(args, options).await,
         Command::GenerateConfig(options) => config::run(options),

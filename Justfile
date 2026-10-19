@@ -206,7 +206,7 @@ seed:
     docker compose up -d --wait postgres
     cargo run --locked -- -c planet.yaml migrate
     cargo run --locked -- -c planet.yaml maintenance sync-mods
-    cargo run --locked -- -c planet.yaml seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml --yes
+    cargo run --locked -- -c planet.yaml seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml assets/badges/*.yaml --yes
 
 # Generate demo data and import community-card template previews.
 demo:

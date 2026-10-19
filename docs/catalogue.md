@@ -1,19 +1,19 @@
 # Catalogue seeding
 
 Catalogue definitions are versioned YAML documents under `assets/tracks/`,
-`assets/vehicles/`, `assets/eras/`, and `assets/community/`. PostgreSQL is the source of truth at
+`assets/vehicles/`, `assets/eras/`, `assets/community/`, and `assets/badges/`. PostgreSQL is the source of truth at
 runtime; startup does not apply these files.
 
 ## Applying definitions
 
 ```sh
 lfsplanet migrate
-lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml --dry-run
-lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml
+lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml assets/badges/*.yaml --dry-run
+lfsplanet seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml assets/badges/*.yaml
 ```
 
 `seed` accepts one or more explicit YAML file paths, including shell-expanded
-globs. Each document requires `kind: Location`, `kind: Vehicle`, `kind: Era`, or `kind: CommunityCard`.
+globs. Each document requires `kind: Location`, `kind: Vehicle`, `kind: Era`, `kind: CommunityCard`, or `kind: Badge`.
 Untagged YAML and stdin are rejected. All supplied files are parsed and validated
 before application, and database changes are applied in one transaction.
 
@@ -274,6 +274,65 @@ The bookmarks/link-list template is retired. The presentation migration removes
 previously seeded `links` cards; catalogue files with that type are rejected.
 `assets/community/preview/` includes temporary examples of the three supported
 templates. Load them explicitly with `lfsplanet seed assets/community/preview/*.yaml`.
+
+## Badges
+
+`kind: Badge` defines presentation independently of automatic eligibility:
+
+```yaml
+kind: Badge
+id: anniversary
+name: Anniversary
+description: Took part in our anniversary event
+sequence: 100
+variants:
+  standard:
+    image: ./images/anniversary.svg
+```
+
+IDs contain 1–80 lowercase letters, digits or hyphens and start with a letter or
+number. Every badge needs a `standard` variant. Variants are named presentation
+choices, not eligibility rules. Ranking badges also require `gold`, `silver`, and
+`bronze`; completion badges use `standard`. The six built-in definitions live in
+`assets/badges/`. The application selects the appropriate variant in Rust.
+
+Variant images use the existing catalogue attachment workflow. Images are
+optional; missing images render the badge name. SVGs must render independently:
+external images cannot inherit the page's `currentColor`. The supplied images
+contain their own light/dark colours. Images, names and descriptions resolve at
+read time, so presentation changes do not require rebadging or a frontend build.
+
+A supplied badge replaces its name, description, sequence and variants. Omitting
+an image clears it. Removing an awarded variant fails rather than invalidating
+existing grants. Omitted badge documents leave stored definitions untouched.
+Dry runs validate references and assets without uploading or committing.
+
+Seed a definition and attribute a one-off lifetime badge:
+
+```sh
+lfsplanet seed assets/badges/*.yaml --dry-run
+lfsplanet seed assets/badges/*.yaml
+lfsplanet badge grant anniversary LFS_USERNAME
+lfsplanet badge grant anniversary LFS_USERNAME --variant standard --description "Winner of the anniversary event"
+lfsplanet badge list LFS_USERNAME
+lfsplanet badge revoke anniversary LFS_USERNAME
+```
+
+Manual grants are lifetime awards, shown beside the player's profile name and
+alongside their era badges in rankings and chart results. Granting the same badge
+again updates its variant and public description without creating a duplicate.
+The optional `--description` is public text; omitting it uses the current catalogue
+description. Revoke removes only the manual lifetime grant.
+
+Awards are individual `badge_award` rows referencing `badge_variant` and `badge`,
+with explicit player, optional era, origin and calculation source. Automatic
+awards remain an era-scoped projection; rebuilding an era replaces only its
+automatic rows and preserves manual grants. The ranking qualification settings
+remain unchanged apart from referencing badge slugs instead of labels. No rule
+expressions or database templates have been introduced.
+
+See the [badge rollout runbook](../deploy/runbooks/catalogue-badges.md) for the
+maintenance-window migration and rebuild sequence.
 
 ## Deployment
 

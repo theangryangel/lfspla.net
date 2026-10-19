@@ -53,11 +53,10 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     .fetch_one(&pool)
     .await?;
     assert_eq!(usize::try_from(personal_bests)?, inserted);
-    let badges: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM player_era_badges WHERE era_id = $1")
-            .bind(era.id)
-            .fetch_one(&pool)
-            .await?;
+    let badges: i64 = sqlx::query_scalar("SELECT count(*) FROM badge_award WHERE era_id = $1")
+        .bind(era.id)
+        .fetch_one(&pool)
+        .await?;
     assert!(badges > 0);
 
     let second = persist::populate(&database, &options).await?;

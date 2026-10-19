@@ -46,7 +46,8 @@ pub(crate) async fn run(args: &super::Args, options: &SeedArgs) -> anyhow::Resul
         !applied.locations.is_empty()
             || !applied.tracks.is_empty()
             || !applied.vehicles.is_empty()
-            || !applied.community_cards.is_empty(),
+            || !applied.community_cards.is_empty()
+            || !applied.badges.is_empty(),
     );
     for id in &applied.locations {
         println!(
@@ -71,6 +72,16 @@ pub(crate) async fn run(args: &super::Args, options: &SeedArgs) -> anyhow::Resul
     for id in &applied.vehicles {
         println!(
             "Vehicle {id} {}.",
+            if options.dry_run {
+                "would change"
+            } else {
+                "applied"
+            }
+        );
+    }
+    for id in &applied.badges {
+        println!(
+            "Badge {id} {}.",
             if options.dry_run {
                 "would change"
             } else {

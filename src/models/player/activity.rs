@@ -6,11 +6,9 @@ use crate::milliseconds::Milliseconds;
 
 use crate::models::{
     Player,
-    badge::{BadgeFilter, Entity as PlayerEraBadgesEntity, PlayerBadge},
+    badge::{Model as BadgeAward, PlayerBadge},
 };
-use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait, FromQueryResult, Statement,
-};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, FromQueryResult, Statement};
 use std::collections::HashMap;
 
 /// Activity and current chart achievements for one player in an era.
@@ -54,14 +52,15 @@ impl Player {
     pub(crate) async fn list_badges_by_era(
         &self,
         database: &DatabaseConnection,
-    ) -> Result<HashMap<i64, Vec<PlayerBadge>>, sea_orm::DbErr> {
-        PlayerEraBadgesEntity::find()
-            .owned_by(self.id)
-            .all(database)
-            .await?
-            .into_iter()
-            .map(|row| Ok((row.era_id, crate::models::badge::Model::decode(row)?)))
-            .collect()
+    ) -> Result<HashMap<Option<i64>, Vec<PlayerBadge>>, sea_orm::DbErr> {
+        let mut result = HashMap::<_, Vec<_>>::new();
+        for award in BadgeAward::resolved(database, None, vec![self.id], true).await? {
+            result
+                .entry(award.era_id)
+                .or_default()
+                .push(award.presentation());
+        }
+        Ok(result)
     }
 
     /// Summarises this player's activity by era.

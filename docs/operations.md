@@ -109,7 +109,6 @@ and rerunning resumes with laps that still lack attachments.
 ```sh
 lfsplanet maintenance sessions-gc
 lfsplanet maintenance access-tokens-gc
-lfsplanet maintenance badges-refresh
 lfsplanet maintenance sync-mods
 lfsplanet maintenance storage-gc
 lfsplanet maintenance run-all
@@ -124,11 +123,12 @@ cached image available and do not fail the catalogue refresh. The cached image
 revision is tracked separately, so a failed download is retried on the next
 sync.
 
-`badges-refresh` retries persisted badge refresh requests left after interrupted
+`run-all` retries persisted badge refresh requests left after interrupted
 or failed publication, deletion, imports, or era edits. Successful publication
 and deletion still attempt an immediate refresh. Calculation and replacement
 hold the catalogue rebuild lock, briefly pausing admissions and other published
-result changes while badges are calculated. `run-all` includes this retry task.
+result changes while badges are calculated. Use `hotlap rebadge` to force a
+manual rebuild for selected eras.
 
 `storage-gc` reports unreferenced SPRs, RAFs, vehicle images, and other objects
 in the configured attachment store that are at least 24 hours old. Files shared

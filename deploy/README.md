@@ -52,7 +52,7 @@ just deploy
 
 Run `just deploy` from the repository root. It builds the API and frontend,
 deploys both, then runs `catalogue.py` to synchronize Vehicle Mods, seed track
-and standard vehicle artwork, and apply changed era files. Reprovision only for
+and standard vehicle artwork, badge definitions/artwork, and apply changed era files. Reprovision only for
 host or backup configuration changes.
 
 Deploy catalogue changes alone with `just deploy-catalogue`. To replace an
@@ -70,3 +70,6 @@ provisioning or install the `rsync` package on the host.
 
 See [operations](../docs/operations.md#deployment-and-releases) for release checks
 and failures, and [backups](runbooks/backups.md) for backup checks and recovery.
+
+For the relational badge migration and rebadge sequence, see the
+[badge rollout runbook](runbooks/catalogue-badges.md).

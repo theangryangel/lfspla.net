@@ -1,0 +1,14 @@
+kind: Badge
+id: mhr
+name: MHR
+description: Main Hotlap Rank
+sequence: 10
+variants:
+  standard:
+    image: ./images/mhr-standard.svg
+  gold:
+    image: ./images/mhr-gold.svg
+  silver:
+    image: ./images/mhr-silver.svg
+  bronze:
+    image: ./images/mhr-bronze.svg

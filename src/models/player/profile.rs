@@ -37,6 +37,7 @@ pub(crate) struct PlayerEraProfile {
 #[derive(Debug)]
 pub(crate) struct PlayerProfile {
     pub(crate) player: Player,
+    pub(crate) badges: Vec<PlayerBadge>,
     pub(crate) stats: PlayerProfileStats,
     pub(crate) eras: Vec<PlayerEraProfile>,
     pub(crate) highlights: Vec<PlayerChartResult>,
@@ -96,7 +97,7 @@ impl Player {
             }));
             eras.push(PlayerEraProfile {
                 title: title.clone(),
-                badges: badges_by_era.remove(&row.era_id).unwrap_or_default(),
+                badges: badges_by_era.remove(&Some(row.era_id)).unwrap_or_default(),
                 id: slug.clone(),
                 hotlaps: row.hotlaps,
                 personal_bests: row.personal_bests,
@@ -110,6 +111,7 @@ impl Player {
 
         Ok(PlayerProfile {
             player: self,
+            badges: badges_by_era.remove(&None).unwrap_or_default(),
             stats: PlayerProfileStats {
                 hotlaps,
                 personal_bests,
