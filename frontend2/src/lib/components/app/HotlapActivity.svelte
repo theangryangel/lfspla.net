@@ -18,6 +18,7 @@
 	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
 	import SortableHead from '$lib/components/app/SortableHead.svelte';
 	import TableFrame from '$lib/components/app/TableFrame.svelte';
+	import MostHotlappedCombos from '$lib/components/app/MostHotlappedCombos.svelte';
 
 	import * as Table from '$lib/components/ui/table/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
@@ -27,14 +28,15 @@
 
 	const api = useApi();
 
-	type View = 'all' | 'world_records' | 'mine';
+	type View =
+		'all' | 'world_records' | 'longest_standing' | 'most_hotlapped' | 'mine';
 
 	let {
 		eraId,
 		lfsUsername,
 		refreshKey,
 		eras = [],
-		views = ['all', 'world_records', 'mine'],
+		views = ['all', 'world_records', 'longest_standing', 'mine'],
 		perPage = 25,
 		appearance = 'default',
 		title = 'Hotlaps',
@@ -63,6 +65,7 @@
 	);
 	const view = $derived(
 		views.includes(requestedView) &&
+			(requestedView !== 'most_hotlapped' || eraId) &&
 			(requestedView !== 'mine' || session.signedIn)
 			? requestedView
 			: 'all',
@@ -72,14 +75,18 @@
 			'submitted') as HotlapListColumn,
 	);
 	const order = $derived(
-		((page.url.searchParams.get('order') ?? '') || 'desc') as Ordering,
+		((page.url.searchParams.get('order') ?? '') ||
+			(view === 'longest_standing' ? 'asc' : 'desc')) as Ordering,
+	);
+	const worldRecords = $derived(
+		view === 'world_records' || view === 'longest_standing',
 	);
 	const filters: ListHotlapsRequest = $derived({
 		era_id: eraId,
 		lfs_username: lfsUsername,
 		state: view === 'mine' ? undefined : 'valid',
 		mine: view === 'mine' ? true : undefined,
-		rank: view === 'world_records' ? 1 : undefined,
+		rank: worldRecords ? 1 : undefined,
 		page: Number((page.url.searchParams.get('page') ?? '') || 1),
 		per_page: perPage,
 		column,
@@ -97,6 +104,10 @@
 
 	$effect(() => {
 		const refresh = refreshKey;
+		if (view === 'most_hotlapped') {
+			++requestId;
+			return;
+		}
 		const params = filters;
 		void load(params, refresh);
 	});
@@ -120,8 +131,18 @@
 	}
 
 	function changeView(value: string) {
-		if (value === 'all' || value === 'world_records' || value === 'mine') {
-			void setQuery({ view: value, mine: '', page: '' });
+		if (views.includes(value as View)) {
+			void setQuery({
+				view: value,
+				mine: '',
+				page: '',
+				...(value === 'longest_standing' ||
+				view === 'longest_standing' ||
+				value === 'most_hotlapped' ||
+				view === 'most_hotlapped'
+					? { column: '', order: '' }
+					: {}),
+			});
 		}
 	}
 
@@ -138,12 +159,24 @@
 		>
 			{title}
 		</h2>
-		<Tabs.List aria-label="Filter hotlaps">
+		<Tabs.List
+			aria-label="Filter hotlaps"
+			class="max-w-full flex-wrap group-data-horizontal/tabs:h-auto"
+		>
 			{#if views.includes('all')}<Tabs.Trigger value="all"
 					>All hotlaps</Tabs.Trigger
 				>{/if}
 			{#if views.includes('world_records')}
 				<Tabs.Trigger value="world_records">World records</Tabs.Trigger>
+			{/if}
+			{#if views.includes('longest_standing')}
+				<Tabs.Trigger value="longest_standing"
+					>Longest standing WRs</Tabs.Trigger
+				>
+			{/if}
+			{#if views.includes('most_hotlapped') && eraId}
+				<Tabs.Trigger value="most_hotlapped">Most hotlapped combos</Tabs.Trigger
+				>
 			{/if}
 			{#if views.includes('mine') && session.signedIn}
 				<Tabs.Trigger value="mine">Mine</Tabs.Trigger>
@@ -151,7 +184,9 @@
 		</Tabs.List>
 	</div>
 	<Tabs.Content value={view}>
-		{#if loading}
+		{#if view === 'most_hotlapped' && eraId}
+			<MostHotlappedCombos {eraId} {perPage} {appearance} {refreshKey} />
+		{:else if loading}
 			<p class="py-10 text-center text-sm text-muted-foreground" role="status">
 				Loading hotlaps...
 			</p>
@@ -165,7 +200,7 @@
 					? 'No hotlaps on this page'
 					: view === 'mine'
 						? 'No uploads yet'
-						: view === 'world_records'
+						: worldRecords
 							? 'No world records yet'
 							: 'No hotlaps yet'}
 			>

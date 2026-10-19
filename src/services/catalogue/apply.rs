@@ -24,6 +24,7 @@ pub(crate) struct Applied {
     pub(crate) locations: Vec<String>,
     pub(crate) tracks: Vec<String>,
     pub(crate) vehicles: Vec<String>,
+    pub(crate) community_cards: Vec<String>,
 }
 
 impl Applied {
@@ -32,6 +33,7 @@ impl Applied {
         self.locations.extend(other.locations);
         self.tracks.extend(other.tracks);
         self.vehicles.extend(other.vehicles);
+        self.community_cards.extend(other.community_cards);
     }
 }
 
@@ -48,7 +50,9 @@ pub(crate) async fn seed(
         .iter()
         .filter_map(|source| match &source.definition {
             CatalogueDefinition::Era(era) => Some((source, era)),
-            CatalogueDefinition::Location(_) | CatalogueDefinition::Vehicle(_) => None,
+            CatalogueDefinition::Location(_)
+            | CatalogueDefinition::Vehicle(_)
+            | CatalogueDefinition::CommunityCard(_) => None,
         })
         .collect::<Vec<_>>();
     let mut ids = HashSet::new();

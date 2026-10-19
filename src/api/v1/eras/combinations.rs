@@ -2,10 +2,10 @@
 use super::response::Chart;
 use crate::{
     api::{
-        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
+        ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
         extractors as extract,
     },
-    models::chart::Column as ChartColumn,
+    models::chart::{Column as ChartColumn, Entity as ChartEntity, Model as ChartModel},
 };
 use axum::{
     Json,
@@ -13,8 +13,9 @@ use axum::{
 };
 use insim_core::{track::Track, vehicle::Vehicle};
 use sea_orm::{
-    AccessMode, ColumnTrait, IsolationLevel, PaginatorTrait, QueryFilter, QuerySelect,
-    TransactionTrait,
+    AccessMode, ColumnTrait, ConnectionTrait, EntityTrait, FromQueryResult, IsolationLevel,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
+    sea_query::Expr,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
@@ -26,6 +27,32 @@ pub(crate) struct CombinationQuery {
     track: Option<String>,
     /// Exact canonical vehicle code.
     vehicle: Option<String>,
+    /// Defaults to track. Participants counts drivers with a current valid personal best.
+    #[serde(default)]
+    #[param(inline)]
+    column: CombinationColumn,
+    /// Defaults to asc. Ties use track and vehicle codes.
+    #[serde(default)]
+    #[param(inline)]
+    order: Ordering,
+}
+
+#[derive(Debug, Default, Clone, Copy, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum CombinationColumn {
+    #[default]
+    Track,
+    Vehicle,
+    Participants,
+}
+
+/// An offered chart and the number of drivers currently ranked on it.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct Combination {
+    #[serde(flatten)]
+    chart: Chart,
+    /// One current valid personal best per driver; repeated uploads do not increase this count.
+    participants: i64,
 }
 
 pub(super) fn router() -> OpenApiRouter<ApiState> {
@@ -39,7 +66,7 @@ pub(super) fn router() -> OpenApiRouter<ApiState> {
     operation_id = "list_era_combinations", tag = "eras",
     params(("era" = String, Path, description = "Era slug"), CombinationQuery, PaginationQuery),
     responses(
-        (status = 200, description = "Defined combinations, ordered by track and vehicle code", body = PaginatedResponse<Chart>),
+        (status = 200, description = "Defined combinations with driver counts, sorted and paginated on the server", body = PaginatedResponse<Combination>),
         (status = 400, description = "Invalid pagination", body = ErrorResponse),
         (status = 404, description = "Era not found", body = ErrorResponse)
     )
@@ -49,7 +76,7 @@ pub(crate) async fn list(
     State(state): State<ApiState>,
     Query(query): Query<CombinationQuery>,
     Query(pagination): Query<PaginationQuery>,
-) -> Result<Json<PaginatedResponse<Chart>>, ApiError> {
+) -> Result<Json<PaginatedResponse<Combination>>, ApiError> {
     let offset = pagination.offset()?;
     let transaction = state
         .database
@@ -59,7 +86,7 @@ pub(crate) async fn list(
         )
         .await
         .map_err(ApiError::database)?;
-    let mut select = era.combinations();
+    let mut select = ChartEntity::find().filter(ChartColumn::EraId.eq(era.id));
     if let Some(track) = query.track {
         select = select.filter(ChartColumn::TrackId.eq(track.to_ascii_uppercase()));
     }
@@ -71,13 +98,50 @@ pub(crate) async fn list(
         .count(&transaction)
         .await
         .map_err(ApiError::database)?;
-    let pairs = select
+    // The existing (chart_id, player_id) primary key makes each count an index-only
+    // scan over personal bests, never replay history. PostgreSQL can defer these
+    // counts until after LIMIT for catalogue sorts; popularity sorts count before
+    // LIMIT so pagination remains correct.
+    let order = match query.order {
+        Ordering::Asc => sea_orm::Order::Asc,
+        Ordering::Desc => sea_orm::Order::Desc,
+    };
+    let mut select = select.expr_as(
+        Expr::cust("(SELECT COUNT(*) FROM hotlap_personal_best pb WHERE pb.chart_id = chart.id)"),
+        "participants",
+    );
+    select = match query.column {
+        CombinationColumn::Track => select.order_by(ChartColumn::TrackId, order),
+        CombinationColumn::Vehicle => select.order_by(ChartColumn::VehicleId, order),
+        CombinationColumn::Participants => select.order_by(Expr::cust("participants"), order),
+    };
+    let statement = select
+        .order_by_asc(ChartColumn::TrackId)
+        .order_by_asc(ChartColumn::VehicleId)
         .offset(offset)
         .limit(pagination.per_page)
-        .all(&transaction)
+        .build(sea_orm::DbBackend::Postgres);
+    let rows = transaction
+        .query_all_raw(statement)
         .await
         .map_err(ApiError::database)?;
-    let items = Chart::load(&transaction, &era, &pairs).await?;
+    let pairs = rows
+        .iter()
+        .map(|row| ChartModel::from_query_result(row, ""))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(ApiError::database)?;
+    let charts = Chart::load(&transaction, &era, &pairs).await?;
+    let items = charts
+        .into_iter()
+        .zip(&rows)
+        .map(|(chart, row)| {
+            Ok(Combination {
+                chart,
+                participants: row.try_get("", "participants")?,
+            })
+        })
+        .collect::<Result<Vec<_>, sea_orm::DbErr>>()
+        .map_err(ApiError::database)?;
     transaction.commit().await.map_err(ApiError::database)?;
     Ok(Json(PaginatedResponse {
         items,
@@ -198,6 +262,108 @@ fn rejected(reason: CombinationRejection) -> CombinationCheck {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn popularity_counts_drivers_before_pagination(pool: sqlx::PgPool) -> anyhow::Result<()> {
+        sqlx::raw_sql(include_str!(
+            "../../../services/validate_hotlap/fixtures.sql"
+        ))
+        .execute(&pool)
+        .await?;
+        sqlx::raw_sql(
+            r"
+INSERT INTO player (lfs_username, display_name) VALUES ('second-driver', 'Second Driver');
+INSERT INTO vehicle (id, kind, name, normalized_name, license) VALUES
+    ('XRG', 'standard', 'XR GT', 'xr gt', 'demo'),
+    ('XRT', 'standard', 'XR GT Turbo', 'xr gt turbo', 's1'),
+    ('FXO', 'standard', 'FXO Turbo', 'fxo turbo', 's1');
+INSERT INTO era (slug, title, version_requirement, installation_id)
+VALUES ('other-era', 'Other era', '<0.7A', '0.7');
+INSERT INTO chart (era_id, track_id, vehicle_id)
+SELECT id, 'BL1', vehicle FROM era
+CROSS JOIN (VALUES ('XFG'), ('XRG'), ('XRT'), ('FXO')) AS vehicles(vehicle)
+ON CONFLICT DO NOTHING;
+INSERT INTO hotlap (
+    player_id, era_id, chart_id, track, vehicle, raw_vehicle_name, lap_time_ms,
+    split_1_ms, split_2_ms, split_3_ms, split_4_ms,
+    source, fingerprint, steering, abs_enabled, player_flags, game_version, state
+)
+SELECT player.id, chart.era_id, chart.id, chart.track_id, chart.vehicle_id, 'Test car', 60000,
+    0, 0, 0, 0, 'demo', 'demo:' || chart.era_id || ':' || laps.fingerprint, 'wheel', false, 0, '0.7A', 'valid'
+FROM (VALUES
+    ('worker-test', 'XFG', 'one'),
+    ('worker-test', 'XRG', 'two'),
+    ('worker-test', 'XRG', 'repeat'),
+    ('second-driver', 'XRG', 'three')
+) AS laps(username, vehicle, fingerprint)
+JOIN player ON player.lfs_username = laps.username
+JOIN chart ON chart.vehicle_id = laps.vehicle;
+-- A second upload on XFG is invalid and must not count as another participant.
+INSERT INTO hotlap (
+    player_id, era_id, chart_id, track, vehicle, raw_vehicle_name, lap_time_ms,
+    split_1_ms, split_2_ms, split_3_ms, split_4_ms,
+    spr_attachment_id, source, fingerprint, steering, abs_enabled, player_flags, game_version, state
+)
+SELECT player.id, hotlap.era_id, chart_id, track, vehicle, raw_vehicle_name, lap_time_ms,
+    0, 0, 0, 0, spr_attachment_id, 'upload', repeat('b', 64), 'wheel', false, 0, '0.7A', 'invalid'
+FROM hotlap CROSS JOIN player
+WHERE hotlap.state = 'pending' AND player.lfs_username = 'second-driver';
+",
+        )
+        .execute(&pool)
+        .await?;
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
+        let eras = crate::models::era::Entity::find().all(&database).await?;
+        for era in &eras {
+            era.rebuild_personal_bests(&database).await?;
+        }
+        let era = eras
+            .into_iter()
+            .find(|era| era.slug.to_string() == "2026-09-23")
+            .unwrap();
+        let state = ApiState {
+            database,
+            oauth: None,
+            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+            hotlaps: Default::default(),
+            site_notice: None,
+        };
+        let load = |search: &str| {
+            list(
+                extract::Era(era.clone()),
+                State(state.clone()),
+                Query(serde_urlencoded::from_str::<CombinationQuery>(search).unwrap()),
+                Query(serde_urlencoded::from_str::<PaginationQuery>(search).unwrap()),
+            )
+        };
+        for (page, vehicle, participants) in
+            [(1, "XRG", 2), (2, "XFG", 1), (3, "FXO", 0), (4, "XRT", 0)]
+        {
+            let Json(result) = load(&format!(
+                "column=participants&order=desc&per_page=1&page={page}"
+            ))
+            .await?;
+            assert_eq!(result.pagination.total_items, 4);
+            assert_eq!(result.items.len(), 1);
+            assert_eq!(
+                serde_json::to_value(&result.items[0])?["vehicle"]["code"],
+                vehicle
+            );
+            assert_eq!(result.items[0].participants, participants);
+        }
+        let Json(defaults) = load("").await?;
+        assert_eq!(
+            serde_json::to_value(&defaults.items[0])?["vehicle"]["code"],
+            "FXO"
+        );
+        let Json(filtered) = load("vehicle=xrg&column=participants&order=asc").await?;
+        assert_eq!(filtered.pagination.total_items, 1);
+        assert_eq!(filtered.items[0].participants, 2);
+        assert!(serde_urlencoded::from_str::<CombinationQuery>("column=invalid").is_err());
+        assert!(serde_urlencoded::from_str::<CombinationQuery>("order=invalid").is_err());
+        Ok(())
+    }
 
     #[test]
     fn a_rankable_pair_accepts_either_case() {

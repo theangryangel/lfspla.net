@@ -10,7 +10,10 @@ use crate::{
 use axum::body::Bytes;
 use insim_core::game_version::GameVersion;
 use object_store::ObjectStore;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, TransactionTrait};
+use sea_orm::{
+    ColumnTrait, ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait, QueryFilter,
+    Statement, TransactionTrait,
+};
 use sha2::{Digest, Sha256};
 use std::{io::Cursor, time::Duration};
 #[derive(Debug, thiserror::Error)]
@@ -30,6 +33,8 @@ pub(crate) enum SubmitError {
     ReplayUsernameMismatch,
     #[error("the replay has no lap time")]
     MissingLapTime,
+    #[error("the replay is not faster than the current personal best ({personal_best_ms} ms)")]
+    NotFasterThanPersonalBest { personal_best_ms: i64 },
     #[error(transparent)]
     Database(#[from] sea_orm::DbErr),
     #[error(transparent)]
@@ -99,6 +104,26 @@ pub(crate) async fn submit(
         return Err(SubmitError::UnsupportedCombination);
     }
 
+    // Only a confirmed PB can reject a submission. Pending laps may fail validation.
+    // This is provisional: validation still compares against the PB at publication.
+    if let Some(row) = database
+        .query_one_raw(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT hotlap.lap_time_ms FROM hotlap_personal_best pb
+             JOIN hotlap ON hotlap.id = pb.hotlap_id
+             WHERE pb.chart_id = $1 AND pb.player_id = $2",
+            [chart.id.into(), player.id.into()],
+        ))
+        .await?
+    {
+        let personal_best_ms: i64 = row.try_get("", "lap_time_ms")?;
+        let claimed_ms = crate::milliseconds::Milliseconds::try_from(lap_time)
+            .map_err(|_| sea_orm::DbErr::Type("duration exceeds BIGINT milliseconds".to_owned()))?;
+        if claimed_ms.as_millis() >= personal_best_ms {
+            return Err(SubmitError::NotFasterThanPersonalBest { personal_best_ms });
+        }
+    }
+
     let digest = hex::encode(Sha256::digest(&bytes));
     let transaction = database.begin().await?;
     crate::db::lock_catalogue_read(&transaction).await?;
@@ -160,6 +185,119 @@ fn validate_replay_username(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn replay(seconds: u8, username: &str) -> Bytes {
+        let mut bytes = vec![0_u8; lfsplanet_spr::HEADER_LEN];
+        bytes[..6].copy_from_slice(b"LFSSPR");
+        bytes[8] = 3;
+        bytes[15] = 1;
+        bytes[16..20].copy_from_slice(b"0.7A");
+        bytes[24..27].copy_from_slice(b"BL1");
+        bytes[64..64 + username.len()].copy_from_slice(username.as_bytes());
+        bytes[96..102].copy_from_slice(b"XF GTI");
+        bytes[128] = 1;
+        bytes[131] = 1;
+        bytes[135] = 1;
+        bytes[137] = seconds;
+        bytes.into()
+    }
+
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn admission_requires_an_improvement_on_the_confirmed_pb(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        sqlx::raw_sql(include_str!("validate_hotlap/fixtures.sql"))
+            .execute(&pool)
+            .await?;
+        sqlx::raw_sql(
+            "UPDATE hotlap SET state = 'valid', lap_time_ms = 30000,
+                hlvc_result_code = 1, finished_at = now();
+            UPDATE era SET open = true;
+            INSERT INTO player (lfs_username, display_name) VALUES ('new-driver', 'New Driver');",
+        )
+        .execute(&pool)
+        .await?;
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+        let era = crate::models::era::Entity::find()
+            .one(&database)
+            .await?
+            .unwrap();
+        era.rebuild_personal_bests(&database).await?;
+        let player = crate::models::player::Entity::find()
+            .filter(crate::models::player::Column::LfsUsername.eq("worker-test"))
+            .one(&database)
+            .await?
+            .unwrap();
+        let store = object_store::memory::InMemory::new();
+        let settings = HotlapSettings::default();
+
+        for seconds in [30, 31] {
+            let result = submit(
+                &database,
+                &store,
+                &settings,
+                &era,
+                &player,
+                "lap.spr",
+                replay(seconds, "worker-test"),
+            )
+            .await;
+            assert!(matches!(
+                result,
+                Err(SubmitError::NotFasterThanPersonalBest {
+                    personal_best_ms: 30000
+                })
+            ));
+        }
+        // Rejections must happen before either a replay object or database row is stored.
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM hotlap")
+                .fetch_one(&pool)
+                .await?,
+            1
+        );
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM attachment")
+                .fetch_one(&pool)
+                .await?,
+            1
+        );
+        use futures::TryStreamExt;
+        assert!(store.list(None).try_collect::<Vec<_>>().await?.is_empty());
+
+        // Pending improvements do not become the admission threshold.
+        for seconds in [28, 29] {
+            let lap = submit(
+                &database,
+                &store,
+                &settings,
+                &era,
+                &player,
+                "lap.spr",
+                replay(seconds, "worker-test"),
+            )
+            .await?;
+            assert_eq!(lap.state, hotlap::HotlapState::Pending);
+        }
+        let new_player = crate::models::player::Entity::find()
+            .filter(crate::models::player::Column::LfsUsername.eq("new-driver"))
+            .one(&database)
+            .await?
+            .unwrap();
+        submit(
+            &database,
+            &store,
+            &settings,
+            &era,
+            &new_player,
+            "lap.spr",
+            replay(40, "new-driver"),
+        )
+        .await?;
+        Ok(())
+    }
+
     #[test]
     fn replay_username_must_match_unless_enforcement_is_disabled() {
         assert!(validate_replay_username(true, "example", "example").is_ok());

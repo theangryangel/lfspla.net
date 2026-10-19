@@ -24,6 +24,9 @@ generate-sdks-from-openapi:
     # Two passes stabilize nested file types with the pinned Prettier version.
     frontend2/node_modules/.bin/prettier --write sdks/typescript/src
     frontend2/node_modules/.bin/prettier --write sdks/typescript/src
+    # Fern replaces the SDK tree. Restart a running Vite server after all files
+    # are restored so failed import resolutions from regeneration are discarded.
+    touch frontend2/vite.config.ts
 
 # Remove build outputs and frontend caches.
 clean:
@@ -203,11 +206,12 @@ seed:
     docker compose up -d --wait postgres
     cargo run --locked -- -c planet.yaml migrate
     cargo run --locked -- -c planet.yaml maintenance sync-mods
-    cargo run --locked -- -c planet.yaml seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml --yes
+    cargo run --locked -- -c planet.yaml seed assets/tracks/*.yaml assets/vehicles/*.yaml assets/eras/*.yaml assets/community/*.yaml --yes
 
-# Deploy demo data
+# Generate demo data and import community-card template previews.
 demo:
     cargo run --locked -- -c planet.yaml demo --yes
+    cargo run --locked -- -c planet.yaml seed assets/community/preview/*.yaml
 
 # Build the backend and frontend, then deploy the site and catalogue with pyinfra.
 deploy:

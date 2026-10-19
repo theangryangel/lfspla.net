@@ -1,0 +1,12 @@
+kind: CommunityCard
+id: lfs-manual
+title: LFS Manual
+sequence: 40
+theme: cyan
+image: ./images/lfs-manual.png
+content:
+  type: partner
+  description: Get started or fine-tune your racing with community-written guides to driving, car setups, controls, multiplayer and more.
+  link:
+    label: Read the LFS Manual
+    url: https://www.lfsmanual.net/

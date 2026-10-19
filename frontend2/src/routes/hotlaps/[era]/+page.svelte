@@ -16,7 +16,7 @@
 		eraId={data.era.id}
 		refreshKey={data.holders}
 		eras={data.eras}
-		views={['all', 'world_records', 'mine']}
+		views={['all', 'world_records', 'longest_standing', 'most_hotlapped', 'mine']}
 		perPage={25}
 		appearance="data"
 	/>

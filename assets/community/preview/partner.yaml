@@ -1,0 +1,12 @@
+kind: CommunityCard
+id: preview-partner
+title: Template preview - Partner
+sequence: 1010
+theme: purple
+image: ../images/lfs-track-hub.png
+content:
+  type: partner
+  description: Text on the left, with the project logo contained in a rectangular image panel on the right. The whole card links to LFS Track Hub.
+  link:
+    label: Explore LFS Track Hub
+    url: https://lfstrackhub.com/

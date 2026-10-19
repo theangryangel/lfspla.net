@@ -1,14 +1,27 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
 	import { lapTime } from '$lib/format.js';
 	import HotlapActivity from '$lib/components/app/HotlapActivity.svelte';
 	import Flag from '$lib/components/app/Flag.svelte';
 	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
 	import RecordHighlight from '$lib/components/app/RecordHighlight.svelte';
-	import Panel from '$lib/components/app/Panel.svelte';
+	import PanelCarousel from '$lib/components/app/PanelCarousel.svelte';
+	import CommunityCard from '$lib/components/app/CommunityCard.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const communitySlides = $derived(
+		data.communityCards?.map(({ id, title }) => ({ id, title })) ?? [],
+	);
+	let autoplayTurn = $state(0);
+	onMount(() => {
+		// Each pane advances every 8 seconds, with their turns offset by 4 seconds.
+		const timer = window.setInterval(() => {
+			if (!document.hidden) autoplayTurn += 1;
+		}, 4000);
+		return () => window.clearInterval(timer);
+	});
 	const stats = $derived([
 		{ label: 'Eras', value: data.stats?.eras, variant: 'neutral' as const },
 		{
@@ -71,140 +84,150 @@
 	{/snippet}
 </PageIdentity>
 
+{#snippet combinationSpotlight()}
+	{#if combo}
+		<div
+			class="grid min-h-30 items-stretch bg-card xl:grid-cols-[minmax(0,1fr)_13rem]"
+		>
+			<a
+				href={comboHref}
+				class="grid min-w-0 items-center gap-4 px-5 py-5 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px]"
+			>
+				<div class="flex min-w-0 items-center sm:max-w-24">
+					<span class="racing-section-title break-words"
+						>{combo.chart.era_title}</span
+					>
+				</div>
+				<div class="flex min-w-0 items-center gap-2">
+					<Thumbnail
+						src={combo.chart.track.image?.url ?? combo.chart.track.outline?.url}
+						class="w-14 shrink-0 bg-transparent"
+					/>
+					<div class="min-w-0">
+						<h3 class="racing-section-title break-words">
+							{combo.chart.track.name}
+						</h3>
+						<p class="mt-1 text-sm text-muted-foreground">
+							{combo.chart.track.code}
+						</p>
+					</div>
+				</div>
+				<div class="flex min-w-0 items-center gap-2">
+					<Thumbnail
+						src={combo.chart.vehicle.image?.url}
+						class="w-14 shrink-0 bg-transparent"
+					/>
+					<div class="min-w-0">
+						<h3 class="racing-section-title break-words">
+							{combo.chart.vehicle.name}
+						</h3>
+						<p class="mt-1 text-sm text-muted-foreground">
+							{combo.chart.vehicle.code}
+						</p>
+					</div>
+				</div>
+			</a>
+			<RecordHighlight
+				title="World Record"
+				variant="purple"
+				compact
+				flushEnd
+				class="content-center py-4 text-right lg:w-auto lg:py-4"
+			>
+				<p class="text-right font-mono text-2xl font-bold tabular-nums">
+					{target
+						? lapTime(target.lap_time_ms - target.distance_to_world_record_ms)
+						: '-'}
+				</p>
+			</RecordHighlight>
+		</div>
+	{:else}
+		<p class="min-h-30 bg-card p-5 text-sm text-muted-foreground">
+			{data.stats ? 'No validated uploads yet.' : 'Spotlight unavailable.'}
+		</p>
+	{/if}
+{/snippet}
+
+{#snippet driverSpotlight()}
+	{#if driver}
+		<div
+			class="grid min-h-30 items-stretch bg-card grid-cols-[minmax(0,2fr)_minmax(9rem,1fr)]"
+		>
+			<a
+				class="flex min-w-0 items-center gap-3 px-5 py-5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px]"
+				href={`/drivers/${encodeURIComponent(driver.player.lfs_username)}`}
+			>
+				<Flag
+					code={driver.player.flag_code}
+					fallback={driver.player.country_code}
+				/>
+				<span class="min-w-0 break-words text-xl font-semibold"
+					>{driver.player.display_name}</span
+				>
+			</a>
+			<RecordHighlight
+				title="Recent PBs"
+				variant="cyan"
+				compact
+				flushEnd
+				class="content-center py-4 pl-10 pr-5 text-right lg:w-auto lg:py-4"
+			>
+				<p class="text-right text-3xl font-bold tabular-nums">
+					{driver.recent_personal_bests.toLocaleString()}
+				</p>
+			</RecordHighlight>
+		</div>
+	{:else}
+		<p class="bg-card p-5 text-sm text-muted-foreground">
+			{data.stats
+				? 'No current personal bests among recent uploads.'
+				: 'Spotlight unavailable.'}
+		</p>
+	{/if}
+{/snippet}
+
 <main
 	id="main"
 	class="mx-auto w-full max-w-screen-2xl flex-1 space-y-6 p-4 md:p-6"
 >
 	<div
-		class="grid min-w-0 items-stretch gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
+		class={[
+			'grid min-w-0 items-stretch gap-6',
+			communitySlides.length > 0 && 'lg:grid-cols-2',
+		]}
 	>
-		<section class="min-w-0" aria-labelledby="home-spotlight-title">
-			<Panel
-				title="Combination spotlight"
-				titleId="home-spotlight-title"
-				appearance="data"
-				surface={false}
-				flush
+		<PanelCarousel
+			id="home-spotlight"
+			autoplayStep={Math.floor(autoplayTurn / 2)}
+			label="Community spotlights"
+			variant="purple"
+			slides={[
+				{ title: 'Combination spotlight', content: combinationSpotlight },
+				{ title: 'Driver spotlight', content: driverSpotlight },
+			]}
+		/>
+		{#if data.communityCards?.length}
+			<PanelCarousel
+				id="home-community"
+				autoplayStep={Math.floor(Math.max(0, autoplayTurn - 1) / 2)}
+				label="Community & partners"
+				title="Community & partners"
+				variant="cyan"
+				slides={communitySlides}
 			>
-				{#if combo}
-					<div
-						class="grid min-h-30 items-stretch border-y bg-card xl:grid-cols-[minmax(0,1fr)_13rem]"
-					>
-						<a
-							href={comboHref}
-							class="grid min-w-0 items-center gap-4 px-5 py-5 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px]"
-						>
-							<div class="flex min-w-0 items-center sm:max-w-24">
-								<span class="racing-section-title break-words"
-									>{combo.chart.era_title}</span
-								>
-							</div>
-							<div class="flex min-w-0 items-center gap-2">
-								<Thumbnail
-									src={combo.chart.track.image?.url ??
-										combo.chart.track.outline?.url}
-									class="w-14 shrink-0 bg-transparent"
-								/>
-								<div class="min-w-0">
-									<h3 class="racing-section-title break-words">
-										{combo.chart.track.name}
-									</h3>
-									<p class="mt-1 text-sm text-muted-foreground">
-										{combo.chart.track.code}
-									</p>
-								</div>
-							</div>
-							<div class="flex min-w-0 items-center gap-2">
-								<Thumbnail
-									src={combo.chart.vehicle.image?.url}
-									class="w-14 shrink-0 bg-transparent"
-								/>
-								<div class="min-w-0">
-									<h3 class="racing-section-title break-words">
-										{combo.chart.vehicle.name}
-									</h3>
-									<p class="mt-1 text-sm text-muted-foreground">
-										{combo.chart.vehicle.code}
-									</p>
-								</div>
-							</div>
-						</a>
-						<RecordHighlight
-							title="World Record"
-							variant="purple"
-							compact
-							flushEnd
-							class="content-center py-4 text-right lg:w-auto lg:py-4"
-						>
-							<p class="text-right font-mono text-2xl font-bold tabular-nums">
-								{target
-									? lapTime(
-											target.lap_time_ms - target.distance_to_world_record_ms,
-										)
-									: '-'}
-							</p>
-						</RecordHighlight>
-					</div>
-				{:else}
-					<p class="text-sm text-muted-foreground">
-						{data.stats
-							? 'No validated uploads yet.'
-							: 'Spotlight unavailable.'}
-					</p>
-				{/if}
-			</Panel>
-		</section>
-		<section class="min-w-0" aria-labelledby="home-driver-title">
-			<Panel
-				title="Driver spotlight"
-				titleId="home-driver-title"
-				appearance="data"
-				surface={false}
-				flush
-			>
-				{#if driver}
-					<div
-						class="grid min-h-30 items-stretch border-y bg-card grid-cols-[minmax(0,2fr)_minmax(9rem,1fr)]"
-					>
-						<a
-							class="flex min-w-0 items-center gap-3 px-5 py-5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px]"
-							href={`/drivers/${encodeURIComponent(driver.player.lfs_username)}`}
-						>
-							<Flag
-								code={driver.player.flag_code}
-								fallback={driver.player.country_code}
-							/>
-							<span class="min-w-0 break-words text-xl font-semibold"
-								>{driver.player.display_name}</span
-							>
-						</a>
-						<RecordHighlight
-							title="Recent PBs"
-							variant="cyan"
-							compact
-							flushEnd
-							class="content-center py-4 pl-10 pr-5 text-right lg:w-auto lg:py-4"
-						>
-							<p class="text-right text-3xl font-bold tabular-nums">
-								{driver.recent_personal_bests.toLocaleString()}
-							</p>
-						</RecordHighlight>
-					</div>
-				{:else}
-					<p class="border-y bg-card p-5 text-sm text-muted-foreground">
-						{data.stats
-							? 'No current personal bests among recent uploads.'
-							: 'Spotlight unavailable.'}
-					</p>
-				{/if}
-			</Panel>
-		</section>
+				{#snippet slideContent(index)}
+					{#if data.communityCards?.[index]}
+						<CommunityCard card={data.communityCards[index]} />
+					{/if}
+				{/snippet}
+			</PanelCarousel>
+		{/if}
 	</div>
 	<HotlapActivity
 		title="Activity"
 		appearance="data"
 		refreshKey={data.stats}
-		views={['all', 'world_records', 'mine']}
+		views={['all', 'world_records', 'longest_standing', 'mine']}
 		perPage={10}
 		eras={data.eras}
 	/>

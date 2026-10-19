@@ -33,7 +33,7 @@ server.shell(
 
 apt.packages(
     name="Install lfsplanet host dependencies",
-    packages=["bubblewrap", "caddy", "postgresql-18", "pgbackrest", "wine"],
+    packages=["bubblewrap", "caddy", "postgresql-18", "pgbackrest", "rsync", "wine"],
     update=True,
 )
 

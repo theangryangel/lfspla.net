@@ -1,0 +1,12 @@
+kind: CommunityCard
+id: lfs-track-hub
+title: LFS Track Hub
+sequence: 30
+theme: yellow
+image: ./images/lfs-track-hub.png
+content:
+  type: partner
+  description: Build it, share it, race it. Explore community track projects, layouts, objects, buildings, textures and tools for Live for Speed.
+  link:
+    label: Explore LFS Track Hub
+    url: https://lfstrackhub.com/

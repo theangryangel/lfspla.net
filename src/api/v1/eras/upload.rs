@@ -93,7 +93,7 @@ struct UploadHotlapForm {
         (status = 401, description = "Authentication required", body = ErrorResponse),
         (status = 403, description = "CSRF token invalid, uploads are banned, or replay belongs to another player", body = ErrorResponse),
         (status = 404, description = "Era was not found", body = ErrorResponse),
-        (status = 409, description = "Era is closed or replay has already been submitted", body = ErrorResponse),
+        (status = 409, description = "Era is closed, replay has already been submitted, or its claimed time does not beat the current personal best", body = ErrorResponse),
         (status = 429, description = "Player already has the maximum number of hotlaps awaiting processing", body = ErrorResponse),
         (status = 503, description = "Uploads are temporarily paused", body = ErrorResponse),
         (status = 413, description = "Upload exceeds the size limit", body = ErrorResponse),
@@ -223,6 +223,12 @@ fn submission_error(error: crate::services::submit_hotlap::SubmitError, era: &Er
             "missing_lap_time",
             "The SPR header does not contain a lap time",
         ),
+        SubmitError::NotFasterThanPersonalBest { personal_best_ms } => ApiError::new(
+            StatusCode::CONFLICT,
+            "not_faster_than_personal_best",
+            "This replay must be faster than your current personal best for this combination.",
+        )
+        .with_details(json!({ "personal_best_ms": personal_best_ms })),
         SubmitError::Database(error) => ApiError::database(error),
         SubmitError::Attachment(error) => ApiError::internal(&error, "attachment storage"),
         SubmitError::Admission(error) => match error {

@@ -2,6 +2,7 @@
 
 mod apply;
 mod assets;
+pub(crate) mod community_cards;
 pub(crate) mod eras;
 #[cfg(test)]
 pub(crate) mod fixtures;
@@ -23,6 +24,7 @@ pub(crate) enum CatalogueDefinition {
     Era(EraDefinition),
     Location(locations::LocationDefinition),
     Vehicle(vehicles::VehicleDefinition),
+    CommunityCard(community_cards::CommunityCardDefinition),
 }
 
 impl CatalogueDefinition {
@@ -38,6 +40,14 @@ impl CatalogueDefinition {
         use anyhow::Context;
         let mut applied = Applied::default();
         match self {
+            Self::CommunityCard(definition) => {
+                if definition
+                    .apply(transaction, object_store, dry_run, source)
+                    .await?
+                {
+                    applied.community_cards.push(definition.id.clone());
+                }
+            }
             Self::Era(definition) => {
                 let existing =
                     crate::models::Era::find_by_slug(transaction, &definition.id).await?;

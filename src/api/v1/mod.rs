@@ -1,6 +1,7 @@
 //! Version 1 HTTP routes and boundary models.
 
 pub mod attachments;
+pub mod community_cards;
 pub mod countries;
 pub mod eras;
 pub mod hotlaps;
@@ -48,6 +49,7 @@ pub(crate) fn router(max_spr_upload_bytes: usize) -> OpenApiRouter<ApiState> {
     OpenApiRouter::new()
         .merge(attachments::router())
         .merge(countries::router())
+        .merge(community_cards::router())
         .merge(eras::router(max_spr_upload_bytes))
         .merge(hotlaps::router())
         .merge(me::router())

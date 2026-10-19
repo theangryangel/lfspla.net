@@ -4,6 +4,7 @@ name: Layout Square
 description: |
   Layout Square is one of two areas that does not contain closed circuits. Instead, setup testing and free racing on the 4km by 4km area can be done here. This is a good place to use the Autocross Editor, enabling you to create your own courses on the big open spaces here.
 sequence: 7
+image: ./LA.webp
 tracks:
   - id: LA1
   - id: LA1X
