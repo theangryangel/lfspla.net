@@ -5,14 +5,14 @@ import * as LfsplanetApi from "../index.js";
 export interface StatsResponse {
   /** Distinct track/vehicle pairs selected by rankings, deduplicated across eras. */
   combinations: number;
-  combo_spotlight: LfsplanetApi.ComboSpotlightResponse | null;
-  driver_spotlight: LfsplanetApi.DriverSpotlightResponse | null;
   /** All driver accounts, including imported drivers. */
   drivers: number;
   /** All eras, including closed historical eras. */
   eras: number;
   /** Number of validated uploads sampled, capped at 100. Includes demo laps; excludes historical imports. */
   spotlight_uploads: number;
+  /** Ordered, eligible homepage cards. Unsupported selections are omitted. */
+  spotlights: LfsplanetApi.SpotlightResponse[];
   /** All hotlaps whose validation state is valid. */
   validated_hotlaps: number;
 }

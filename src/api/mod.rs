@@ -396,6 +396,18 @@ mod tests {
         let schemas = &document["components"]["schemas"];
         assert!(schemas.get("CombinationSummary").is_none());
         assert!(schemas.get("RankingCombinationResponse").is_none());
+        let stats = &schemas["StatsResponse"]["properties"];
+        assert!(stats.get("spotlights").is_some());
+        for legacy in ["combo_spotlight", "driver_spotlight"] {
+            assert!(stats.get(legacy).is_none());
+        }
+        for legacy in [
+            "ComboSpotlightResponse",
+            "DriverSpotlightResponse",
+            "SpotlightBestResponse",
+        ] {
+            assert!(schemas.get(legacy).is_none());
+        }
         let chart = &schemas["Chart"];
         assert_eq!(
             chart["properties"]["era_id"]["$ref"],
@@ -426,12 +438,10 @@ mod tests {
         ] {
             assert!(chart["properties"].get(context).is_none());
         }
-        for name in ["RankingChart", "ComboSpotlightResponse"] {
-            assert_eq!(
-                schemas[name]["properties"]["chart"]["$ref"],
-                "#/components/schemas/Chart"
-            );
-        }
+        assert_eq!(
+            schemas["RankingChart"]["properties"]["chart"]["$ref"],
+            "#/components/schemas/Chart"
+        );
         assert_eq!(
             schemas["CombinationCheck"]["properties"]["chart"]["oneOf"][0]["$ref"],
             "#/components/schemas/Chart"
