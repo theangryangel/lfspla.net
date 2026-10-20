@@ -269,13 +269,13 @@
 												>{/if}
 										</Table.Cell>
 										<Table.Cell>
-											<div class="flex min-w-0 items-center gap-1">
+											<div class="flex w-max items-center gap-1">
 												<Flag
 													code={entry.player.flag_code}
 													fallback={entry.player.country_code}
 												/>
 												<a
-													class="min-w-0 truncate font-medium dark:hover:text-primary hover:underline"
+													class="shrink-0 whitespace-nowrap font-medium dark:hover:text-primary hover:underline"
 													href="/drivers/{entry.player.lfs_username}"
 												>
 													{entry.player.display_name}

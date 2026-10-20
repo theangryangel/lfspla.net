@@ -107,13 +107,13 @@
 											: 'text-center'}>{row.position}</Table.Cell
 									>
 									<Table.Cell>
-										<div class="flex min-w-0 items-center gap-1">
+										<div class="flex w-max items-center gap-1">
 											<Flag
 												code={row.player.flag_code}
 												fallback={row.player.country_code}
 											/>
 											<a
-												class="min-w-0 truncate font-medium hover:underline"
+												class="shrink-0 whitespace-nowrap font-medium hover:underline"
 												href="/drivers/{row.player.lfs_username}"
 											>
 												{row.player.display_name}

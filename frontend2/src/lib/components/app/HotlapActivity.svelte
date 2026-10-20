@@ -262,13 +262,13 @@
 									>
 								</Table.Cell>
 								<Table.Cell>
-									<div class="flex min-w-0 items-center gap-1">
+									<div class="flex w-max items-center gap-1">
 										<Flag
 											code={lap.player.flag_code}
 											fallback={lap.player.country_code}
 										/>
 										<a
-											class="min-w-0 truncate font-medium hover:underline"
+											class="shrink-0 whitespace-nowrap font-medium hover:underline"
 											href="/drivers/{encodeURIComponent(
 												lap.player.lfs_username,
 											)}">{lap.player.display_name}</a
