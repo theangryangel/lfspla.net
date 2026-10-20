@@ -1,0 +1,8 @@
+kind: Badge
+id: gabor
+name: Gabor
+description: Gabor
+sequence: 30
+variants:
+  standard:
+    image: ./gabor.svg

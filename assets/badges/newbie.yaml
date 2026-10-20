@@ -1,0 +1,8 @@
+kind: Badge
+id: newbie
+name: Newbie
+description: One published hotlap in this era
+sequence: 60
+variants:
+  standard:
+    image: ./images/newbie-green.svg

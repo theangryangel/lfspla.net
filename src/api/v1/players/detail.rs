@@ -53,6 +53,7 @@ pub(crate) struct PlayerResponse {
     #[serde(flatten)]
     player: PlayerSummary,
     stats: PlayerStatsResponse,
+    badges: Vec<PlayerBadge>,
     eras: Vec<PlayerEraStatsResponse>,
     highlights: Vec<Hotlap>,
 }
@@ -94,11 +95,14 @@ impl From<PlayerProfile> for PlayerResponse {
                     .get(&hotlap.era_id)
                     .cloned()
                     .unwrap_or_default();
+                let mut badges = badges;
+                badges.extend(profile.badges.iter().cloned());
                 hotlap.with_badges(badges)
             })
             .collect();
         PlayerResponse {
             player,
+            badges: profile.badges.clone(),
             stats: PlayerStatsResponse {
                 hotlaps: profile.stats.hotlaps,
                 personal_bests: profile.stats.personal_bests,

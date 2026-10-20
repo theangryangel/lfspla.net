@@ -9,6 +9,7 @@ eras_source = "../assets/eras"
 tracks_source = "../assets/tracks"
 vehicles_source = "../assets/vehicles"
 community_source = "../assets/community"
+badges_source = "../assets/badges"
 max_spr_upload_bytes = "2 MiB"
 webhook_workers = 3
 

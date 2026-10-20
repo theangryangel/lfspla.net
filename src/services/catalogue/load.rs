@@ -32,6 +32,15 @@ pub(crate) fn files(paths: &[PathBuf]) -> anyhow::Result<Vec<SourceDefinition>> 
                 format!("failed to parse catalogue definition {}", source.display())
             })?;
         match &mut definition {
+            CatalogueDefinition::Badge(badge) => {
+                badge.validate(source)?;
+                ensure!(
+                    ids.insert(("Badge", badge.id.clone())),
+                    "duplicate badge {} in {}",
+                    badge.id,
+                    source.display()
+                );
+            }
             CatalogueDefinition::CommunityCard(card) => {
                 card.validate(source)?;
                 ensure!(

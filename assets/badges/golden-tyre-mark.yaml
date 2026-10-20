@@ -1,0 +1,8 @@
+kind: Badge
+id: golden-tyre-mark
+name: Pioneer
+description: Uploaded the first hotlap to LFSplanet.
+sequence: 100
+variants:
+  standard:
+    image: ./golden-tyre-mark.svg

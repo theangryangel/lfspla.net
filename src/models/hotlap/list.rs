@@ -102,17 +102,24 @@ impl Hotlap {
             ),
             None => None,
         };
-        let mut badges = match filters.chart {
-            Some(chart) => Some(
-                crate::models::badge::Model::list_for_players(
-                    &transaction,
-                    chart.era_id,
-                    rows.iter().map(|(hotlap, _, _)| hotlap.player_id),
-                )
-                .await?,
-            ),
-            None => None,
-        };
+        let badges = crate::models::badge::Model::resolved(
+            &transaction,
+            None,
+            rows.iter()
+                .map(|(hotlap, _, _)| hotlap.player_id)
+                .collect::<std::collections::HashSet<_>>()
+                .into_iter()
+                .collect(),
+            true,
+        )
+        .await?;
+        let mut badges_by_player = HashMap::<_, Vec<_>>::new();
+        for award in badges {
+            badges_by_player
+                .entry(award.player_id)
+                .or_default()
+                .push((award.era_id, award.presentation()));
+        }
         let benchmark_gap = if filters.chart.is_some() {
             format!(
                 "current_lap.lap_time_ms - {}",
@@ -199,9 +206,13 @@ impl Hotlap {
                 let contributes_to = chart_contributions.as_ref().cloned().unwrap_or_else(|| {
                     ranking_contributions.remove(&hotlap.id).unwrap_or_default()
                 });
-                let player_badges = badges
-                    .as_mut()
-                    .map(|by_player| by_player.remove(&hotlap.player_id).unwrap_or_default());
+                let player_badges = badges_by_player
+                    .get(&hotlap.player_id)
+                    .into_iter()
+                    .flatten()
+                    .filter(|(era_id, _)| era_id.is_none_or(|id| id == hotlap.era_id))
+                    .map(|(_, badge)| badge.clone())
+                    .collect();
                 Ok(HotlapListEntry {
                     hotlap,
                     player,
@@ -210,7 +221,7 @@ impl Hotlap {
                     distance_to_world_record_ms: chart.map(|c| c.1),
                     distance_to_benchmark_ms: chart.and_then(|c| c.2),
                     contributes_to,
-                    badges: player_badges,
+                    badges: Some(player_badges),
                 })
             })
             .collect::<Result<Vec<_>, HotlapListError>>()?;

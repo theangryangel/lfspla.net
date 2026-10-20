@@ -1,0 +1,8 @@
+kind: Badge
+id: duck
+name: Duck
+description: For outstanding support of LFSPlanet’s development and an incurable hotlapping obsession
+sequence: 30
+variants:
+  standard:
+    image: ./duck.svg

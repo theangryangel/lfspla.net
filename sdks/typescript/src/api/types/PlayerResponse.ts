@@ -6,6 +6,7 @@ import * as LfsplanetApi from "../index.js";
  * Public profile and competitive record for one LFS account.
  */
 export interface PlayerResponse extends LfsplanetApi.PlayerSummary {
+  badges: LfsplanetApi.PlayerBadge[];
   eras: LfsplanetApi.PlayerEraStatsResponse[];
   highlights: LfsplanetApi.Hotlap[];
   stats: LfsplanetApi.PlayerStatsResponse;

@@ -1,0 +1,8 @@
+kind: Badge
+id: joker
+name: Joker
+description: LFS Nutter
+sequence: 110
+variants:
+  standard:
+    image: ./joker.svg

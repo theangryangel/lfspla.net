@@ -505,9 +505,9 @@ pub(crate) fn normalise_file(file: &mut EraDefinition) {
         ranking.title = ranking.title.trim().to_owned();
         ranking.description = ranking.description.trim().to_owned();
         if let Some(badge) = &mut ranking.badge {
-            badge.label = badge.label.trim().to_owned();
+            badge.id = badge.id.trim().to_owned();
             if let Some(completion) = &mut badge.completion {
-                completion.label = completion.label.trim().to_owned();
+                completion.id = completion.id.trim().to_owned();
             }
         }
     }

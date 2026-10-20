@@ -163,9 +163,7 @@ pub(super) async fn populate(
         era.rebuild_badges(database),
     )
     .await
-    .context(
-        "demo data was committed, but badge rebuilding failed; run maintenance badges-refresh",
-    )?;
+    .context("demo data was committed, but badge rebuilding failed; run hotlap rebadge --all")?;
     Ok(total)
 }
 
@@ -233,11 +231,16 @@ async fn create_era(database: &sea_orm::DatabaseTransaction) -> anyhow::Result<E
     let era = crate::models::Era::find_by_slug(database, &"demo".parse().unwrap())
         .await?
         .context("demo era was not found")?;
+    // Demo fixtures create metadata without an object store, like tracks/vehicles above.
+    database.execute_raw(Statement::from_string(DbBackend::Postgres,
+        "INSERT INTO badge (id, name, description) VALUES ('all', 'Demo', 'Demo ranking') ON CONFLICT DO NOTHING".to_owned())).await?;
+    database.execute_raw(Statement::from_string(DbBackend::Postgres,
+        "INSERT INTO badge_variant (badge_id, id) SELECT 'all', id FROM (VALUES ('standard'), ('gold'), ('silver'), ('bronze')) v(id) ON CONFLICT DO NOTHING".to_owned())).await?;
     let ranking = database.query_one_raw(Statement::from_sql_and_values(DbBackend::Postgres,
         "INSERT INTO ranking (era_id, slug, position, title, description,
             benchmark_percent, nation_max_points, nation_driver_limit, badge)
          VALUES ($1, 'all', 0, 'Demo ranking', 'Synthetic laps across standard tracks and vehicles.',
-            103, 10, 3, '{\"label\":\"Demo\",\"qualification\":{\"type\":\"ranked\",\"limit\":3}}'::jsonb)
+            103, 10, 3, '{\"id\":\"all\",\"qualification\":{\"type\":\"ranked\",\"limit\":3}}'::jsonb)
          ON CONFLICT (era_id, slug) DO UPDATE SET
             position = EXCLUDED.position,
             title = EXCLUDED.title,

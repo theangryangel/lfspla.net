@@ -20,8 +20,6 @@ pub(crate) enum MaintenanceCommand {
     SessionsGc,
     /// Delete access tokens retained past expiry or revocation.
     AccessTokensGc,
-    /// Retry badge refreshes left pending after publication or catalogue changes.
-    BadgesRefresh,
     /// Synchronize Vehicle Mods metadata and covers from the LFS API.
     SyncMods,
     /// Find attachment objects without references.
@@ -52,9 +50,6 @@ pub(crate) async fn run(args: &Args, action: &MaintenanceCommand) -> anyhow::Res
     match action {
         MaintenanceCommand::SessionsGc => sessions_gc(&database).await,
         MaintenanceCommand::AccessTokensGc => access_tokens_gc(&database).await,
-        MaintenanceCommand::BadgesRefresh => {
-            Ok(crate::models::badge::retry_badge_refreshes(&database).await?)
-        }
         MaintenanceCommand::SyncMods => {
             crate::services::catalogue::sync_mods(&settings, &database).await
         }

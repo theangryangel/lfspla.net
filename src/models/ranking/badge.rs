@@ -8,9 +8,9 @@ use validator::Validate;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub struct RankingBadgeDefinition {
-    /// Compact text displayed beside a player's name.
-    #[validate(custom(function = "crate::validate::validate_non_blank"))]
-    pub label: String,
+    /// Catalogue badge slug.
+    #[validate(custom(function = "crate::validate::validate_badge_slug"))]
+    pub id: String,
     /// Which personal-ranking entries receive the badge.
     pub qualification: RankingBadgeQualification,
     /// An additional award for completing every chart, regardless of position.
@@ -23,8 +23,8 @@ pub struct RankingBadgeDefinition {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub struct RankingCompletionBadgeDefinition {
-    #[validate(custom(function = "crate::validate::validate_non_blank"))]
-    pub label: String,
+    #[validate(custom(function = "crate::validate::validate_badge_slug"))]
+    pub id: String,
 }
 
 impl RankingBadgeDefinition {

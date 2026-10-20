@@ -2,7 +2,7 @@
 
 use crate::models::{
     Era,
-    badge::{self, PlayerBadge, qualifies_for_ranking_badge},
+    badge::{self, CalculatedAward, PlayerBadge, qualifies_for_ranking_badge},
     era::rank_world_record_holders,
     ranking::{self, RankingBadgeDefinition, RankingBadgeQualification, RankingFilter},
 };
@@ -17,7 +17,7 @@ use std::collections::HashMap;
 /// and a wide tie can award more than three drivers.
 const WORLD_RECORD_LEADER_POSITIONS: u64 = 3;
 
-type EraBadges = HashMap<i64, Vec<PlayerBadge>>;
+type EraBadges = HashMap<i64, Vec<CalculatedAward>>;
 
 impl Era {
     /// Recalculates this era's badges, then stores them in one transaction.
@@ -98,12 +98,12 @@ impl Era {
                     badges_by_player
                         .entry(row.player_id)
                         .or_default()
-                        .push(PlayerBadge::Ranking {
-                            ranking_id: ranking.slug.to_string(),
-                            label: badge.label.clone(),
-                            title: ranking.title.clone(),
-                            ranking_position: row.position,
-                        });
+                        .push(CalculatedAward::new(
+                            &badge.id,
+                            position_variant(row.position),
+                            format!("ranking:{}:primary", ranking.id),
+                            format!("{} - #{}", ranking.title, row.position),
+                        ));
                 }
                 if let Some(completion) = &badge.completion
                     && qualifies_for_ranking_badge(
@@ -113,13 +113,15 @@ impl Era {
                         entry_index,
                     )
                 {
-                    badges_by_player.entry(row.player_id).or_default().push(
-                        PlayerBadge::RankingCompletion {
-                            ranking_id: ranking.slug.to_string(),
-                            label: completion.label.clone(),
-                            title: ranking.title.clone(),
-                        },
-                    );
+                    badges_by_player
+                        .entry(row.player_id)
+                        .or_default()
+                        .push(CalculatedAward::new(
+                            &completion.id,
+                            "standard",
+                            format!("ranking:{}:completion", ranking.id),
+                            format!("{} 100% complete", ranking.title),
+                        ));
                 }
             }
         }
@@ -129,36 +131,58 @@ impl Era {
             if leader.position > WORLD_RECORD_LEADER_POSITIONS {
                 break;
             }
-            badges_by_player.entry(leader.player_id).or_default().push(
-                PlayerBadge::WorldRecordLeader {
-                    leader_position: i64::try_from(leader.position).unwrap_or(i64::MAX),
-                    world_records: leader.world_records,
-                },
-            );
+            badges_by_player
+                .entry(leader.player_id)
+                .or_default()
+                .push(CalculatedAward::new(
+                    "world-record-leader",
+                    position_variant(i64::try_from(leader.position).unwrap_or(i64::MAX)),
+                    "world-record-leader",
+                    format!(
+                        "#{} with {} world record{}",
+                        leader.position,
+                        leader.world_records,
+                        if leader.world_records == 1 { "" } else { "s" }
+                    ),
+                ));
         }
         for podium in podium_counts {
             let level = if podium.firsts > 0 {
-                badge::PodiumLevel::Gold
+                "gold"
             } else if podium.seconds > 0 {
-                badge::PodiumLevel::Silver
+                "silver"
             } else {
-                badge::PodiumLevel::Bronze
+                "bronze"
             };
-            badges_by_player.entry(podium.player_id).or_default().push(
-                PlayerBadge::WorldRecordPodium {
+            badges_by_player
+                .entry(podium.player_id)
+                .or_default()
+                .push(CalculatedAward::new(
+                    "world-record-podium",
                     level,
-                    firsts: podium.firsts,
-                    seconds: podium.seconds,
-                    thirds: podium.thirds,
-                },
-            );
+                    "world-record-podium",
+                    format!(
+                        "{} first, {} second, {} third places",
+                        podium.firsts, podium.seconds, podium.thirds
+                    ),
+                ));
         }
         for player_id in self.list_single_hotlap_player_ids(database).await? {
             badges_by_player
                 .entry(player_id)
                 .or_default()
-                .push(PlayerBadge::Newbie);
+                .push(CalculatedAward::new("newbie", "standard", "newbie", None));
         }
         Ok(badges_by_player)
+    }
+}
+
+/// Presentation variant selection is application policy, independent of catalogue artwork.
+fn position_variant(position: i64) -> &'static str {
+    match position {
+        1 => "gold",
+        2 => "silver",
+        3 => "bronze",
+        _ => "standard",
     }
 }

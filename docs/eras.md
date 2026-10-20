@@ -39,18 +39,18 @@ A ranking can award a completion badge in addition to its usual ranking badge:
 
 ```yaml
 badge:
-  label: NUTTER
+  id: nutter
   qualification:
     type: ranked
     limit: 3
   completion:
-    label: GABOR
+    id: gabor
 ```
 
 The top three keep their Nutter badges. Every player with a published result on
 all charts selected by that era's Nutter ranking also receives Gabor, regardless
-of position or benchmark handicap. Players can hold both badges. The frontend
-uses the Gabor artwork for Nutter completion awards.
+of position or benchmark handicap. Players can hold both badges. The `id` fields reference [catalogue badges](catalogue.md#badges); artwork and names
+come from those definitions. Seed the badge definitions before applying an era.
 
 Apply the updated era definitions to activate this configuration; applying an
 updated definition also rebuilds its stored player badges.
