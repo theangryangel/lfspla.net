@@ -3,9 +3,9 @@
 	import GitCompareArrows from '@lucide/svelte/icons/git-compare-arrows';
 	import X from '@lucide/svelte/icons/x';
 	import { page } from '$app/state';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import Flag from './Flag.svelte';
-	import { useComparison } from '$lib/compare.svelte.js';
+	import { useComparison } from '#lib/compare.svelte.js';
 
 	const comparison = useComparison();
 	const visible = $derived(

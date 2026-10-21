@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { EraSummary } from '$lib/api.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import type { Session } from '$lib/session.svelte.js';
+	import type { EraSummary } from '#lib/api.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import type { Session } from '#lib/session.svelte.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
 	import XIcon from '@lucide/svelte/icons/x';
 

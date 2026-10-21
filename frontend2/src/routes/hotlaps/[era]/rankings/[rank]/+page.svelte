@@ -1,16 +1,16 @@
 <script lang="ts">
-	import PlayerBadge from '$lib/components/app/PlayerBadge.svelte';
-	import CompareButton from '$lib/components/app/CompareButton.svelte';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import DataSplit from '$lib/components/app/DataSplit.svelte';
-	import Panel from '$lib/components/app/Panel.svelte';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import NationBreakdown from '$lib/components/app/NationBreakdown.svelte';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import Empty from '$lib/components/app/Empty.svelte';
-	import Flag from '$lib/components/app/Flag.svelte';
-	import { delta, relativeColor } from '$lib/format.js';
-	import { useSession } from '$lib/session.svelte.js';
+	import PlayerBadge from '#lib/components/app/PlayerBadge.svelte';
+	import CompareButton from '#lib/components/app/CompareButton.svelte';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import DataSplit from '#lib/components/app/DataSplit.svelte';
+	import Panel from '#lib/components/app/Panel.svelte';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import NationBreakdown from '#lib/components/app/NationBreakdown.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import Flag from '#lib/components/app/Flag.svelte';
+	import { delta, relativeColor } from '#lib/format.js';
+	import { useSession } from '#lib/session.svelte.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

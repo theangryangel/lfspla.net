@@ -1,9 +1,9 @@
 <script lang="ts">
 	import InfoIcon from '@lucide/svelte/icons/info';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import RankingList from './RankingList.svelte';
-	import type { EraSummary, RankingContribution } from '$lib/api.js';
+	import type { EraSummary, RankingContribution } from '#lib/api.js';
 
 	let {
 		contributions,

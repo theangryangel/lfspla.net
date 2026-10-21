@@ -4,17 +4,17 @@
 		useApi,
 		type CreatedPersonalAccessTokenResponse,
 		type PersonalAccessTokenResponse,
-	} from '$lib/api.js';
-	import { dateTime } from '$lib/format.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+	} from '#lib/api.js';
+	import { dateTime } from '#lib/format.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 
-	import { useSession } from '$lib/session.svelte.js';
-	import Panel from '$lib/components/app/Panel.svelte';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
+	import { useSession } from '#lib/session.svelte.js';
+	import Panel from '#lib/components/app/Panel.svelte';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
 
-	import * as Table from '$lib/components/ui/table/index.js';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import type { PageProps } from './$types';
 
 	const api = useApi();
@@ -99,7 +99,6 @@
 		}
 	}
 </script>
-
 
 <div class="racing-data max-w-2xl space-y-6">
 	<aside

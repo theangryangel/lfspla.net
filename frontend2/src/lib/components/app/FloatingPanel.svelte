@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { useFloatingPanels } from '$lib/floating-panels.svelte.js';
+	import { useFloatingPanels } from '#lib/floating-panels.svelte.js';
 
 	let {
 		order = 0,

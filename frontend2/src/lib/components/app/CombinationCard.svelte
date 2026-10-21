@@ -2,11 +2,11 @@
 	import PageIdentity from './PageIdentity.svelte';
 	import RecordHighlight from './RecordHighlight.svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
-	import { useCombinationPicker } from '$lib/picker.js';
+	import Thumbnail from '#lib/components/app/Thumbnail.svelte';
+	import { useCombinationPicker } from '#lib/picker.js';
 	import Flag from './Flag.svelte';
-	import { lapTime } from '$lib/format.js';
-	import type { Hotlap, TrackSummary, VehicleSummary } from '$lib/api.js';
+	import { lapTime } from '#lib/format.js';
+	import type { Hotlap, TrackSummary, VehicleSummary } from '#lib/api.js';
 
 	let {
 		track = null,

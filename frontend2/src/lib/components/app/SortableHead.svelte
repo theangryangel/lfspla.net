@@ -2,9 +2,9 @@
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import type { Ordering } from '$lib/api.js';
-	import { setQuery } from '$lib/query.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import type { Ordering } from '#lib/api.js';
+	import { setQuery } from '#lib/query.js';
 
 	let {
 		column,

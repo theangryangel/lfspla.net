@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { SpotlightResponse } from '$lib/api.js';
+	import type { SpotlightResponse } from '#lib/api.js';
 	import Flag from './Flag.svelte';
 	import Thumbnail from './Thumbnail.svelte';
 	import RecordHighlight from './RecordHighlight.svelte';
-	import { lapTime } from '$lib/format.js';
+	import { lapTime } from '#lib/format.js';
 
 	let { card }: { card: SpotlightResponse } = $props();
 	const content = $derived(card.content);

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useFloatingPanels } from '$lib/floating-panels.svelte.js';
+	import { useFloatingPanels } from '#lib/floating-panels.svelte.js';
 	const panels = useFloatingPanels();
 	const ordered = $derived(
 		[...panels.entries()].sort((a, b) => a[1].order - b[1].order),

@@ -8,10 +8,10 @@
 		type EraSummary,
 		type Hotlap,
 		useApi,
-	} from '$lib/api.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { hotlapStates, lapTime, fileSize } from '$lib/format.js';
+	} from '#lib/api.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { hotlapStates, lapTime, fileSize } from '#lib/format.js';
 
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleCheckBigIcon from '@lucide/svelte/icons/circle-check-big';
@@ -24,12 +24,12 @@
 	import { beforeNavigate, invalidate } from '$app/navigation';
 	import { onMount } from 'svelte';
 
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import ChoiceSelect from '$lib/components/app/ChoiceSelect.svelte';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import ChoiceSelect from '#lib/components/app/ChoiceSelect.svelte';
 
-	import { readSprHeader, type SprSummary } from '$lib/spr.js';
+	import { readSprHeader, type SprSummary } from '#lib/spr.js';
 
-	import { useSession } from '$lib/session.svelte.js';
+	import { useSession } from '#lib/session.svelte.js';
 
 	const api = useApi();
 
@@ -66,6 +66,7 @@
 	let running = $state(false);
 
 	beforeNavigate((navigation) => {
+		if (navigation.shallow && navigation.type === 'goto') return;
 		if (!running) return;
 		// Query changes keep the upload component mounted.
 		if (
@@ -104,6 +105,7 @@
 					const detail = await api.hotlaps.getHotlap({
 						hotlap: item.hotlap!.id,
 					});
+
 					if (!detail) return false;
 					if (item.hotlap) item.hotlap.state = detail.state;
 					return detail.state !== 'pending';
@@ -142,6 +144,7 @@
 	const targets = $derived(
 		(eras ?? [era]).filter((candidate) => candidate.open),
 	);
+
 	const target = $derived(
 		targets.find((candidate) => candidate.id === (chosen ?? era.id)) ??
 			targets[0],
@@ -156,6 +159,7 @@
 		uploading: items.filter((item) => item.status === 'uploading').length,
 		failed: items.filter((item) => item.status === 'failed').length,
 	});
+
 	const retryable = $derived(
 		items.filter((item) => item.status === 'failed' && item.retryable).length,
 	);
@@ -163,7 +167,6 @@
 		(eras ?? [era]).find((candidate) => candidate.id === id)?.title ?? id;
 	const replays = (count: number) =>
 		`${count} ${count === 1 ? 'replay' : 'replays'}`;
-
 	const key = (file: File) =>
 		`${file.name}\0${file.size}\0${file.lastModified}`;
 
@@ -506,9 +509,8 @@
 											aria-label="Remove {item.file.name} from the queue"
 											onclick={() =>
 												(items = items.filter((other) => other.id !== item.id))}
+											><XIcon /></Button
 										>
-											<XIcon />
-										</Button>
 									</div>
 								</li>
 							{/each}
@@ -541,9 +543,8 @@
 								disabled={running}
 								onclick={() =>
 									(items = items.filter((item) => item.status !== 'accepted'))}
+								>Clear accepted</Button
 							>
-								Clear accepted
-							</Button>
 						{/if}
 					</div>
 					<Button disabled={!counts.queued || running} onclick={() => upload()}>

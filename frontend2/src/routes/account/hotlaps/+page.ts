@@ -1,5 +1,5 @@
 import { UnauthorizedError, type ListHotlapsRequest } from "@lfsplanet/sdk/api";
-import { createApi } from "$lib/api.js";
+import { createApi } from "#lib/api.js";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ depends, fetch, parent, url }) => {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Popover as PopoverPrimitive } from 'bits-ui';
-	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
+	import { cn, type WithoutChildrenOrChild } from '#lib/utils.js';
 	import type { ComponentProps } from 'svelte';
 
 	let {
@@ -11,7 +11,9 @@
 		portalProps,
 		...restProps
 	}: PopoverPrimitive.ContentProps & {
-		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof PopoverPrimitive.Portal>>;
+		portalProps?: WithoutChildrenOrChild<
+			ComponentProps<typeof PopoverPrimitive.Portal>
+		>;
 	} = $props();
 </script>
 

@@ -2,7 +2,7 @@ import {
   apiErrorMessage,
   type PlayerComparisonResponse,
   createApi,
-} from "$lib/api.js";
+} from "#lib/api.js";
 
 import type { PageLoad } from "./$types";
 

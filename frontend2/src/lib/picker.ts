@@ -1,5 +1,5 @@
 import { getContext, setContext } from "svelte";
-import type { TrackSummary, VehicleSummary } from "$lib/api.js";
+import type { TrackSummary, VehicleSummary } from "#lib/api.js";
 
 /** Which half of a combination an opener wants changed. */
 export type PickerMode = "combination" | "track" | "vehicle";

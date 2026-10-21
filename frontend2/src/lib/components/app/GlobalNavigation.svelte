@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { navigationTextClass } from './navigation.js';
-	import type { EraSummary } from '$lib/api.js';
+	import type { EraSummary } from '#lib/api.js';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import * as NavigationMenu from '$lib/components/ui/navigation-menu/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import * as NavigationMenu from '#lib/components/ui/navigation-menu/index.js';
 
 	let { eras }: { eras: EraSummary[] } = $props();
 	const newestFirst = $derived([...eras].reverse());

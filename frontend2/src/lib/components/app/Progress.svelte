@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Progress as ProgressBar } from '$lib/components/ui/progress/index.js';
+	import { Progress as ProgressBar } from '#lib/components/ui/progress/index.js';
 
 	let { value, total }: { value: number; total: number } = $props();
 </script>

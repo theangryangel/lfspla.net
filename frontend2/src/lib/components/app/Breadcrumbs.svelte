@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import Flag from '$lib/components/app/Flag.svelte';
-	import type { Crumb } from '$lib/breadcrumbs.js';
+	import * as Breadcrumb from '#lib/components/ui/breadcrumb/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import Flag from '#lib/components/app/Flag.svelte';
+	import type { Crumb } from '#lib/breadcrumbs.js';
 
 	/**
 	 * The trail the matched routes contributed through their loads.

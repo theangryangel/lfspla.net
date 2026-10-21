@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
-	import RankingList from '$lib/components/app/RankingList.svelte';
-	import { useApi, type EraSummary } from '$lib/api.js';
-	import { useSession } from '$lib/session.svelte.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
+	import RankingList from '#lib/components/app/RankingList.svelte';
+	import { useApi, type EraSummary } from '#lib/api.js';
+	import { useSession } from '#lib/session.svelte.js';
 
 	let { era, selected }: { era: EraSummary; selected?: string } = $props();
 	const api = useApi();
@@ -162,7 +162,9 @@
 				onclick={session.signIn}>Sign in to see your progress</Button
 			>
 		{:else if loading}
-			<p class="text-muted-foreground" role="status">Loading your progress...</p>
+			<p class="text-muted-foreground" role="status">
+				Loading your progress...
+			</p>
 		{:else if failed}
 			<div class="flex items-center gap-2" role="status">
 				<span class="text-muted-foreground"

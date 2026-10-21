@@ -3,9 +3,9 @@ import {
   type ApiClient,
   type MeResponse,
   type PlayerSummary,
-} from "$lib/api.js";
+} from "#lib/api.js";
 import { getContext, setContext } from "svelte";
-import { invalidateAll } from "$app/navigation";
+import { refreshAll } from "$app/navigation";
 
 const KEY = Symbol("lfsplanet.session");
 
@@ -87,7 +87,7 @@ export class Session {
         "X-CSRF-Token": this.me.csrf_token,
       });
       try {
-        await invalidateAll();
+        await refreshAll();
       } catch {
         this.error =
           "You signed out, but the page could not refresh. Please reload.";

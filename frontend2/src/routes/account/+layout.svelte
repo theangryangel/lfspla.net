@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { LayoutProps } from './$types';
 	import { page } from '$app/state';
-	import PageHeading from '$lib/components/app/PageHeading.svelte';
-	import PageNavigation from '$lib/components/app/PageNavigation.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { useSession } from '$lib/session.svelte.js';
+	import PageHeading from '#lib/components/app/PageHeading.svelte';
+	import PageNavigation from '#lib/components/app/PageNavigation.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { useSession } from '#lib/session.svelte.js';
 	let { children }: LayoutProps = $props();
 	const session = useSession();
 	const sections = [

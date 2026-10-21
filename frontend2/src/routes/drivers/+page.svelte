@@ -2,14 +2,14 @@
 	import { navigating, page } from '$app/state';
 	import { beforeNavigate } from '$app/navigation';
 	import { onDestroy } from 'svelte';
-	import CompareButton from '$lib/components/app/CompareButton.svelte';
-	import { Input } from '$lib/components/ui/input/index.js';
+	import CompareButton from '#lib/components/app/CompareButton.svelte';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import SearchIcon from '@lucide/svelte/icons/search';
-	import Empty from '$lib/components/app/Empty.svelte';
-	import Flag from '$lib/components/app/Flag.svelte';
-	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
-	import PageHeading from '$lib/components/app/PageHeading.svelte';
-	import { setQuery } from '$lib/query.js';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import Flag from '#lib/components/app/Flag.svelte';
+	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
+	import PageHeading from '#lib/components/app/PageHeading.svelte';
+	import { setQuery } from '#lib/query.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -24,13 +24,16 @@
 	);
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	const cancelSearch = () => clearTimeout(timer);
-	beforeNavigate(({ type, to }) => {
+
+	beforeNavigate(({ type, to, shallow }) => {
+		if (shallow && type === 'goto') return;
 		if (
 			type === 'goto' &&
 			to?.url.pathname === '/drivers' &&
 			searches.has(to.url.searchParams.get('q') ?? '')
 		)
 			return;
+
 		searches.clear();
 		cancelSearch();
 		draft = null;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Empty from '$lib/components/app/Empty.svelte';
+	import Empty from '#lib/components/app/Empty.svelte';
 </script>
 
 <main

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { TrackSummary } from '$lib/api.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
+	import type { TrackSummary } from '#lib/api.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import Thumbnail from './Thumbnail.svelte';
 	import { CARD } from './picker.js';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.js';
 
 	// Supplying onSelect renders the compact picker button instead of a catalogue card.
 	let {

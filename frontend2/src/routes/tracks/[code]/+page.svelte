@@ -1,18 +1,18 @@
 <script lang="ts">
-	import TrackCredits from '$lib/components/app/TrackCredits.svelte';
+	import TrackCredits from '#lib/components/app/TrackCredits.svelte';
 	import { navigating, page } from '$app/state';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import Breadcrumbs from '#lib/components/app/Breadcrumbs.svelte';
 	import SearchIcon from '@lucide/svelte/icons/search';
-	import Empty from '$lib/components/app/Empty.svelte';
-	import TrackCard from '$lib/components/app/TrackCard.svelte';
-	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
-	import CornerRibbon from '$lib/components/app/CornerRibbon.svelte';
-	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
-	import PageHeading from '$lib/components/app/PageHeading.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
-	import { setQuery } from '$lib/query.js';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import TrackCard from '#lib/components/app/TrackCard.svelte';
+	import Thumbnail from '#lib/components/app/Thumbnail.svelte';
+	import CornerRibbon from '#lib/components/app/CornerRibbon.svelte';
+	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
+	import PageHeading from '#lib/components/app/PageHeading.svelte';
+	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
+	import { setQuery } from '#lib/query.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

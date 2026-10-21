@@ -4,13 +4,13 @@
 		useApi,
 		type PaginatedResponseCombination,
 		type Ordering,
-	} from '$lib/api.js';
+	} from '#lib/api.js';
 	import type { ListEraCombinationsRequest } from '@lfsplanet/sdk/api';
-	import Empty from '$lib/components/app/Empty.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
-	import SortableHead from '$lib/components/app/SortableHead.svelte';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import * as Table from '$lib/components/ui/table/index.js';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
+	import SortableHead from '#lib/components/app/SortableHead.svelte';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
 
 	let {
 		eraId,

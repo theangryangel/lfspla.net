@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { mergeProps } from 'bits-ui';
-	import { delta, relativeColor } from '$lib/format.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { delta, relativeColor } from '#lib/format.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 
-	import { useApi, type NationContribution } from '$lib/api.js';
+	import { useApi, type NationContribution } from '#lib/api.js';
 
 	import Info from '@lucide/svelte/icons/info';
 
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import Flag from './Flag.svelte';
 
 	const api = useApi();

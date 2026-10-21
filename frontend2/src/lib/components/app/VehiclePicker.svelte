@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Input } from '$lib/components/ui/input/index.js';
-	import { type TrackSummary, type VehicleSummary, useApi } from '$lib/api.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { type TrackSummary, type VehicleSummary, useApi } from '#lib/api.js';
 
 	import { onMount, type Snippet } from 'svelte';
 	import SearchIcon from '@lucide/svelte/icons/search';
 
-	import VehicleCard from '$lib/components/app/VehicleCard.svelte';
+	import VehicleCard from '#lib/components/app/VehicleCard.svelte';
 
 	const api = useApi();
 

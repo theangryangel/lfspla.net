@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CommunityCard } from '$lib/api.js';
+	import type { CommunityCard } from '#lib/api.js';
 
 	let { card }: { card: CommunityCard } = $props();
 	const content = $derived(card.content);

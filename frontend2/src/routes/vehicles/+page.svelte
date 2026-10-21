@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { navigating } from '$app/state';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import SearchIcon from '@lucide/svelte/icons/search';
-	import Empty from '$lib/components/app/Empty.svelte';
-	import VehicleCard from '$lib/components/app/VehicleCard.svelte';
-	import CornerRibbon from '$lib/components/app/CornerRibbon.svelte';
-	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
-	import PageHeading from '$lib/components/app/PageHeading.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
-	import { setQuery } from '$lib/query.js';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import VehicleCard from '#lib/components/app/VehicleCard.svelte';
+	import CornerRibbon from '#lib/components/app/CornerRibbon.svelte';
+	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
+	import PageHeading from '#lib/components/app/PageHeading.svelte';
+	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
+	import { setQuery } from '#lib/query.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -28,7 +28,6 @@
 		}
 	}
 </script>
-
 
 <main id="main" class="w-full min-w-0 flex-1">
 	<PageIdentity label="Vehicle directory identity">
