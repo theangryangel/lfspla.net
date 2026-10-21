@@ -1,10 +1,10 @@
 <script lang="ts">
-	import DataSplit from '$lib/components/app/DataSplit.svelte';
-	import HotlapActivity from '$lib/components/app/HotlapActivity.svelte';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import Flag from '$lib/components/app/Flag.svelte';
-	import Empty from '$lib/components/app/Empty.svelte';
+	import DataSplit from '#lib/components/app/DataSplit.svelte';
+	import HotlapActivity from '#lib/components/app/HotlapActivity.svelte';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import Flag from '#lib/components/app/Flag.svelte';
+	import Empty from '#lib/components/app/Empty.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -16,7 +16,13 @@
 		eraId={data.era.id}
 		refreshKey={data.holders}
 		eras={data.eras}
-		views={['all', 'world_records', 'longest_standing', 'most_hotlapped', 'mine']}
+		views={[
+			'all',
+			'world_records',
+			'longest_standing',
+			'most_hotlapped',
+			'mine',
+		]}
 		perPage={25}
 		appearance="data"
 	/>
@@ -28,56 +34,55 @@
 			>
 				World record holders
 			</h2>
-      {#if data.holders.length > 0}
-			<TableFrame appearance="data">
-				<Table.Root
-					class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4"
-				>
-					<Table.Header>
-						<Table.Row>
-							<Table.Head>#</Table.Head>
-							<Table.Head>Driver</Table.Head>
-							<Table.Head class="text-right">World records</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#each data.holders as holder (holder.player.id)}
+			{#if data.holders.length > 0}
+				<TableFrame appearance="data">
+					<Table.Root
+						class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4"
+					>
+						<Table.Header>
 							<Table.Row>
-								<Table.Cell class="tabular-nums">{holder.position}</Table.Cell>
-								<Table.Cell>
-									<Flag
-										code={holder.player.flag_code}
-										fallback={holder.player.country_code}
-										class="mr-1"
-									/>
-									<a
-										class="font-medium hover:underline"
-										href="/drivers/{encodeURIComponent(
-											holder.player.lfs_username,
-										)}">{holder.player.display_name}</a
-									>
-								</Table.Cell>
-								<Table.Cell class="text-right font-semibold tabular-nums"
-									>{holder.world_records.toLocaleString()}</Table.Cell
-								>
+								<Table.Head>#</Table.Head>
+								<Table.Head>Driver</Table.Head>
+								<Table.Head class="text-right">World records</Table.Head>
 							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			</TableFrame>
-			<p class="text-sm text-muted-foreground">
-				{#if data.pagination.total_items > data.holders.length}
-					Showing top {data.holders.length} of {data.pagination.total_items.toLocaleString()}
-					holders
-				{:else}
-					{data.holders.length.toLocaleString()} holders
-				{/if}
-			</p>
-      {:else}
-        <Empty
-          title="No world records yet"
-        />
-      {/if}
+						</Table.Header>
+						<Table.Body>
+							{#each data.holders as holder (holder.player.id)}
+								<Table.Row>
+									<Table.Cell class="tabular-nums">{holder.position}</Table.Cell
+									>
+									<Table.Cell>
+										<Flag
+											code={holder.player.flag_code}
+											fallback={holder.player.country_code}
+											class="mr-1"
+										/>
+										<a
+											class="font-medium hover:underline"
+											href="/drivers/{encodeURIComponent(
+												holder.player.lfs_username,
+											)}">{holder.player.display_name}</a
+										>
+									</Table.Cell>
+									<Table.Cell class="text-right font-semibold tabular-nums"
+										>{holder.world_records.toLocaleString()}</Table.Cell
+									>
+								</Table.Row>
+							{/each}
+						</Table.Body>
+					</Table.Root>
+				</TableFrame>
+				<p class="text-sm text-muted-foreground">
+					{#if data.pagination.total_items > data.holders.length}
+						Showing top {data.holders.length} of {data.pagination.total_items.toLocaleString()}
+						holders
+					{:else}
+						{data.holders.length.toLocaleString()} holders
+					{/if}
+				</p>
+			{:else}
+				<Empty title="No world records yet" />
+			{/if}
 		</section>
 	{/snippet}
 </DataSplit>

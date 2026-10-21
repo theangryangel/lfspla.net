@@ -1,6 +1,6 @@
-import { createApi } from "$lib/api.js";
+import { createApi } from "#lib/api.js";
 
-import type { Crumb } from "$lib/breadcrumbs.js";
+import type { Crumb } from "#lib/breadcrumbs.js";
 import type { LayoutLoad } from "./$types";
 
 // Single-page app: no server rendering, no prerendering. The Rust backend serves
@@ -11,7 +11,7 @@ export const prerender = false;
 /**
  * Loads the two things every page needs: who is signed in, and which eras exist.
  *
- * Both are cheap and change rarely, and having them here means `invalidateAll()`
+ * Both are cheap and change rarely, and having them here means `refreshAll()`
  * after a sign-out refreshes the whole tree in one pass.
  */
 export const load: LayoutLoad = async ({ fetch }) => {

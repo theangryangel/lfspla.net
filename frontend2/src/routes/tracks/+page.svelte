@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Empty from '$lib/components/app/Empty.svelte';
-	import TrackLocationCard from '$lib/components/app/TrackLocationCard.svelte';
-	import TrackCredits from '$lib/components/app/TrackCredits.svelte';
-	import CornerRibbon from '$lib/components/app/CornerRibbon.svelte';
-	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
-	import PageHeading from '$lib/components/app/PageHeading.svelte';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import TrackLocationCard from '#lib/components/app/TrackLocationCard.svelte';
+	import TrackCredits from '#lib/components/app/TrackCredits.svelte';
+	import CornerRibbon from '#lib/components/app/CornerRibbon.svelte';
+	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
+	import PageHeading from '#lib/components/app/PageHeading.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

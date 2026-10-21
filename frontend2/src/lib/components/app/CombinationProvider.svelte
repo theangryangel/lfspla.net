@@ -3,12 +3,12 @@
 	import CarIcon from '@lucide/svelte/icons/car';
 	import MapPinIcon from '@lucide/svelte/icons/map-pin';
 	import XIcon from '@lucide/svelte/icons/x';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import TrackPicker from '$lib/components/app/TrackPicker.svelte';
-	import VehiclePicker from '$lib/components/app/VehiclePicker.svelte';
-	import Thumbnail from '$lib/components/app/Thumbnail.svelte';
-	import { setCombinationPicker, type PickerRequest } from '$lib/picker.js';
-	import type { TrackSummary, VehicleSummary } from '$lib/api.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import TrackPicker from '#lib/components/app/TrackPicker.svelte';
+	import VehiclePicker from '#lib/components/app/VehiclePicker.svelte';
+	import Thumbnail from '#lib/components/app/Thumbnail.svelte';
+	import { setCombinationPicker, type PickerRequest } from '#lib/picker.js';
+	import type { TrackSummary, VehicleSummary } from '#lib/api.js';
 
 	/**
 	 * The era's single combination dialog.

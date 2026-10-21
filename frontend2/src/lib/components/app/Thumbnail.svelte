@@ -1,6 +1,6 @@
 <script lang="ts">
 	import CameraOffIcon from '@lucide/svelte/icons/camera-off';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.js';
 
 	let {
 		src = null,

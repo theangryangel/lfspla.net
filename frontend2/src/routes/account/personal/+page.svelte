@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { apiErrorMessage, useApi, type CodeNameSummary } from '$lib/api.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { apiErrorMessage, useApi, type CodeNameSummary } from '#lib/api.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	import { invalidate } from '$app/navigation';
 
-	import { useSession } from '$lib/session.svelte.js';
-	import Flag from '$lib/components/app/Flag.svelte';
-	import SearchSelect from '$lib/components/app/SearchSelect.svelte';
+	import { useSession } from '#lib/session.svelte.js';
+	import Flag from '#lib/components/app/Flag.svelte';
+	import SearchSelect from '#lib/components/app/SearchSelect.svelte';
 
 	import type { PageProps } from './$types';
 
@@ -82,7 +82,6 @@
 		}
 	}
 </script>
-
 
 <div class="racing-data max-w-xl space-y-4">
 	<p class="text-sm text-muted-foreground">

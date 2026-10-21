@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import HotlapActivity from '$lib/components/app/HotlapActivity.svelte';
-	import SpotlightCard from '$lib/components/app/SpotlightCard.svelte';
-	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
-	import RecordHighlight from '$lib/components/app/RecordHighlight.svelte';
-	import PanelCarousel from '$lib/components/app/PanelCarousel.svelte';
-	import CommunityCard from '$lib/components/app/CommunityCard.svelte';
+	import HotlapActivity from '#lib/components/app/HotlapActivity.svelte';
+	import SpotlightCard from '#lib/components/app/SpotlightCard.svelte';
+	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
+	import RecordHighlight from '#lib/components/app/RecordHighlight.svelte';
+	import PanelCarousel from '#lib/components/app/PanelCarousel.svelte';
+	import CommunityCard from '#lib/components/app/CommunityCard.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

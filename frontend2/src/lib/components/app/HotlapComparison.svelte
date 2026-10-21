@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { Hotlap } from '$lib/api.js';
-	import { intermediateSplits, sectorTimes } from '$lib/hotlap-comparison.js';
-	import { delta, lapTime, relativeColor } from '$lib/format.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { useComparison } from '$lib/compare.svelte.js';
+	import type { Hotlap } from '#lib/api.js';
+	import { intermediateSplits, sectorTimes } from '#lib/hotlap-comparison.js';
+	import { delta, lapTime, relativeColor } from '#lib/format.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { useComparison } from '#lib/compare.svelte.js';
 	import { mergeProps } from 'bits-ui';
-	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import GitCompareArrows from '@lucide/svelte/icons/git-compare-arrows';
 	import Timer from '@lucide/svelte/icons/timer';
 	import Minimize2 from '@lucide/svelte/icons/minimize-2';

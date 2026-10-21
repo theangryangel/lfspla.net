@@ -1,24 +1,24 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { PersonalRankingEntry, NationRankingEntry } from '$lib/api.js';
-	import { goto, afterNavigate, replaceState } from '$app/navigation';
+	import type { PersonalRankingEntry, NationRankingEntry } from '#lib/api.js';
+	import { goto, afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import CombinationProvider from '$lib/components/app/CombinationProvider.svelte';
-	import PageNavigation from '$lib/components/app/PageNavigation.svelte';
-	import RankingPicker from '$lib/components/app/RankingPicker.svelte';
-	import RecordHighlight from '$lib/components/app/RecordHighlight.svelte';
-	import Flag from '$lib/components/app/Flag.svelte';
-	import PageHeading from '$lib/components/app/PageHeading.svelte';
-	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
+	import CombinationProvider from '#lib/components/app/CombinationProvider.svelte';
+	import PageNavigation from '#lib/components/app/PageNavigation.svelte';
+	import RankingPicker from '#lib/components/app/RankingPicker.svelte';
+	import RecordHighlight from '#lib/components/app/RecordHighlight.svelte';
+	import Flag from '#lib/components/app/Flag.svelte';
+	import PageHeading from '#lib/components/app/PageHeading.svelte';
+	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
 	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import EraIdentity from '$lib/components/app/EraIdentity.svelte';
-	import CombinationCard from '$lib/components/app/CombinationCard.svelte';
-	import { delta } from '$lib/format.js';
-	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
-	import { navigationTextClass } from '$lib/components/app/navigation.js';
-	import HotlapUpload from '$lib/components/app/HotlapUpload.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import EraIdentity from '#lib/components/app/EraIdentity.svelte';
+	import CombinationCard from '#lib/components/app/CombinationCard.svelte';
+	import { delta } from '#lib/format.js';
+	import Breadcrumbs from '#lib/components/app/Breadcrumbs.svelte';
+	import { navigationTextClass } from '#lib/components/app/navigation.js';
+	import HotlapUpload from '#lib/components/app/HotlapUpload.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps & { children: Snippet } = $props();
@@ -56,14 +56,15 @@
 	);
 	const onOverview = $derived(page.route.id === '/hotlaps/[era]');
 	// Support bookmarks to the former chart picker entry point.
-	afterNavigate(() => {
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
 		if (page.url.searchParams.get('picker') === 'charts') openPicker();
 		if (page.url.searchParams.get('picker') === 'rankings') {
 			rankingPicker?.open(null, page.url.searchParams.get('q') ?? '');
-			const url = new URL(page.url);
+			const url = new URL(page.url.href);
 			url.searchParams.delete('picker');
 			url.searchParams.delete('q');
-			replaceState(url, page.state);
+			goto(url, { shallow: true, replace: true, state: page.state });
 		}
 	});
 

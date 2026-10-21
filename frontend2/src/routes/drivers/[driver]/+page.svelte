@@ -1,14 +1,14 @@
 <script lang="ts">
-	import PlayerBadge from '$lib/components/app/PlayerBadge.svelte';
-	import CompareButton from '$lib/components/app/CompareButton.svelte';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import PageIdentity from '$lib/components/app/PageIdentity.svelte';
-	import RecordHighlight from '$lib/components/app/RecordHighlight.svelte';
-	import Flag from '$lib/components/app/Flag.svelte';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import HotlapActivity from '$lib/components/app/HotlapActivity.svelte';
-	import Breadcrumbs from '$lib/components/app/Breadcrumbs.svelte';
-	import { dateTime } from '$lib/format.js';
+	import PlayerBadge from '#lib/components/app/PlayerBadge.svelte';
+	import CompareButton from '#lib/components/app/CompareButton.svelte';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
+	import RecordHighlight from '#lib/components/app/RecordHighlight.svelte';
+	import Flag from '#lib/components/app/Flag.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import HotlapActivity from '#lib/components/app/HotlapActivity.svelte';
+	import Breadcrumbs from '#lib/components/app/Breadcrumbs.svelte';
+	import { dateTime } from '#lib/format.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

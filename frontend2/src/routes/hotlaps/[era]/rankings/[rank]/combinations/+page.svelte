@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import DownloadIcon from '@lucide/svelte/icons/download';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import Panel from '$lib/components/app/Panel.svelte';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import Choices from '$lib/components/app/Choices.svelte';
-	import Empty from '$lib/components/app/Empty.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
-	import Progress from '$lib/components/app/Progress.svelte';
-	import { dateTime, delta, lapTime, pageItems } from '$lib/format.js';
-	import { setQuery } from '$lib/query.js';
-	import { useSession } from '$lib/session.svelte.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import Panel from '#lib/components/app/Panel.svelte';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import Choices from '#lib/components/app/Choices.svelte';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
+	import Progress from '#lib/components/app/Progress.svelte';
+	import { dateTime, delta, lapTime, pageItems } from '#lib/format.js';
+	import { setQuery } from '#lib/query.js';
+	import { useSession } from '#lib/session.svelte.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

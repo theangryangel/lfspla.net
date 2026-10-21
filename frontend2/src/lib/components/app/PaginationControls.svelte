@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as Pagination from '$lib/components/ui/pagination/index.js';
-	import { setQuery } from '$lib/query.js';
-	import type { Pagination as PaginationMetadata } from '$lib/api.js';
+	import * as Pagination from '#lib/components/ui/pagination/index.js';
+	import { setQuery } from '#lib/query.js';
+	import type { Pagination as PaginationMetadata } from '#lib/api.js';
 
 	let {
 		pagination,

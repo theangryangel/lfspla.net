@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { EraSummary } from '$lib/api.js';
+	import type { EraSummary } from '#lib/api.js';
 	import PageIdentity from './PageIdentity.svelte';
 	let { era }: { era: EraSummary } = $props();
 </script>

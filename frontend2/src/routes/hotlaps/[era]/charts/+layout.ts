@@ -1,4 +1,4 @@
-import { createApi } from "$lib/api.js";
+import { createApi } from "#lib/api.js";
 
 import type { LayoutLoad } from "./$types";
 

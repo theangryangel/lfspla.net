@@ -1,9 +1,9 @@
 <script lang="ts">
 	import GitCompareArrows from '@lucide/svelte/icons/git-compare-arrows';
 	import { mergeProps } from 'bits-ui';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-	import { useComparison, type CompareDriver } from '$lib/compare.svelte.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { useComparison, type CompareDriver } from '#lib/compare.svelte.js';
 	let { driver }: { driver: CompareDriver } = $props();
 	const comparison = useComparison();
 	const selected = $derived(comparison.selected(driver.lfs_username));

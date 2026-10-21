@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 
 	import {
 		useApi,
 		type EraSummary,
 		type TrackSummary,
 		type VehicleSummary,
-	} from '$lib/api.js';
+	} from '#lib/api.js';
 
 	import { goto } from '$app/navigation';
 

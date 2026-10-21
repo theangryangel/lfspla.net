@@ -4,18 +4,18 @@
 		useApi,
 		type WebhookNotificationResponse,
 		type WebhookResponse,
-	} from '$lib/api.js';
-	import { dateTime } from '$lib/format.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+	} from '#lib/api.js';
+	import { dateTime } from '#lib/format.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 
-	import { useSession } from '$lib/session.svelte.js';
+	import { useSession } from '#lib/session.svelte.js';
 
-	import Panel from '$lib/components/app/Panel.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
+	import Panel from '#lib/components/app/Panel.svelte';
+	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
 
-	import * as Select from '$lib/components/ui/select/index.js';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import type { PageProps } from './$types';
 
 	const api = useApi();
@@ -129,7 +129,6 @@
 		}
 	}
 </script>
-
 
 {#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 {#if notice}<p role="status" class="text-sm">{notice}</p>{/if}
@@ -325,8 +324,7 @@
 <Dialog.Root bind:open={confirmOpen}>
 	<Dialog.Content>
 		<Dialog.Header
-			><Dialog.Title>Delete webhook?</Dialog.Title
-			><Dialog.Description
+			><Dialog.Title>Delete webhook?</Dialog.Title><Dialog.Description
 				>Delete “{target?.name}” and its queued notifications? You can add the
 				destination again later.</Dialog.Description
 			></Dialog.Header

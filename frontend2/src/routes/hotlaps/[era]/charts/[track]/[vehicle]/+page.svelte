@@ -1,41 +1,41 @@
 <script lang="ts">
-	import ChartContributions from '$lib/components/app/ChartContributions.svelte';
-	import FloatingPanel from '$lib/components/app/FloatingPanel.svelte';
-	import HotlapComparison from '$lib/components/app/HotlapComparison.svelte';
+	import ChartContributions from '#lib/components/app/ChartContributions.svelte';
+	import FloatingPanel from '#lib/components/app/FloatingPanel.svelte';
+	import HotlapComparison from '#lib/components/app/HotlapComparison.svelte';
 	import GitCompare from '@lucide/svelte/icons/git-compare';
 	import { mergeProps } from 'bits-ui';
-	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-	import { intermediateSplits } from '$lib/hotlap-comparison.js';
-	import SortableHead from '$lib/components/app/SortableHead.svelte';
-	import PlayerBadge from '$lib/components/app/PlayerBadge.svelte';
-	import CompareButton from '$lib/components/app/CompareButton.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { intermediateSplits } from '#lib/hotlap-comparison.js';
+	import SortableHead from '#lib/components/app/SortableHead.svelte';
+	import PlayerBadge from '#lib/components/app/PlayerBadge.svelte';
+	import CompareButton from '#lib/components/app/CompareButton.svelte';
+	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
 	import DownloadIcon from '@lucide/svelte/icons/download';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import ChoiceSelect from '$lib/components/app/ChoiceSelect.svelte';
-	import { useCombinationPicker } from '$lib/picker.js';
-	import SearchSelect from '$lib/components/app/SearchSelect.svelte';
-	import Empty from '$lib/components/app/Empty.svelte';
-	import Flag from '$lib/components/app/Flag.svelte';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import ChoiceSelect from '#lib/components/app/ChoiceSelect.svelte';
+	import { useCombinationPicker } from '#lib/picker.js';
+	import SearchSelect from '#lib/components/app/SearchSelect.svelte';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import Flag from '#lib/components/app/Flag.svelte';
 	import {
 		controlTags,
 		dateTime,
 		delta,
 		lapTime,
 		steeringLabels,
-	} from '$lib/format.js';
+	} from '#lib/format.js';
 	import { page } from '$app/state';
-	import { setQuery } from '$lib/query.js';
-	import { useSession } from '$lib/session.svelte.js';
+	import { setQuery } from '#lib/query.js';
+	import { useSession } from '#lib/session.svelte.js';
 	import {
 		type HotlapListColumn,
 		type Hotlap,
 		type Ordering,
 		type CodeNameSummary,
-	} from '$lib/api.js';
+	} from '#lib/api.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

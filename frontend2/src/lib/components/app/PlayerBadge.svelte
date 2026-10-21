@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { PlayerBadge as PlayerBadgeData } from '$lib/api.js';
-	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-	import { cn } from '$lib/utils.js';
+	import type { PlayerBadge as PlayerBadgeData } from '#lib/api.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { cn } from '#lib/utils.js';
 
 	let {
 		badge,

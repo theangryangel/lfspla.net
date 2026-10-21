@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
 	import {
 		type Hotlap,
 		type EraSummary,
@@ -8,24 +8,24 @@
 		type Ordering,
 		type PaginatedResponseHotlap,
 		useApi,
-	} from '$lib/api.js';
-	import { dateTime, lapTime } from '$lib/format.js';
+	} from '#lib/api.js';
+	import { dateTime, lapTime } from '#lib/format.js';
 
 	import type { ListHotlapsRequest } from '@lfsplanet/sdk/api';
-	import CompareButton from '$lib/components/app/CompareButton.svelte';
-	import Empty from '$lib/components/app/Empty.svelte';
-	import Flag from '$lib/components/app/Flag.svelte';
-	import PlayerBadge from '$lib/components/app/PlayerBadge.svelte';
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
-	import SortableHead from '$lib/components/app/SortableHead.svelte';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import MostHotlappedCombos from '$lib/components/app/MostHotlappedCombos.svelte';
+	import CompareButton from '#lib/components/app/CompareButton.svelte';
+	import Empty from '#lib/components/app/Empty.svelte';
+	import Flag from '#lib/components/app/Flag.svelte';
+	import PlayerBadge from '#lib/components/app/PlayerBadge.svelte';
+	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
+	import SortableHead from '#lib/components/app/SortableHead.svelte';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import MostHotlappedCombos from '#lib/components/app/MostHotlappedCombos.svelte';
 
-	import * as Table from '$lib/components/ui/table/index.js';
-	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import * as Tabs from '#lib/components/ui/tabs/index.js';
 
-	import { useSession } from '$lib/session.svelte.js';
-	import { setQuery } from '$lib/query.js';
+	import { useSession } from '#lib/session.svelte.js';
+	import { setQuery } from '#lib/query.js';
 
 	const api = useApi();
 

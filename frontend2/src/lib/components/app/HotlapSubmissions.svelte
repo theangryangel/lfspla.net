@@ -8,31 +8,31 @@
 		type PaginatedResponseHotlap,
 		type HotlapListColumn,
 		type Ordering,
-	} from '$lib/api.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+	} from '#lib/api.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import {
 		dateTime,
 		delta,
 		hotlapStates,
 		lapTime,
 		steeringLabels,
-	} from '$lib/format.js';
+	} from '#lib/format.js';
 
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import { invalidate } from '$app/navigation';
 
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import TableFrame from '$lib/components/app/TableFrame.svelte';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import Empty from '$lib/components/app/Empty.svelte';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import Empty from '#lib/components/app/Empty.svelte';
 
-	import { useSession } from '$lib/session.svelte.js';
+	import { useSession } from '#lib/session.svelte.js';
 
-	import PaginationControls from '$lib/components/app/PaginationControls.svelte';
-	import SortableHead from '$lib/components/app/SortableHead.svelte';
+	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
+	import SortableHead from '#lib/components/app/SortableHead.svelte';
 
 	const api = useApi();
 

@@ -1,19 +1,19 @@
 <script module lang="ts">
-	import type { TrackSummary } from '$lib/api.js';
+	import type { TrackSummary } from '#lib/api.js';
 
 	// Share catalogue requests across picker instances and dialog reopenings.
 	const requests = new Map<string, Promise<TrackSummary[]>>();
 </script>
 
 <script lang="ts">
-	import { Input } from '$lib/components/ui/input/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 
 	import { onMount, type Snippet } from 'svelte';
 	import SearchIcon from '@lucide/svelte/icons/search';
 
-	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
-	import TrackCard from '$lib/components/app/TrackCard.svelte';
-	import { useApi, type VehicleSummary } from '$lib/api.js';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
+	import TrackCard from '#lib/components/app/TrackCard.svelte';
+	import { useApi, type VehicleSummary } from '#lib/api.js';
 
 	const api = useApi();
 

@@ -7,7 +7,7 @@
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import PauseIcon from '@lucide/svelte/icons/pause';
 	import PlayIcon from '@lucide/svelte/icons/play';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import Panel from './Panel.svelte';
 
 	let {

@@ -1,6 +1,6 @@
 import { NotFoundError } from "@lfsplanet/sdk/api";
 
-import { type CombinationRejection, createApi } from "$lib/api.js";
+import { type CombinationRejection, createApi } from "#lib/api.js";
 import type { BestRequest } from "@lfsplanet/sdk/api";
 import { error } from "@sveltejs/kit";
 

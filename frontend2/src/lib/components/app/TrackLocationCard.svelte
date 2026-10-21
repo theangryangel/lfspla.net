@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { TrackLocation } from '$lib/api.js';
+	import type { TrackLocation } from '#lib/api.js';
 	import Thumbnail from './Thumbnail.svelte';
 	import { CARD } from './picker.js';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.js';
 
 	let { location }: { location: TrackLocation } = $props();
 </script>

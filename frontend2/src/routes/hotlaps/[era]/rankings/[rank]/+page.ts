@@ -4,7 +4,7 @@ import {
   ConflictError,
 } from "@lfsplanet/sdk/api";
 
-import { createApi } from "$lib/api.js";
+import { createApi } from "#lib/api.js";
 
 import type { PageLoad } from "./$types";
 
