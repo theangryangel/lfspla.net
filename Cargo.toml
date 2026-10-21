@@ -75,7 +75,7 @@ rand = "0.10"
 reqwest = { workspace = true, features = ["json", "rustls", "stream"] }
 sea-orm = { workspace = true, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-json", "with-time", "with-uuid"] }
 serde = { workspace = true, features = ["derive"] }
-serde-saphyr = "1.1"
+serde-saphyr = "2.0"
 serde_json = { workspace = true }
 serde_urlencoded = "0.7"
 sha2 = "0.11"
