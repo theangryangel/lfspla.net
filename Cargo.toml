@@ -79,7 +79,7 @@ serde-saphyr = "1.1"
 serde_json = { workspace = true }
 serde_urlencoded = "0.7"
 sha2 = "0.11"
-size = { version = "0.5.0", features = ["serde"] }
+size = { version = "0.6.0", features = ["serde"] }
 sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls-ring", "postgres", "migrate", "time"] }
 strum = { version = "0.28", features = ["derive"] }
 subtle = "2"
