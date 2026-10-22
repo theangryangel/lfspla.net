@@ -3,8 +3,9 @@
 use object_store::ObjectStore;
 use sea_orm::DatabaseConnection;
 
-use super::{League, SyncReport, lfs_net::fetch::Fetcher};
+use super::{League, SyncReport};
 use crate::models::{event::source::Change, league};
+use lfsplanet_lfs_leagues::LogoClient;
 
 pub(super) async fn sync(
     database: &DatabaseConnection,
@@ -12,7 +13,7 @@ pub(super) async fn sync(
     sources: &[League],
     report: &mut SyncReport,
 ) {
-    let mut fetch = match Fetcher::new_logos() {
+    let mut fetch = match LogoClient::new() {
         Ok(fetch) => fetch,
         Err(error) => {
             report
@@ -32,7 +33,12 @@ pub(super) async fn sync(
             continue;
         };
         let result = async {
-            let logo = fetch.logo(url).await?;
+            let source = fetch.logo(url).await?;
+            let logo = league::Logo {
+                bytes: source.bytes,
+                extension: source.extension,
+                media_type: source.media_type,
+            };
             // Rolled-back insert IDs from dry runs do not identify stored rows.
             if report.dry_run && matches!(applied.change, Change::Created) {
                 return Ok(true);

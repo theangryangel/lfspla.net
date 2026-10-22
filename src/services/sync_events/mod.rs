@@ -1,60 +1,21 @@
 //! Fetch and synchronise upstream event advertisements.
 
 mod images;
-mod lfs_net;
 mod persist;
 #[cfg(test)]
 mod tests;
 
 pub(crate) use persist::SyncReport;
 
-use serde::Serialize;
+#[cfg(test)]
+use lfsplanet_lfs_leagues::{Event, Season};
+pub(crate) use lfsplanet_lfs_leagues::{League, Report};
 use time::OffsetDateTime;
-
-#[derive(Clone, Debug, Serialize)]
-pub(crate) struct League {
-    pub external_id: u64,
-    pub name: String,
-    pub source_url: String,
-    pub logo_url: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub(crate) struct Season {
-    pub external_id: u64,
-    pub league_id: u64,
-    pub name: String,
-    pub source_url: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub(crate) struct Event {
-    pub external_id: u64,
-    pub league_id: u64,
-    pub season_id: u64,
-    pub title: String,
-    #[serde(with = "time::serde::rfc3339")]
-    pub starts_at: OffsetDateTime,
-    pub source_url: String,
-    pub description: Option<String>,
-    pub signup_url: Option<String>,
-    pub track_label: Option<String>,
-    pub cars_label: Option<String>,
-}
-
-/// A source preview, not a comparison with persisted records.
-#[derive(Clone, Debug, Default, Serialize)]
-pub(crate) struct Report {
-    pub leagues: Vec<League>,
-    pub seasons: Vec<Season>,
-    pub events: Vec<Event>,
-    pub failures: Vec<String>,
-}
 
 /// Read public LFS pages. No OAuth credentials or database are required.
 pub(crate) async fn preview(league: Option<u64>) -> anyhow::Result<Report> {
     let now = OffsetDateTime::now_utc();
-    let mut report = lfs_net::snapshot(league, now, &[]).await?;
+    let mut report = lfsplanet_lfs_leagues::snapshot(league, now, &[]).await?;
     report.events.retain(|event| event.starts_at >= now);
     Ok(report)
 }
@@ -69,7 +30,7 @@ pub(crate) async fn sync(
     let _lock = persist::lock(database).await?;
     let now = OffsetDateTime::now_utc();
     let known = crate::models::league::Model::known_with_future_events(database, now).await?;
-    let snapshot = lfs_net::snapshot(league, now, &known).await?;
+    let snapshot = lfsplanet_lfs_leagues::snapshot(league, now, &known).await?;
     let logos = snapshot.leagues.clone();
     let mut report = persist::apply(database, snapshot, dry_run, now).await?;
     let store = if dry_run {

@@ -6,7 +6,7 @@ use anyhow::{Context, Result, bail, ensure};
 use scraper::{ElementRef, Html, Selector};
 use time::{OffsetDateTime, PrimitiveDateTime, macros::format_description};
 
-use super::super::{Event, League, Season};
+use crate::{Event, League, Season};
 
 fn selector(value: &str) -> Selector {
     Selector::parse(value).expect("static CSS selector")
@@ -192,8 +192,7 @@ fn field<'a>(document: &'a Html, label: &str) -> Option<ElementRef<'a>> {
         .select(&selector("#BodyDiv .left.bold.w_150"))
         .find(|node| text(*node) == label)?
         .next_siblings()
-        .filter_map(ElementRef::wrap)
-        .next()
+        .find_map(ElementRef::wrap)
 }
 
 pub(super) fn season(html: &str, season: &Season) -> Result<Vec<Event>> {

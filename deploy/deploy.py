@@ -224,22 +224,6 @@ server.shell(
     ],
 )
 
-# Retire the separate event scheduler on hosts upgraded from older releases.
-for unit in ("lfsplanet-events.timer", "lfsplanet-events.service"):
-    server.shell(
-        name=f"Stop and disable obsolete {unit}",
-        commands=[
-            f"if systemctl cat {unit} >/dev/null 2>&1; then systemctl disable --now {unit}; fi"
-        ],
-    )
-    files.file(
-        name=f"Remove obsolete {unit}",
-        path=f"/etc/systemd/system/{unit}",
-        present=False,
-    )
-
-systemd.daemon_reload(name="Reload systemd after removing obsolete event units")
-
 for service in (
     "lfsplanet-maintenance.timer",
     "lfsplanet-maintenance.service",

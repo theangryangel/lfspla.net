@@ -1,6 +1,6 @@
 //! LFS league/season discovery and source-to-advertisement mapping.
 
-pub(super) mod fetch;
+mod fetch;
 mod parse;
 #[cfg(test)]
 mod tests;
@@ -9,14 +9,60 @@ use anyhow::{Context, Result};
 use std::collections::{BTreeMap, BTreeSet};
 use time::OffsetDateTime;
 
-use super::{Event, Report};
+use serde::Serialize;
 
-pub(super) async fn snapshot(
+pub use fetch::LogoClient;
+
+#[derive(Clone, Debug, Serialize)]
+pub struct League {
+    pub external_id: u64,
+    pub name: String,
+    pub source_url: String,
+    pub logo_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Season {
+    pub external_id: u64,
+    pub league_id: u64,
+    pub name: String,
+    pub source_url: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Event {
+    pub external_id: u64,
+    pub league_id: u64,
+    pub season_id: u64,
+    pub title: String,
+    #[serde(with = "time::serde::rfc3339")]
+    pub starts_at: OffsetDateTime,
+    pub source_url: String,
+    pub description: Option<String>,
+    pub signup_url: Option<String>,
+    pub track_label: Option<String>,
+    pub cars_label: Option<String>,
+}
+
+/// A source preview, not a comparison with persisted records.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Report {
+    pub leagues: Vec<League>,
+    pub seasons: Vec<Season>,
+    pub events: Vec<Event>,
+    pub failures: Vec<String>,
+}
+
+/// Fetch public schedules, reporting individual league failures without discarding successes.
+///
+/// `known_leagues` supplements discovery with IDs retained by the caller. `now`
+/// determines which calendar entries must resolve to an active season schedule.
+pub async fn snapshot(
     only_league: Option<u64>,
     now: OffsetDateTime,
     known_leagues: &[u64],
 ) -> Result<Report> {
-    let mut fetch = fetch::Fetcher::new()?;
+    let mut fetch = fetch::LogoClient::new_pages()?;
     let mut report = Report::default();
     let calendar = parse::calendar(
         &fetch
@@ -98,4 +144,12 @@ fn reconcile(
         );
     }
     Ok(())
+}
+
+/// Downloaded and validated league artwork, independent of storage.
+#[derive(Clone, Debug)]
+pub struct Logo {
+    pub bytes: Vec<u8>,
+    pub extension: &'static str,
+    pub media_type: &'static str,
 }

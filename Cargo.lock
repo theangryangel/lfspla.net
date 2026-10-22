@@ -2306,12 +2306,12 @@ dependencies = [
  "lfsplanet_jobs",
  "lfsplanet_lfs",
  "lfsplanet_lfs_api",
+ "lfsplanet_lfs_leagues",
  "lfsplanet_spr",
  "oauth2",
  "object_store",
  "rand 0.10.3",
  "reqwest 0.13.5",
- "scraper",
  "sea-orm",
  "serde",
  "serde-saphyr",
@@ -2392,6 +2392,19 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "lfsplanet_lfs_leagues"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "reqwest 0.13.5",
+ "scraper",
+ "serde",
+ "time",
  "tokio",
  "url",
 ]

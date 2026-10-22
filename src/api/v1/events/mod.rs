@@ -2,7 +2,7 @@
 
 use crate::{
     api::{ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery},
-    models::event::list,
+    models::event::{EventListFilters, Model as Event},
 };
 use axum::{
     Json,
@@ -64,7 +64,7 @@ pub(crate) struct EventSummary {
 }
 
 impl EventQuery {
-    fn filter(self, now: OffsetDateTime) -> Result<list::Filter, ApiError> {
+    fn filter(self, now: OffsetDateTime) -> Result<EventListFilters, ApiError> {
         let invalid = || {
             ApiError::new(
                 StatusCode::BAD_REQUEST,
@@ -91,7 +91,7 @@ impl EventQuery {
         {
             return Err(invalid());
         }
-        Ok(list::Filter {
+        Ok(EventListFilters {
             starts_from: from,
             starts_before: before,
             league_id: self.league_id,
@@ -124,7 +124,7 @@ pub(crate) async fn list_events(
         )
         .await
         .map_err(ApiError::database)?;
-    let (items, total) = list::page(&transaction, &filter, offset, pagination.per_page)
+    let (items, total) = Event::list(&transaction, &filter, offset, pagination.per_page)
         .await
         .map_err(ApiError::database)?;
     let images = super::attachments::load(

@@ -80,5 +80,4 @@ Event imports run as part of `maintenance run-all` through the daily
 `lfsplanet-maintenance.timer`, alongside Vehicle Mod synchronization and cleanup.
 Inspect `journalctl -u lfsplanet-maintenance.service` for import reports and failures.
 For an immediate event-only refresh, run `lfsplanet maintenance sync-events` with
-the deployed configuration. Deployment stops, disables and removes the former
-separate event timer and service on existing hosts.
+the deployed configuration.

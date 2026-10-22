@@ -143,7 +143,7 @@ pub(super) async fn apply(
                     change,
                 });
             }
-            let stale = event::list::stale(&transaction, league.id, now).await?;
+            let stale = event::Model::stale(&transaction, league.id, now).await?;
             if dry_run {
                 transaction.rollback().await?;
             } else {

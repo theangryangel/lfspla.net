@@ -79,6 +79,12 @@ trim confirmation and output remain in `cli/lfs/trim.rs`.
 | `catalogue::sync_mods` | Synchronise upstream Vehicle Mod metadata and covers                                       |
 | `sync_events`          | Fetch public LFS schedules and synchronise event advertisements                            |
 
+`crates/lfsplanet_lfs_leagues` owns public league page fetching, parsing,
+calendar reconciliation, source types and validated logo downloads. Its snapshot
+function accepts the current time and any known league IDs from the caller;
+it has no database or object storage dependency. The application owns import
+locking, persistence, dry runs and logo caching.
+
 `maintenance sync-events` imports complete league snapshots in short transactions;
 `--dry-run` compares changes and rolls them back. `--source-only` previews upcoming
 source records without a database. The public events API and `/events` page read

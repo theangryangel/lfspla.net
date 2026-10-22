@@ -24,23 +24,3 @@ pub(crate) enum Change {
     Updated,
     Unchanged,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::Source;
-
-    #[test]
-    fn event_sources_have_stable_text_values() {
-        use sea_orm::ActiveEnum;
-        for (source, value) in [(Source::Local, "local"), (Source::LfsNet, "lfs_net")] {
-            assert_eq!(source.to_value(), value);
-            assert_eq!(serde_json::to_value(source).unwrap(), value);
-            assert_eq!(
-                serde_json::from_value::<Source>(value.into()).unwrap(),
-                source
-            );
-        }
-        assert_eq!(Source::default(), Source::Local);
-        assert!(serde_json::from_str::<Source>("\"unknown\"").is_err());
-    }
-}

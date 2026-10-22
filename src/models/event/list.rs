@@ -1,10 +1,15 @@
 //! Public event reads and reports of listings missing from a successful sync.
 
-use sea_orm::{ConnectionTrait, DbBackend, DbErr, FromQueryResult, Statement};
+use super::{Column, Entity, Model, source::Source};
+use crate::models::{league, season};
+use sea_orm::{
+    ColumnTrait, ConnectionTrait, DbErr, EntityTrait, FromQueryResult, JoinType, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Select,
+};
 use time::OffsetDateTime;
 
 #[derive(Debug, FromQueryResult)]
-pub(crate) struct Listing {
+pub(crate) struct EventListEntry {
     pub id: i64,
     pub league_id: i64,
     pub league_name: String,
@@ -20,84 +25,86 @@ pub(crate) struct Listing {
     pub cars_label: Option<String>,
 }
 
-pub(crate) struct Filter {
+pub(crate) struct EventListFilters {
     pub starts_from: OffsetDateTime,
     pub starts_before: Option<OffsetDateTime>,
     pub league_id: Option<i64>,
     pub season_id: Option<i64>,
 }
 
-const PREDICATE: &str = "NOT event.hidden AND event.starts_at >= $1
-    AND ($2::timestamptz IS NULL OR event.starts_at < $2)
-    AND ($3::bigint IS NULL OR event.league_id = $3)
-    AND ($4::bigint IS NULL OR event.season_id = $4)";
-
-#[derive(FromQueryResult)]
-struct Count {
-    total: i64,
+impl EventListFilters {
+    pub(crate) fn select(&self) -> Select<Entity> {
+        let mut events = Entity::find()
+            .filter(Column::Hidden.eq(false))
+            .filter(Column::StartsAt.gte(self.starts_from));
+        if let Some(before) = self.starts_before {
+            events = events.filter(Column::StartsAt.lt(before));
+        }
+        if let Some(league_id) = self.league_id {
+            events = events.filter(Column::LeagueId.eq(league_id));
+        }
+        if let Some(season_id) = self.season_id {
+            events = events.filter(Column::SeasonId.eq(season_id));
+        }
+        events
+    }
 }
 
-pub(crate) async fn page(
-    database: &impl ConnectionTrait,
-    filter: &Filter,
-    offset: u64,
-    limit: u64,
-) -> Result<(Vec<Listing>, u64), DbErr> {
-    let values = vec![
-        filter.starts_from.into(),
-        filter.starts_before.into(),
-        filter.league_id.into(),
-        filter.season_id.into(),
-    ];
-    let count = Count::find_by_statement(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        format!("SELECT count(*)::bigint AS total FROM event WHERE {PREDICATE}"),
-        values.clone(),
-    ))
-    .one(database)
-    .await?
-    .ok_or_else(|| DbErr::Custom("event count missing".into()))?;
-    let mut values = values;
-    values.push(
-        i64::try_from(offset)
-            .map_err(|_| DbErr::Custom("event offset overflow".into()))?
-            .into(),
-    );
-    values.push(
-        i64::try_from(limit)
-            .map_err(|_| DbErr::Custom("event limit overflow".into()))?
-            .into(),
-    );
-    let items = Listing::find_by_statement(Statement::from_sql_and_values(DbBackend::Postgres,
-        format!("SELECT event.*, league.name AS league_name, league.image_attachment_id AS league_image_attachment_id, season.name AS season_name
-            FROM event JOIN league ON league.id = event.league_id LEFT JOIN season ON season.id = event.season_id
-            WHERE {PREDICATE} ORDER BY event.starts_at, event.id OFFSET $5 LIMIT $6"), values)).all(database).await?;
-    Ok((
-        items,
-        u64::try_from(count.total).map_err(|_| DbErr::Custom("negative event count".into()))?,
-    ))
-}
+impl Model {
+    pub(crate) async fn list(
+        database: &impl ConnectionTrait,
+        filters: &EventListFilters,
+        offset: u64,
+        limit: u64,
+    ) -> Result<(Vec<super::EventListEntry>, u64), DbErr> {
+        let events = filters.select();
+        let total = events.clone().count(database).await?;
+        let items = events
+            .join(
+                JoinType::InnerJoin,
+                Entity::belongs_to(league::Entity)
+                    .from(Column::LeagueId)
+                    .to(league::Column::Id)
+                    .into(),
+            )
+            .join(
+                JoinType::LeftJoin,
+                Entity::belongs_to(season::Entity)
+                    .from(Column::SeasonId)
+                    .to(season::Column::Id)
+                    .into(),
+            )
+            .column_as(league::Column::Name, "league_name")
+            .column_as(
+                league::Column::ImageAttachmentId,
+                "league_image_attachment_id",
+            )
+            .column_as(season::Column::Name, "season_name")
+            .order_by_asc(Column::StartsAt)
+            .order_by_asc(Column::Id)
+            .offset(offset)
+            .limit(limit)
+            .into_model::<EventListEntry>()
+            .all(database)
+            .await?;
+        Ok((items, total))
+    }
 
-#[derive(FromQueryResult)]
-struct Id {
-    id: i64,
-}
-
-pub(crate) async fn stale(
-    database: &impl ConnectionTrait,
-    league_id: i64,
-    now: OffsetDateTime,
-) -> Result<Vec<i64>, DbErr> {
-    Ok(Id::find_by_statement(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        "SELECT event.id FROM event
-        WHERE event.league_id = $1 AND event.starts_at >= $2 AND event.source = 'lfs_net'
-        AND event.last_synced_at < $2 ORDER BY event.id",
-        [league_id.into(), now.into()],
-    ))
-    .all(database)
-    .await?
-    .into_iter()
-    .map(|row| row.id)
-    .collect())
+    pub(crate) async fn stale(
+        database: &impl ConnectionTrait,
+        league_id: i64,
+        now: OffsetDateTime,
+    ) -> Result<Vec<i64>, DbErr> {
+        Entity::find()
+            .select_only()
+            .column(Column::Id)
+            .filter(Column::LeagueId.eq(league_id))
+            .filter(Column::StartsAt.gte(now))
+            .filter(Column::Source.eq(Source::LfsNet))
+            .filter(Column::LastSyncedAt.lt(now))
+            .order_by_asc(Column::Id)
+            .into_tuple::<i64>()
+            .all(database)
+            .await
+    }
 }

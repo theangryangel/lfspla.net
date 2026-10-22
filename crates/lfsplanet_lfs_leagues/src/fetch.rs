@@ -6,17 +6,19 @@ use std::time::Duration;
 const MAX_REQUESTS: usize = 128;
 const MAX_BYTES: usize = 2 * 1024 * 1024;
 
-pub(crate) struct Fetcher {
+/// Bounded client for downloading validated logos from the LFS league directory.
+pub struct LogoClient {
     client: reqwest::Client,
     requests: usize,
 }
 
-impl Fetcher {
-    pub(crate) fn new() -> Result<Self> {
+impl LogoClient {
+    pub(crate) fn new_pages() -> Result<Self> {
         Self::build(false)
     }
 
-    pub(crate) fn new_logos() -> Result<Self> {
+    /// Create a client restricted to the public LFS logo endpoint.
+    pub fn new() -> Result<Self> {
         Self::build(true)
     }
 
@@ -67,7 +69,8 @@ impl Fetcher {
         String::from_utf8(Self::body(response).await?).context("source page is not UTF-8")
     }
 
-    pub(crate) async fn logo(&mut self, path: &str) -> Result<crate::models::league::Logo> {
+    /// Download raster artwork and validate its content type and signature.
+    pub async fn logo(&mut self, path: &str) -> Result<crate::Logo> {
         let response = self.request(logo_url(path)?).await?;
         let media_type = response
             .headers()
@@ -142,7 +145,7 @@ pub(super) fn logo_url(path: &str) -> Result<url::Url> {
     Ok(url)
 }
 
-pub(super) fn decode_logo(bytes: Vec<u8>, media_type: &str) -> Result<crate::models::league::Logo> {
+pub(super) fn decode_logo(bytes: Vec<u8>, media_type: &str) -> Result<crate::Logo> {
     let extension = match media_type {
         "image/png" if bytes.starts_with(b"\x89PNG\r\n\x1a\n") => "png",
         "image/jpeg" if bytes.starts_with(&[0xff, 0xd8, 0xff]) => "jpg",
@@ -156,7 +159,7 @@ pub(super) fn decode_logo(bytes: Vec<u8>, media_type: &str) -> Result<crate::mod
         "gif" => "image/gif",
         _ => "image/webp",
     };
-    Ok(crate::models::league::Logo {
+    Ok(crate::Logo {
         bytes,
         extension,
         media_type,

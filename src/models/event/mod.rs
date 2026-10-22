@@ -1,6 +1,7 @@
 //! Advertised meetings, without individual practice or race session records.
 
-pub(crate) mod list;
+mod list;
+pub(crate) use list::{EventListEntry, EventListFilters};
 pub(crate) mod source;
 
 use sea_orm::{Set, entity::prelude::*};
