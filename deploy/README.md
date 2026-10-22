@@ -76,9 +76,9 @@ For the relational badge migration and rebadge sequence, see the
 
 ## Event imports
 
-Deployment installs an hourly `lfsplanet-events.timer` separately from daily
-maintenance. It imports public LFS league schedules after the event migration has
-been applied. Inspect `journalctl -u lfsplanet-events.service` for import reports
-and failures, or run `systemctl start lfsplanet-events.service` for an immediate
-refresh. See [community events](../docs/events.md) for dry runs, source previews
-and retention behaviour.
+Event imports run as part of `maintenance run-all` through the daily
+`lfsplanet-maintenance.timer`, alongside Vehicle Mod synchronization and cleanup.
+Inspect `journalctl -u lfsplanet-maintenance.service` for import reports and failures.
+For an immediate event-only refresh, run `lfsplanet maintenance sync-events` with
+the deployed configuration. Deployment stops, disables and removes the former
+separate event timer and service on existing hosts.

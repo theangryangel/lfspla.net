@@ -134,7 +134,7 @@
 				appearance="data"
 				refreshKey={data.stats}
 				views={['all', 'world_records', 'longest_standing', 'mine']}
-				perPage={10}
+				perPage={25}
 				showContributions={false}
 				eras={data.eras}
 			/>

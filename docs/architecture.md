@@ -82,8 +82,8 @@ trim confirmation and output remain in `cli/lfs/trim.rs`.
 `maintenance sync-events` imports complete league snapshots in short transactions;
 `--dry-run` compares changes and rolls them back. `--source-only` previews upcoming
 source records without a database. The public events API and `/events` page read
-the stored advertisements. See [events](events.md) for the schema, source workflow
-and hourly deployment timer.
+the stored advertisements. Event imports also run as part of `maintenance run-all`
+through the daily deployment maintenance timer.
 
 The validation and delivery services implement `lfsplanet_jobs::Processor`
 directly. `cli/worker.rs` constructs and registers them with the generic runner;

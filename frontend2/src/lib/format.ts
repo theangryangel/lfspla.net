@@ -39,6 +39,11 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   timeStyle: "short",
   hourCycle: "h23",
 });
+const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
 
 export function date(iso: string): string {
   return dateFormatter.format(new Date(iso));
@@ -46,6 +51,10 @@ export function date(iso: string): string {
 
 export function dateTime(iso: string): string {
   return dateTimeFormatter.format(new Date(iso));
+}
+
+export function time(iso: string): string {
+  return timeFormatter.format(new Date(iso));
 }
 
 export const hotlapStates: Record<

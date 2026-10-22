@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { HTMLTimeAttributes } from 'svelte/elements';
-	import { date, dateTime } from '#lib/format.js';
+	import { date, dateTime, time } from '#lib/format.js';
 
 	let {
 		value,
@@ -9,13 +9,17 @@
 		...attributes
 	}: Omit<HTMLTimeAttributes, 'datetime' | 'children'> & {
 		value: string;
-		format?: 'date' | 'datetime';
+		format?: 'date' | 'datetime' | 'time';
 	} = $props();
 </script>
 
 <time
 	{...attributes}
 	datetime={value}
-	title={title ?? (format === 'date' ? dateTime(value) : undefined)}
-	>{format === 'date' ? date(value) : dateTime(value)}</time
+	title={title ?? (format !== 'datetime' ? dateTime(value) : undefined)}
+	>{format === 'date'
+		? date(value)
+		: format === 'time'
+			? time(value)
+			: dateTime(value)}</time
 >

@@ -112,6 +112,7 @@ routes use the neutral default.
 - Render dates and timestamps through `DateTime`: `22 Oct 2026` for dates and
   `22 Oct 2026, 19:30` for date and time. Use a 24-hour clock and the browser's
   local timezone. Date-only timestamps show the full date and time in a tooltip.
+  Within dated groups, use time-only `19:30` with the full timestamp in a tooltip.
 - Use `background` for pages, `card` for contained content, and `muted` for quiet surfaces.
 - Use rows, dividers, and tables for compact data.
 - Use borders for structure.

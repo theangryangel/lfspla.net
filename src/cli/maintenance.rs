@@ -78,19 +78,7 @@ pub(crate) async fn run(args: &Args, action: &MaintenanceCommand) -> anyhow::Res
     match action {
         MaintenanceCommand::SyncEvents {
             league, dry_run, ..
-        } => {
-            let report =
-                crate::services::sync_events::sync(&database, *league, *dry_run, &settings.storage)
-                    .await?;
-            println!("{}", serde_json::to_string_pretty(&report)?);
-            if !report.failures.is_empty() {
-                bail!(
-                    "event sync had {} failure(s); see JSON report",
-                    report.failures.len()
-                );
-            }
-            Ok(())
-        }
+        } => sync_events(&settings, &database, *league, *dry_run).await,
         MaintenanceCommand::SessionsGc => sessions_gc(&database).await,
         MaintenanceCommand::AccessTokensGc => access_tokens_gc(&database).await,
         MaintenanceCommand::SyncMods => {
@@ -105,6 +93,24 @@ pub(crate) async fn run(args: &Args, action: &MaintenanceCommand) -> anyhow::Res
             older_than_hours,
         } => run_all(&settings, &database, *delete, *older_than_hours).await,
     }
+}
+
+async fn sync_events(
+    settings: &Settings,
+    database: &DatabaseConnection,
+    league: Option<u64>,
+    dry_run: bool,
+) -> anyhow::Result<()> {
+    let report =
+        crate::services::sync_events::sync(database, league, dry_run, &settings.storage).await?;
+    println!("{}", serde_json::to_string_pretty(&report)?);
+    if !report.failures.is_empty() {
+        bail!(
+            "event sync had {} failure(s); see JSON report",
+            report.failures.len()
+        );
+    }
+    Ok(())
 }
 
 async fn sessions_gc(database: &DatabaseConnection) -> anyhow::Result<()> {
@@ -166,6 +172,11 @@ async fn run_all(
     record(
         "sync-mods",
         crate::services::catalogue::sync_mods(settings, database).await,
+    );
+
+    record(
+        "sync-events",
+        sync_events(settings, database, None, false).await,
     );
 
     if failures.is_empty() {

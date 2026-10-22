@@ -130,8 +130,6 @@ for unit in (
     "lfsplanet-validator.service",
     "lfsplanet-maintenance.service",
     "lfsplanet-maintenance.timer",
-    "lfsplanet-events.service",
-    "lfsplanet-events.timer",
 ):
     files.template(
         name=f"Install {unit}",
@@ -226,9 +224,23 @@ server.shell(
     ],
 )
 
+# Retire the separate event scheduler on hosts upgraded from older releases.
+for unit in ("lfsplanet-events.timer", "lfsplanet-events.service"):
+    server.shell(
+        name=f"Stop and disable obsolete {unit}",
+        commands=[
+            f"if systemctl cat {unit} >/dev/null 2>&1; then systemctl disable --now {unit}; fi"
+        ],
+    )
+    files.file(
+        name=f"Remove obsolete {unit}",
+        path=f"/etc/systemd/system/{unit}",
+        present=False,
+    )
+
+systemd.daemon_reload(name="Reload systemd after removing obsolete event units")
+
 for service in (
-    "lfsplanet-events.timer",
-    "lfsplanet-events.service",
     "lfsplanet-maintenance.timer",
     "lfsplanet-maintenance.service",
     "lfsplanet-validator.service",
@@ -276,13 +288,6 @@ systemd.service(
 systemd.service(
     name="Enable the lfsplanet maintenance timer",
     service="lfsplanet-maintenance.timer",
-    running=True,
-    enabled=True,
-)
-
-systemd.service(
-    name="Enable the lfsplanet events timer",
-    service="lfsplanet-events.timer",
     running=True,
     enabled=True,
 )
