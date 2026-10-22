@@ -1,0 +1,2269 @@
+<!-- Public LFS markup captured 2026-10-22; see README.md. -->
+<div id="BodyDiv">
+
+<article class="ContentArea2 m_b20">
+    <h1 class="m_0 m_l10">
+        Season Details of: GTi Thursday 2026
+    </h1>
+    <div class="ContentArticle2">
+        <div class="right"><img class="maxh_120" src="/dynamic/leaguelogos/Mo0gaGOM.png" /></div>
+
+        <div class="overHidden">
+			<div class="left bold w_150">League</div>
+			<div class="overHidden"><a href="/leagues/432">Fragmaster's GTi Thursday</a></div>
+            <br />
+			<div class="left bold w_150">Season</div>
+			<div class="overHidden">GTi Thursday 2026</div>
+            <br />
+			<div class="left bold w_150">Website</div>
+			<div class="overHidden"><a href="http://borntorace.eu/fragmaster/">http://borntorace.eu/fragmaster/</a></div>
+            <br />
+			<div class="left bold w_150">Discussion Forum</div>
+			<div class="overHidden"><a href="/forum/509-GTI-Thursday">&quot;GTI Thursday&quot; on the LFS Forums</a></div>
+            <br />
+            <div class="left bold w_150">Description</div>
+            <div class="overHidden m_r20">Be on Discord.<br />
+One hotlap qualifications.<br />
+One hour race.<br />
+<br />
+Click off-site signup to join Discord server.<br />
+Season stats: <a class="FPostTextLink" href="http://borntorace.eu/fragmaster/" target="_blank">http://borntorace.eu/fragmaster/</a></div>
+            <div class="clear"></div>
+            <br />
+
+
+            <div class="left bold w_150">Signup</div>
+            <div class="overHidden">
+                <a href="https://discord.gg/vKTyGDp" target="_blank">discord.gg</a>
+            </div>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+
+
+        <h2 id="round1" class="m_b2">
+            <a href="/leagues/432/season/1347/round/5986">Round 1</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Fern Bay Black</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-01 19:30Z">Thu 1 Jan 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Fern Bay Black</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-01 20:00Z">Thu 1 Jan 2026, 20:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round2" class="m_b2">
+            <a href="/leagues/432/season/1347/round/5987">Round 2</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Aston Club Long</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-08 19:30Z">Thu 8 Jan 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Aston Club Long</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-08 20:00Z">Thu 8 Jan 2026, 20:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Qualify</td>
+                <td>
+                    10 minutes
+                </td>
+                <td>Aston Club Long</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-08 20:30Z">Thu 8 Jan 2026, 20:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>4</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Aston Club Long</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-08 20:45Z">Thu 8 Jan 2026, 20:45</time></td>
+            </tr>
+        </table>
+        <h2 id="round3" class="m_b2">
+            <a href="/leagues/432/season/1347/round/5988">Round 3</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Westhill National</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-15 19:30Z">Thu 15 Jan 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Westhill National</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-15 20:00Z">Thu 15 Jan 2026, 20:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Qualify</td>
+                <td>
+                    10 minutes
+                </td>
+                <td>Westhill National</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-15 20:30Z">Thu 15 Jan 2026, 20:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>4</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Westhill National</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-15 20:45Z">Thu 15 Jan 2026, 20:45</time></td>
+            </tr>
+        </table>
+        <h2 id="round4" class="m_b2">
+            <a href="/leagues/432/season/1347/round/5989">Round 4</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Kyoto Ring Oval Chicanes</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-22 19:30Z">Thu 22 Jan 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Kyoto Ring Oval Chicanes</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-22 20:00Z">Thu 22 Jan 2026, 20:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Qualify</td>
+                <td>
+                    10 minutes
+                </td>
+                <td>Blackwood GP</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-22 20:30Z">Thu 22 Jan 2026, 20:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>4</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Blackwood GP</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-22 20:45Z">Thu 22 Jan 2026, 20:45</time></td>
+            </tr>
+        </table>
+        <h2 id="round5" class="m_b2">
+            <a href="/leagues/432/season/1347/round/5990">Round 5</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-01-29 19:55Z">Thu 29 Jan 2026, 19:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>South City Long</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-29 19:30Z">Thu 29 Jan 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>South City Long</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-29 20:00Z">Thu 29 Jan 2026, 20:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Qualify</td>
+                <td>
+                    10 minutes
+                </td>
+                <td>South City Long</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-01-29 20:30Z">Thu 29 Jan 2026, 20:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>4</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>South City Long</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-01-29 20:45Z">Thu 29 Jan 2026, 20:45</time></td>
+            </tr>
+        </table>
+        <h2 id="round6" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6098">Round 6</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood RallyX</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-02-05 19:30Z">Thu 5 Feb 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Blackwood RallyX</td>
+                <td>unspecified</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-02-05 20:00Z">Thu 5 Feb 2026, 20:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round7" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6133">Round 7</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Rockingham ISSC Long</td>
+                <td><a title="RELUANT WINGOO" href="/files/vehmods/38A066">RELW</a></td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-02-12 19:30Z">Thu 12 Feb 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Rockingham ISSC Long</td>
+                <td><a title="RELUANT WINGOO" href="/files/vehmods/38A066">RELW</a></td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-02-12 20:00Z">Thu 12 Feb 2026, 20:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round8" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6138">Round 8</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood GP Rev</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-02-19 19:30Z">Thu 19 Feb 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Blackwood GP Rev</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-02-19 20:00Z">Thu 19 Feb 2026, 20:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round9" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6143">Round 9 - F25R</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-02-26 19:55Z">Thu 26 Feb 2026, 19:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Fern Bay Custom Config</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-02-26 19:30Z">Thu 26 Feb 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Fern Bay Custom Config</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-02-26 20:00Z">Thu 26 Feb 2026, 20:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Fern Bay Custom Config</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-02-26 20:30Z">Thu 26 Feb 2026, 20:30</time></td>
+            </tr>
+        </table>
+        <h2 id="round10" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6173">Round 10 - Highway Loop</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>South City Custom Config</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-03-05 19:30Z">Thu 5 Mar 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>South City Custom Config</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-03-05 20:00Z">Thu 5 Mar 2026, 20:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round11" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6180">Round 11 - Pretzel Ring</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood Custom Config</td>
+                <td>XFG, XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-03-12 19:30Z">Thu 12 Mar 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Blackwood Custom Config</td>
+                <td>XFG, XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-03-12 20:00Z">Thu 12 Mar 2026, 20:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round12" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6221">Round 12</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Aston National Rev</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-03-19 19:30Z">Thu 19 Mar 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Aston National Rev</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-03-19 20:30Z">Thu 19 Mar 2026, 20:30</time></td>
+            </tr>
+        </table>
+        <h2 id="round13" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6226">Round 13</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-03-26 19:55Z">Thu 26 Mar 2026, 19:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood RallyX Rev</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-03-26 19:30Z">Thu 26 Mar 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Blackwood RallyX Rev</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-03-26 20:00Z">Thu 26 Mar 2026, 20:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Blackwood RallyX Rev</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-03-26 20:30Z">Thu 26 Mar 2026, 20:30</time></td>
+            </tr>
+        </table>
+        <h2 id="round14" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6235">Round 14 - Northern</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>South City Custom Config</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-04-02 18:30Z">Thu 2 Apr 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>South City Custom Config</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-04-02 19:00Z">Thu 2 Apr 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round15" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6245">Round 15</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Westhill National</td>
+                <td><a title="ROKU TROENO" href="/files/vehmods/440CB0">ROKT</a></td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-04-09 18:30Z">Thu 9 Apr 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Westhill National</td>
+                <td><a title="ROKU TROENO" href="/files/vehmods/440CB0">ROKT</a></td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-04-09 19:00Z">Thu 9 Apr 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round16" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6261">Round 16</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>South City Sprint 2</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-04-16 18:30Z">Thu 16 Apr 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>South City Sprint 2</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-04-16 19:00Z">Thu 16 Apr 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round17" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6289">Round 17</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Fern Bay Gold Rev</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-04-23 18:30Z">Thu 23 Apr 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Fern Bay Gold Rev</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-04-23 19:00Z">Thu 23 Apr 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round18" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6307">Round 18</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-04-30 18:55Z">Thu 30 Apr 2026, 18:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Kyoto Ring Endurance</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-04-30 18:30Z">Thu 30 Apr 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Kyoto Ring Endurance</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-04-30 19:00Z">Thu 30 Apr 2026, 19:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Kyoto Ring Endurance</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-04-30 19:30Z">Thu 30 Apr 2026, 19:30</time></td>
+            </tr>
+        </table>
+        <h2 id="round19" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6332">Round 19 - Schwarzwald</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood Custom Config</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-05-07 18:30Z">Thu 7 May 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Blackwood Custom Config</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-05-07 19:00Z">Thu 7 May 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round20" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6349">Round 20</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Aston Grand Trng Rev</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-05-14 18:30Z">Thu 14 May 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Aston Grand Trng Rev</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-05-14 19:00Z">Thu 14 May 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round21" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6369">Round 21</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Kyoto Ring National Rev</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-05-21 18:30Z">Thu 21 May 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Kyoto Ring National Rev</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-05-21 19:00Z">Thu 21 May 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round22" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6390">Round 22</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-05-28 18:55Z">Thu 28 May 2026, 18:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Rockingham International Long</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-05-28 18:30Z">Thu 28 May 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Rockingham International Long</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-05-28 19:00Z">Thu 28 May 2026, 19:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Rockingham International Long</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-05-28 19:30Z">Thu 28 May 2026, 19:30</time></td>
+            </tr>
+        </table>
+        <h2 id="round23" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6419">Round 23 - Scawen's Racetrack</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Westhill Custom Config</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-06-04 19:00Z">Thu 4 Jun 2026, 19:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Westhill Custom Config</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-06-04 19:30Z">Thu 4 Jun 2026, 19:30</time></td>
+            </tr>
+        </table>
+        <h2 id="round24" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6427">Round 24 - RGE Container Sprint</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood Custom Config</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-06-11 18:30Z">Thu 11 Jun 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Blackwood Custom Config</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-06-11 19:00Z">Thu 11 Jun 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round25" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6436">Round 25</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Fern Bay Gold</td>
+                <td><a title="LOPE FIRA" href="/files/vehmods/8B0B39">LOPF</a></td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-06-18 18:30Z">Thu 18 Jun 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Fern Bay Gold</td>
+                <td><a title="LOPE FIRA" href="/files/vehmods/8B0B39">LOPF</a></td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-06-18 19:00Z">Thu 18 Jun 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round26" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6450">Round 26 - 450th Round</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-06-25 18:55Z">Thu 25 Jun 2026, 18:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Aston Cadet Rev</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-06-25 18:30Z">Thu 25 Jun 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Aston Cadet Rev</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-06-25 19:00Z">Thu 25 Jun 2026, 19:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Qualify</td>
+                <td>
+                    10 minutes
+                </td>
+                <td>Aston Cadet Rev</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-06-25 19:30Z">Thu 25 Jun 2026, 19:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>4</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Aston Cadet Rev</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-06-25 19:45Z">Thu 25 Jun 2026, 19:45</time></td>
+            </tr>
+        </table>
+        <h2 id="round27" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6470">Round 27</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>South City Sprint 1</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-07-02 18:30Z">Thu 2 Jul 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>South City Sprint 1</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-07-02 19:00Z">Thu 2 Jul 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round28" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6485">Round 28</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Fern Bay Green Rev</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-07-09 18:30Z">Thu 9 Jul 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Fern Bay Green Rev</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-07-09 19:00Z">Thu 9 Jul 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round29" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6506">Round 29</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood GP</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-07-16 18:30Z">Thu 16 Jul 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Blackwood GP</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-07-16 19:00Z">Thu 16 Jul 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round30" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6512">Round 30</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Kyoto Ring Oval</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-07-23 18:30Z">Thu 23 Jul 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Kyoto Ring Oval</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-07-23 19:00Z">Thu 23 Jul 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round31" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6522">Round 31</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-07-30 18:55Z">Thu 30 Jul 2026, 18:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Westhill National</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-07-30 18:30Z">Thu 30 Jul 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Westhill National</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-07-30 19:00Z">Thu 30 Jul 2026, 19:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Westhill National</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-07-30 19:30Z">Thu 30 Jul 2026, 19:30</time></td>
+            </tr>
+        </table>
+        <h2 id="round32" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6531">Round 32</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Rockingham Oval</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-08-06 18:30Z">Thu 6 Aug 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Rockingham Oval</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-08-06 19:00Z">Thu 6 Aug 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round33" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6543">Round 33</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Kyoto Ring GP Long Rev</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-08-13 18:30Z">Thu 13 Aug 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Kyoto Ring GP Long Rev</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-08-13 19:00Z">Thu 13 Aug 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round34" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6552">Round 34</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>South City Long</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-08-20 18:30Z">Thu 20 Aug 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>South City Long</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-08-20 19:00Z">Thu 20 Aug 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round35" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6566">Round 35</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-08-27 18:55Z">Thu 27 Aug 2026, 18:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood RallyX</td>
+                <td><a title="FK-9" href="/files/vehmods/F5F49D">FK-9</a></td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-08-27 18:30Z">Thu 27 Aug 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Blackwood RallyX</td>
+                <td><a title="FK-9" href="/files/vehmods/F5F49D">FK-9</a></td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-08-27 19:00Z">Thu 27 Aug 2026, 19:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Race</td>
+                <td>
+                    25 minutes
+                </td>
+                <td>Blackwood RallyX</td>
+                <td><a title="FK-9" href="/files/vehmods/F5F49D">FK-9</a></td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-08-27 19:30Z">Thu 27 Aug 2026, 19:30</time></td>
+            </tr>
+        </table>
+        <h2 id="round36" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6581">Round 36</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Kyoto Ring North</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-09-03 18:30Z">Thu 3 Sep 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Kyoto Ring North</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-09-03 19:00Z">Thu 3 Sep 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round37" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6611">Round 37 - 9 Year Anniversary at Norisring</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-09-10 18:55Z">Thu 10 Sep 2026, 18:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Layout Square Custom Config</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-09-10 18:30Z">Thu 10 Sep 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    20 minutes
+                </td>
+                <td>Layout Square Custom Config</td>
+                <td>XRG</td>
+                <td>45</td>
+                <td><time class="DateField" datetime="2026-09-10 19:00Z">Thu 10 Sep 2026, 19:00</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>3</td>
+                <td>Qualify</td>
+                <td>
+                    10 minutes
+                </td>
+                <td>Layout Square Custom Config</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-09-10 19:25Z">Thu 10 Sep 2026, 19:25</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>4</td>
+                <td>Race</td>
+                <td>
+                    20 minutes
+                </td>
+                <td>Layout Square Custom Config</td>
+                <td>XFG</td>
+                <td>45</td>
+                <td><time class="DateField" datetime="2026-09-10 19:40Z">Thu 10 Sep 2026, 19:40</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>5</td>
+                <td>Race</td>
+                <td>
+                    20 minutes
+                </td>
+                <td>Layout Square Custom Config</td>
+                <td>XFG, XRG</td>
+                <td>45</td>
+                <td><time class="DateField" datetime="2026-09-10 20:00Z">Thu 10 Sep 2026, 20:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round38" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6627">Round 38</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Blackwood GP</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-09-17 18:30Z">Thu 17 Sep 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Blackwood GP</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-09-17 19:00Z">Thu 17 Sep 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round39" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6639">Round 39 - Broker Hill</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Westhill Custom Config</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-09-24 18:30Z">Thu 24 Sep 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Westhill Custom Config</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-09-24 19:00Z">Thu 24 Sep 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round40" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6661">Round 40</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Aston National</td>
+                <td>XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-10-01 18:30Z">Thu 1 Oct 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Aston National</td>
+                <td>XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-10-01 19:00Z">Thu 1 Oct 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round41" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6674">Round 41</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>South City Chicane Rev</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-10-08 18:30Z">Thu 8 Oct 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>South City Chicane Rev</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-10-08 19:00Z">Thu 8 Oct 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round42" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6680">Round 42</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr class="dimmed">
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Fern Bay Green</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-10-15 18:30Z">Thu 15 Oct 2026, 18:30</time></td>
+            </tr>
+            <tr class="dimmed">
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    1 hour
+                </td>
+                <td>Fern Bay Green</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-10-15 19:00Z">Thu 15 Oct 2026, 19:00</time></td>
+            </tr>
+        </table>
+        <h2 id="round43" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6696">Round 43 - 0.7 vs 0.8 XFG TEST</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+
+
+
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr>
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>South City Long Rev</td>
+                <td>XFG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-10-22 18:30Z">Today, 18:30</time></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    14 laps
+                </td>
+                <td>South City Long Rev</td>
+                <td>XFG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-10-22 19:00Z">Today, 19:00</time></td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Qualify</td>
+                <td>
+                    10 minutes
+                </td>
+                <td>South City Long Rev</td>
+                <td><a title="XF GTI V0.7 SPEC" href="/files/vehmods/A523AC">XGVS</a></td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-10-22 19:35Z">Today, 19:35</time></td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>Race</td>
+                <td>
+                    14 laps
+                </td>
+                <td>South City Long Rev</td>
+                <td><a title="XF GTI V0.7 SPEC" href="/files/vehmods/A523AC">XGVS</a></td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-10-22 19:45Z">Today, 19:45</time></td>
+            </tr>
+        </table>
+        <h2 id="round44" class="m_b2">
+            <a href="/leagues/432/season/1347/round/6699">Round 44</a>
+        </h2>
+        <div class="f_11 m_b10 bold">
+
+
+            <span class="weightNormal">Live stream starts:</span> <time class="DateField" datetime="2026-10-29 19:55Z">Thu 29 Oct 2026, 19:55</time><br />
+            <span class="weightNormal">Twitch:</span> <a href="https://www.twitch.tv/simbroadcasts" target="_blank">https://www.twitch.tv/simbroadcasts</a><br />
+            <span class="weightNormal">YouTube:</span> <a href="https://www.youtube.com/@SimBroadcasts/live" target="_blank">https://www.youtube.com/@SimBroadcasts/live</a><br />
+            <div class="clear"></div>
+        </div>
+
+        <table class="basic FullWidth">
+        <tr>
+            <th class="textleft">Nr.</th>
+            <th class="textleft">Type</th>
+            <th class="textleft">Duration</th>
+            <th class="textleft">Track</th>
+            <th class="textleft">Cars</th>
+            <th class="textleft">Seats</th>
+            <th class="textleft">Start Time</th>
+        </tr>
+            <tr>
+                <td>1</td>
+                <td>Qualify</td>
+                <td>
+                    30 minutes
+                </td>
+                <td>Kyoto Ring North Rev</td>
+                <td>XFG, XRG</td>
+                <td>79</td>
+                <td><time class="DateField" datetime="2026-10-29 19:30Z">Thu 29 Oct 2026, 19:30</time></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Race</td>
+                <td>
+                    14 laps
+                </td>
+                <td>Kyoto Ring North Rev</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-10-29 20:00Z">Thu 29 Oct 2026, 20:00</time></td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Race</td>
+                <td>
+                    14 laps
+                </td>
+                <td>Kyoto Ring North Rev</td>
+                <td>XFG, XRG</td>
+                <td>48</td>
+                <td><time class="DateField" datetime="2026-10-29 20:30Z">Thu 29 Oct 2026, 20:30</time></td>
+            </tr>
+        </table>
+    </div>
+</article>
+
+</div></div></div>

@@ -6,6 +6,7 @@ import { ChartsClient } from "./api/resources/charts/client/Client.js";
 import { CommunityCardsClient } from "./api/resources/communityCards/client/Client.js";
 import { CountriesClient } from "./api/resources/countries/client/Client.js";
 import { ErasClient } from "./api/resources/eras/client/Client.js";
+import { EventsClient } from "./api/resources/events/client/Client.js";
 import { HotlapsClient } from "./api/resources/hotlaps/client/Client.js";
 import { PersonalAccessTokensClient } from "./api/resources/personalAccessTokens/client/Client.js";
 import { PlayersClient } from "./api/resources/players/client/Client.js";
@@ -40,6 +41,7 @@ export class LfsplanetApiClient {
   protected _ranking: RankingClient | undefined;
   protected _tracks: TracksClient | undefined;
   protected _vehicles: VehiclesClient | undefined;
+  protected _events: EventsClient | undefined;
   protected _authentication: AuthenticationClient | undefined;
   protected _personalAccessTokens: PersonalAccessTokensClient | undefined;
   protected _webhooks: WebhooksClient | undefined;
@@ -88,6 +90,10 @@ export class LfsplanetApiClient {
 
   public get vehicles(): VehiclesClient {
     return (this._vehicles ??= new VehiclesClient(this._options));
+  }
+
+  public get events(): EventsClient {
+    return (this._events ??= new EventsClient(this._options));
   }
 
   public get authentication(): AuthenticationClient {

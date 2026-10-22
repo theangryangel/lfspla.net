@@ -1,11 +1,11 @@
 <script lang="ts">
+	import DateTime from '#lib/components/app/DateTime.svelte';
 	import {
 		apiErrorMessage,
 		useApi,
 		type CreatedPersonalAccessTokenResponse,
 		type PersonalAccessTokenResponse,
 	} from '#lib/api.js';
-	import { dateTime } from '#lib/format.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 
@@ -238,12 +238,12 @@
 										? 'Expired'
 										: 'Active'}</Table.Cell
 							>
-							<Table.Cell>{dateTime(token.created_at)}</Table.Cell>
-							<Table.Cell>{dateTime(token.expires_at)}</Table.Cell>
+							<Table.Cell><DateTime value={token.created_at} /></Table.Cell>
+							<Table.Cell><DateTime value={token.expires_at} /></Table.Cell>
 							<Table.Cell
-								>{token.last_used_at
-									? dateTime(token.last_used_at)
-									: 'Never'}</Table.Cell
+								>{#if token.last_used_at}<DateTime
+										value={token.last_used_at}
+									/>{:else}Never{/if}</Table.Cell
 							>
 							<Table.Cell>
 								{#if !token.revoked_at && !expired}

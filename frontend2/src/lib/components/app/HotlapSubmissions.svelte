@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DateTime from '#lib/components/app/DateTime.svelte';
 	import { page } from '$app/state';
 	import { LfsplanetApiError } from '@lfsplanet/sdk';
 	import {
@@ -11,13 +12,7 @@
 	} from '#lib/api.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import {
-		dateTime,
-		delta,
-		hotlapStates,
-		lapTime,
-		steeringLabels,
-	} from '#lib/format.js';
+	import { delta, hotlapStates, lapTime, steeringLabels } from '#lib/format.js';
 
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import InfoIcon from '@lucide/svelte/icons/info';
@@ -43,11 +38,6 @@
 	} = $props();
 
 	const session = useSession();
-	const submittedDate = new Intl.DateTimeFormat(undefined, {
-		day: 'numeric',
-		month: 'short',
-		year: 'numeric',
-	});
 	/** The submission being withdrawn, and why the last attempt did not work. */
 	let removing = $state<number | null>(null);
 	let removeError = $state('');
@@ -158,7 +148,7 @@
 			</Dialog.Header>
 			<dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
 				<dt class="text-muted-foreground">Submitted</dt>
-				<dd>{dateTime(hotlap.created_at)}</dd>
+				<dd><DateTime value={hotlap.created_at} /></dd>
 				<dt class="text-muted-foreground">Lap time</dt>
 				<dd class="font-mono font-semibold tabular-nums">
 					{lapTime(hotlap.lap_time_ms)}
@@ -267,12 +257,7 @@
 						{#each hotlaps as hotlap (hotlap.id)}
 							<Table.Row>
 								<Table.Cell class="text-muted-foreground">
-									<time
-										datetime={hotlap.created_at}
-										title={dateTime(hotlap.created_at)}
-									>
-										{submittedDate.format(new Date(hotlap.created_at))}
-									</time>
+									<DateTime value={hotlap.created_at} format="date" />
 								</Table.Cell>
 								<Table.Cell>
 									{#if hotlap.vehicle}

@@ -130,6 +130,8 @@ for unit in (
     "lfsplanet-validator.service",
     "lfsplanet-maintenance.service",
     "lfsplanet-maintenance.timer",
+    "lfsplanet-events.service",
+    "lfsplanet-events.timer",
 ):
     files.template(
         name=f"Install {unit}",
@@ -225,6 +227,8 @@ server.shell(
 )
 
 for service in (
+    "lfsplanet-events.timer",
+    "lfsplanet-events.service",
     "lfsplanet-maintenance.timer",
     "lfsplanet-maintenance.service",
     "lfsplanet-validator.service",
@@ -272,6 +276,13 @@ systemd.service(
 systemd.service(
     name="Enable the lfsplanet maintenance timer",
     service="lfsplanet-maintenance.timer",
+    running=True,
+    enabled=True,
+)
+
+systemd.service(
+    name="Enable the lfsplanet events timer",
+    service="lfsplanet-events.timer",
     running=True,
     enabled=True,
 )

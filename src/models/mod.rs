@@ -5,10 +5,13 @@
 pub(crate) mod attachment;
 pub(crate) mod badge;
 pub(crate) mod era;
+pub(crate) mod event;
 pub(crate) mod hotlap;
+pub(crate) mod league;
 pub(crate) mod personal_access_token;
 pub(crate) mod player;
 pub(crate) mod ranking;
+pub(crate) mod season;
 pub(crate) mod site_stats;
 pub(crate) mod track;
 pub(crate) mod vehicle;

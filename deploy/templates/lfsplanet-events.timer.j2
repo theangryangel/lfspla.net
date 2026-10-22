@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh public LFS events hourly
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5min
+Persistent=true
+Unit=lfsplanet-events.service
+
+[Install]
+WantedBy=timers.target

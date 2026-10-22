@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DateTime from '#lib/components/app/DateTime.svelte';
 	import { page } from '$app/state';
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -10,7 +11,7 @@
 	import Empty from '#lib/components/app/Empty.svelte';
 	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
 	import Progress from '#lib/components/app/Progress.svelte';
-	import { dateTime, delta, lapTime, pageItems } from '#lib/format.js';
+	import { delta, lapTime, pageItems } from '#lib/format.js';
 	import { setQuery } from '#lib/query.js';
 	import { useSession } from '#lib/session.svelte.js';
 	import type { PageProps } from './$types';
@@ -182,7 +183,7 @@
 										{/each}
 										<Table.Cell class="whitespace-nowrap text-muted-foreground">
 											{#if row.createdAt}
-												{dateTime(row.createdAt)} - {row.gameVersion}
+												<DateTime value={row.createdAt} /> - {row.gameVersion}
 											{:else}-{/if}
 										</Table.Cell>
 										<Table.Cell>

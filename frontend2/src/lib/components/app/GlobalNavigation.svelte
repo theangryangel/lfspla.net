@@ -83,7 +83,7 @@
 				</DropdownMenu.Content>
 			</DropdownMenu.Root>
 		</NavigationMenu.Item>
-		{#each [{ label: 'Drivers', href: '/drivers' }, { label: 'Vehicles', href: '/vehicles' }, { label: 'Tracks', href: '/tracks' }, { label: 'Events', href: 'https://www.lfs.net/leagues/calendar' }] as item}
+		{#each [{ label: 'Drivers', href: '/drivers' }, { label: 'Vehicles', href: '/vehicles' }, { label: 'Tracks', href: '/tracks' }, { label: 'Events', href: '/events' }] as item}
 			<NavigationMenu.Item>
 				<NavigationMenu.Link
 					href={item.href}

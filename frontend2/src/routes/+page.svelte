@@ -6,11 +6,13 @@
 	import RecordHighlight from '#lib/components/app/RecordHighlight.svelte';
 	import PanelCarousel from '#lib/components/app/PanelCarousel.svelte';
 	import CommunityCard from '#lib/components/app/CommunityCard.svelte';
+	import RacingThisWeek from '#lib/components/app/RacingThisWeek.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const communityCards = $derived(data.communityCards);
 	const communitySlides = $derived(
-		data.communityCards?.map(({ id, title }) => ({ id, title })) ?? [],
+		communityCards.map(({ id, title }) => ({ id, title })),
 	);
 	let autoplayTurn = $state(0);
 	onMount(() => {
@@ -39,6 +41,9 @@
 		},
 	]);
 	const spotlightSlides = $derived(data.stats?.spotlights ?? []);
+	const showEvents = $derived(
+		data.upcomingEvents === null || data.upcomingEvents.length > 0,
+	);
 </script>
 
 <PageIdentity label="Community statistics">
@@ -100,7 +105,7 @@
 				{/if}
 			{/snippet}
 		</PanelCarousel>
-		{#if data.communityCards?.length}
+		{#if communityCards.length}
 			<PanelCarousel
 				id="home-community"
 				autoplayStep={Math.floor(Math.max(0, autoplayTurn - 1) / 2)}
@@ -110,21 +115,39 @@
 				slides={communitySlides}
 			>
 				{#snippet slideContent(index)}
-					{#if data.communityCards?.[index]}
-						<CommunityCard card={data.communityCards[index]} />
+					{#if communityCards[index]}
+						<CommunityCard card={communityCards[index]} />
 					{/if}
 				{/snippet}
 			</PanelCarousel>
 		{/if}
 	</div>
-	<HotlapActivity
-		title="Activity"
-		appearance="data"
-		refreshKey={data.stats}
-		views={['all', 'world_records', 'longest_standing', 'mine']}
-		perPage={10}
-		eras={data.eras}
-	/>
+	<div
+		class={[
+			'grid min-w-0 items-start gap-6',
+			showEvents && 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]',
+		]}
+	>
+		<div class="min-w-0">
+			<HotlapActivity
+				title="Activity"
+				appearance="data"
+				refreshKey={data.stats}
+				views={['all', 'world_records', 'longest_standing', 'mine']}
+				perPage={10}
+				showContributions={false}
+				eras={data.eras}
+			/>
+		</div>
+		{#if showEvents}
+			<aside
+				class="min-w-0 border-t bg-card/60 px-4 pb-4 pt-4 xl:border-t-0 xl:border-l xl:pt-0"
+				aria-label="Racing this week"
+			>
+				<RacingThisWeek events={data.upcomingEvents} />
+			</aside>
+		{/if}
+	</div>
 </main>
 
 <style>

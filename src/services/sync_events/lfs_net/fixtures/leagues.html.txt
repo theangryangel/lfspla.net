@@ -1,0 +1,430 @@
+<!-- Public LFS markup captured 2026-10-22; see README.md. -->
+<div id="BodyDiv">
+
+<div class="ContentArea2 m_b20">
+    <h1 class="m_0 m_l10">Racing Leagues
+        <div class="right m_r10 f_13 fw_normal">
+            <a class="Link1" href="/leagues/add">Add your league</a>
+        </div>
+    </h1>
+
+    <article class="ContentArticle2">
+        <form id="leagueListForm" method="post" action="">
+            <p>
+                <b>Filters</b> - <span id="leagueCount">showing 31 leagues</span>
+            </p>
+            <span class="m_r20">
+                Type : <select class="leagueFilterSelect" id="typeFilter" name="typeFilter">
+                    <option value="-1" selected="selected">Any</option>
+                    <option value="0">24h race</option>
+                    <option value="1">Single Event</option>
+                    <option value="2">GTR League</option>
+                    <option value="3">Single Seater League</option>
+                    <option value="4">Normal Road Car League</option>
+                    <option value="5">Endurance League</option>
+                    <option value="6">Mixed Classes League</option>
+                    <option value="7">Drift League</option>
+                </select>
+            </span>
+
+            <span class="m_r20">
+                Region : <select class="leagueFilterSelect" id="regionFilter" name="regionFilter">
+                    <option value="0" selected="selected">Any</option>
+                    <option value="1">Europe</option>
+                    <option value="2">America</option>
+                    <option value="3">Australasia</option>
+                    <option value="4">Middle East</option>
+                </select>
+            </span>
+
+            <span class="m_r20">
+                Experience : <select class="leagueFilterSelect" id="experienceFilter" name="experienceFilter">
+                    <option value="0" selected="selected">Any</option>
+                    <option value="1">Beginner</option>
+                    <option value="2">Normal</option>
+                    <option value="3">Pro</option>
+                    <option value="4">N/A</option>
+                </select>
+            </span>
+
+            <span class="m_r20">
+                LFS License : <select class="leagueFilterSelect" id="licenseFilter" name="licenseFilter">
+                    <option value="0" selected="selected">Any</option>
+                    <option value="1">Demo</option>
+                    <option value="2">S1</option>
+                    <option value="3">S2</option>
+                    <option value="4">S3</option>
+                </select>
+            </span>
+
+            <input class="Button1" type="submit" name="filterSubmit" value="Refresh" />
+        </form>
+    </article>
+</div>
+
+<div>
+    <table id="leaguesTable" class="basic sortableTable" data-sortcol="5" width="100%">
+        <thead>
+            <tr>
+                <th class="textleft">League Name</th>
+                <th class="textleft">Type</th>
+                <th class="textleft">Region</th>
+                <th class="textleft">Experience</th>
+                <th class="textleft">License</th>
+                <th class="textleft">Next Race</th>
+            </tr>
+        </thead>
+        <tbody id="leaguesTableBody">
+            <tr>
+                <td><a href="/leagues/241-Rony%27s-Tuesday%27s-Fun-Race">Rony's Tuesday's Fun Race</a></td>
+                <td>Single Event</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S1</td>
+                <td data-sortnum="1793124012">
+                    <time class="DateField" datetime="2026-10-27 18:00Z">Tue 27 Oct 2026, 18:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/247-Comunidad-Espa%C3%B1ola-Simulaci%C3%B3n-Automovil%C3%ADstica-Virtual">Comunidad Española Simulación Automovilística Virtual</a></td>
+                <td>Mixed Classes League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1793046609">
+                    <time class="DateField" datetime="2026-10-26 20:30Z">Mon 26 Oct 2026, 20:30</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/259-V8-Racing-League">V8 Racing League</a></td>
+                <td>Single Seater League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/516-%5BeSM%5D-Drift-Series">[eSM] Drift Series</a></td>
+                <td>Drift League</td>
+                <td>Europe</td>
+                <td>Pro</td>
+                <td>S3</td>
+                <td data-sortnum="1792776654">
+                    <time class="DateField" datetime="2026-10-23 17:30Z">Tomorrow, 17:30</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/389-Rony%27s-Tuesday%27s-Fun-Race-Extra-Large">Rony's Tuesday's Fun Race Extra Large</a></td>
+                <td>Single Event</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S1</td>
+                <td data-sortnum="1793728849">
+                    <time class="DateField" datetime="2026-11-03 18:00Z">Tue 3 Nov 2026, 18:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/365-LFS-France---French-Leagues">LFS France - French Leagues</a></td>
+                <td>Mixed Classes League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1794255339">
+                    <time class="DateField" datetime="2026-11-09 20:15Z">Mon 9 Nov 2026, 20:15</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/432-Fragmaster%27s-GTi-Thursday">Fragmaster's GTi Thursday</a></td>
+                <td>Normal Road Car League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S1</td>
+                <td data-sortnum="1792693823">
+                    <time class="DateField" datetime="2026-10-22 18:30Z">Today, 18:30</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/500-MRc-FBM-Saturday">MRc FBM Saturday</a></td>
+                <td>Single Seater League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S2</td>
+                <td data-sortnum="1792864804">
+                    <time class="DateField" datetime="2026-10-24 18:00Z">Sat 24 Oct 2026, 18:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/508-Fragmaster%27s-Fox-Friday">Fragmaster's Fox Friday</a></td>
+                <td>Single Seater League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S2</td>
+                <td data-sortnum="1792782044">
+                    <time class="DateField" datetime="2026-10-23 19:00Z">Tomorrow, 19:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/626-%5BeGM%5D-Racing-Series">[eGM] Racing Series</a></td>
+                <td>Normal Road Car League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1792951211">
+                    <time class="DateField" datetime="2026-10-25 18:00Z">Sun 25 Oct 2026, 18:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/544-GT2-Challenge">GT2 Challenge</a></td>
+                <td>GTR League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S2</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/566-PiranMOTO-Open-DD-Events">PiranMOTO Open DD Events</a></td>
+                <td>Mixed Classes League</td>
+                <td>Europe</td>
+                <td>Beginner</td>
+                <td>S3</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/634-AUTOHOUSE-PERFORMANCE-PROJECT">AUTOHOUSE PERFORMANCE PROJECT</a></td>
+                <td>Single Event</td>
+                <td>America</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/695-RandomCar">RandomCar</a></td>
+                <td>Normal Road Car League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/771-Zafiralis-All-Rounder-Championship">Zafiralis All Rounder Championship</a></td>
+                <td>Mixed Classes League</td>
+                <td>Europe</td>
+                <td>Beginner</td>
+                <td>S3</td>
+                <td data-sortnum="1793642430">
+                    <time class="DateField" datetime="2026-11-02 18:00Z">Mon 2 Nov 2026, 18:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/773-LFS-Oval-Series">LFS Oval Series</a></td>
+                <td>Single Seater League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1793455249">
+                    <time class="DateField" datetime="2026-10-31 14:00Z">Sat 31 Oct 2026, 14:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/810-LFS-France-Endurance-Series">LFS France Endurance Series</a></td>
+                <td>Endurance League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1800111627">
+                    <time class="DateField" datetime="2027-01-16 15:00Z">Sat 16 Jan 2027, 15:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/795-SyN-FBM-GP-Championship">SyN FBM GP Championship</a></td>
+                <td>Single Seater League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>Demo</td>
+                <td data-sortnum="1792947622">
+                    <time class="DateField" datetime="2026-10-25 17:00Z">Sun 25 Oct 2026, 17:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/814-RXSWE-Rallycross">RXSWE Rallycross</a></td>
+                <td>Mixed Classes League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1792953015">
+                    <time class="DateField" datetime="2026-10-25 18:30Z">Sun 25 Oct 2026, 18:30</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/843-Grand-Touring-Pro%27s-Saturday-Fun-Race">Grand Touring Pro's Saturday Fun Race</a></td>
+                <td>Normal Road Car League</td>
+                <td>America</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1792861239">
+                    <time class="DateField" datetime="2026-10-24 17:00Z">Sat 24 Oct 2026, 17:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/913-THE-XFG-LEAGHE-2026">THE XFG LEAGHE 2026</a></td>
+                <td>Single Seater League</td>
+                <td>Europe</td>
+                <td>Beginner</td>
+                <td>S1</td>
+                <td data-sortnum="1792854057">
+                    <time class="DateField" datetime="2026-10-24 15:00Z">Sat 24 Oct 2026, 15:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/884-RETRO-CUP-2026-%7C-Test-Races">RETRO CUP 2026 | Test Races</a></td>
+                <td>Single Event</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1793646649">
+                    <time class="DateField" datetime="2026-11-02 19:10Z">Mon 2 Nov 2026, 19:10</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/887-World-Touring-2000">World Touring 2000</a></td>
+                <td>Single Event</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1792944040">
+                    <time class="DateField" datetime="2026-10-25 16:00Z">Sun 25 Oct 2026, 16:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/908-UK-Short-Oval-Racing">UK Short Oval Racing</a></td>
+                <td>Single Event</td>
+                <td>Europe</td>
+                <td>Beginner</td>
+                <td>S3</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/914-2026-MRT5-CUP-LFS-BEGINNERS">2026 MRT5 CUP LFS BEGINNERS</a></td>
+                <td>Single Seater League</td>
+                <td>Europe</td>
+                <td>Beginner</td>
+                <td>S1</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/915-2026-DAIHATSU-CHORUS-CUP">2026 DAIHATSU CHORUS CUP</a></td>
+                <td>Single Seater League</td>
+                <td>Europe</td>
+                <td>Beginner</td>
+                <td>S3</td>
+                <td data-sortnum="1793817042">
+                    <time class="DateField" datetime="2026-11-04 18:30Z">Wed 4 Nov 2026, 18:30</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/919-Saturday-Night-Sprints-%28WT2000%29">Saturday Night Sprints (WT2000)</a></td>
+                <td>Single Event</td>
+                <td>Europe</td>
+                <td>Beginner</td>
+                <td>S3</td>
+                <td data-sortnum="1792861231">
+                    <time class="DateField" datetime="2026-10-24 17:00Z">Sat 24 Oct 2026, 17:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/933-LFS-Brasil-x-Argentina-Event">LFS Brasil x Argentina Event</a></td>
+                <td>Single Event</td>
+                <td>America</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/931-RETRO-CUP-26">RETRO CUP 26</a></td>
+                <td>Mixed Classes League</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1794247231">
+                    <time class="DateField" datetime="2026-11-09 18:00Z">Mon 9 Nov 2026, 18:00</time>
+
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/932-World-touring-oval-racing">World touring oval racing</a></td>
+                <td>Single Event</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="4294967295">
+
+                    unknown
+                </td>
+            </tr>
+            <tr>
+                <td><a href="/leagues/934-Flat-Up%21-Drift-Events">Flat Up! Drift Events</a></td>
+                <td>Single Event</td>
+                <td>Europe</td>
+                <td>Normal</td>
+                <td>S3</td>
+                <td data-sortnum="1792846839">
+                    <time class="DateField" datetime="2026-10-24 13:00Z">Sat 24 Oct 2026, 13:00</time>
+
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div>
+    <div class="ContentArea" style="margin: 20px 0px 20px 0px;">
+        <p class="f_10">
+            *) Only (recently) active leagues are listed on this page. A league is active if there are upcoming races scheduled for it.
+        </p>
+</div>
+
+</div></div></div>

@@ -30,11 +30,22 @@ export function fileSize(bytes: number): string {
     : `${(bytes / mebibyte).toFixed(1)} MiB`;
 }
 
+// Fixed presentation, with the browser's local timezone (no timeZone override).
+const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+});
+const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  hourCycle: "h23",
+});
+
+export function date(iso: string): string {
+  return dateFormatter.format(new Date(iso));
+}
+
 export function dateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return dateTimeFormatter.format(new Date(iso));
 }
 
 export const hotlapStates: Record<

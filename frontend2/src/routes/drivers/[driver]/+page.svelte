@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DateTime from '#lib/components/app/DateTime.svelte';
 	import PlayerBadge from '#lib/components/app/PlayerBadge.svelte';
 	import CompareButton from '#lib/components/app/CompareButton.svelte';
 	import TableFrame from '#lib/components/app/TableFrame.svelte';
@@ -8,7 +9,6 @@
 	import * as Table from '#lib/components/ui/table/index.js';
 	import HotlapActivity from '#lib/components/app/HotlapActivity.svelte';
 	import Breadcrumbs from '#lib/components/app/Breadcrumbs.svelte';
-	import { dateTime } from '#lib/format.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -41,7 +41,9 @@
 			>
 				<p class="break-words">{player.lfs_username}</p>
 				{#if player.stats.first_hotlap_at}
-					<p>Racing here since {dateTime(player.stats.first_hotlap_at)}</p>
+					<p>
+						Racing here since <DateTime value={player.stats.first_hotlap_at} />
+					</p>
 				{/if}
 			</div>
 		</div>
@@ -104,7 +106,7 @@
 										{/each}
 									</Table.Cell>
 									<Table.Cell class="text-muted-foreground">
-										{dateTime(era.latest_hotlap_at)}
+										<DateTime value={era.latest_hotlap_at} />
 									</Table.Cell>
 								</Table.Row>
 							{/each}
