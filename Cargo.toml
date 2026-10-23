@@ -59,6 +59,7 @@ clap = { workspace = true, features = ["derive"] }
 csv = "1"
 encoding_rs = "0.8"
 fake = { version = "5", features = ["derive"] }
+flate2 = "1"
 futures = "0.3"
 hex = "0.4"
 insim = { workspace = true }
@@ -70,6 +71,7 @@ lfsplanet_lfs = { path = "crates/lfsplanet_lfs" }
 lfsplanet_lfs_api = { path = "crates/lfsplanet_lfs_api" }
 lfsplanet_lfs_leagues = { path = "crates/lfsplanet_lfs_leagues" }
 lfsplanet_spr = { path = "crates/lfsplanet_spr" }
+lfsplanet_pubstat = { path = "crates/lfsplanet_pubstat" }
 oauth2 = { workspace = true }
 object_store = "0.14"
 rand = "0.10"

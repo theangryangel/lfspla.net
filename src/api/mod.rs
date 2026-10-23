@@ -1,5 +1,6 @@
 //! axum router assembly and HTTP boundary models.
 
+mod pubstat;
 pub mod v1;
 
 mod auth;
@@ -79,14 +80,16 @@ fn parts(max_spr_upload_bytes: usize) -> (Router<ApiState>, utoipa::openapi::Ope
     let (v1_router, mut openapi) = v1::router(max_spr_upload_bytes)
         .merge(auth::router())
         .split_for_parts();
-    let router = Router::new().merge(v1_router);
+    let router = Router::new().merge(v1_router).merge(pubstat::router());
 
     openapi.info.title = "lfspla.net API".into();
     openapi.info.version = env!("CARGO_PKG_VERSION").into();
     openapi.info.description = Some(
         "Public HTTP API for lfspla.net, a community hotlap leaderboard for \
          Live for Speed.\n\nAnonymous access is read-only. \
-         Writing requires a session cookie or a personal access token."
+         Writing requires a session cookie or a personal access token.\n\n\
+         A separate [LFSWorld Pubstat compatibility API](/api/pubstat) provides \
+         era-scoped hotlap, chart, and world-record exports."
             .into(),
     );
     openapi.info.contact = Some(
@@ -178,7 +181,8 @@ pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow:
 }
 
 /// Skip compression for replay downloads to keep Content-Length for progress
-/// reporting. Caddy serves the frontend's precompressed files separately.
+/// reporting, and for Pubstat's precompressed binary payloads.
+/// Caddy serves the frontend's precompressed files separately.
 fn compressible() -> impl Predicate {
     DefaultPredicate::new().and(NotForContentType::const_new("application/octet-stream"))
 }

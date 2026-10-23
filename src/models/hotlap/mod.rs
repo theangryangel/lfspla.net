@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 mod list;
+pub(crate) mod pubstat;
 pub(crate) use list::{
     HotlapListEntry, HotlapListError, HotlapListFilters, HotlapListPage, HotlapPage,
     RankingContribution,

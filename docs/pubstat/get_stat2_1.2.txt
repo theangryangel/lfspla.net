@@ -1,0 +1,255 @@
+Live for Speed Pubstats S2 v1.2
+
+-------------------------------------------------------------------------------------
+Legend: (all output is in plain text, unless specified otherwise)
+-------------------------------------------------------------------------------------
+
+<track>		3 digit representation.
+		000 (BL_gp), 001 (BL_gp_rev), 410 (KY_national, etc (game order)
+
+<car>		3 character representation.
+		XFG, XRG, XRT, RB4, FXO, LX4, LX6, MRT, UF1, RAC, FZ5, FOX, XFR, UFR, FO8, FXR, XRR, FZR
+
+<racer>		a valid LFS username
+
+<time>		a laptime represented in milliseconds
+
+<lapcount>	number of laps
+
+<steering>	w, m, ks, kn
+
+<flags_hlaps>	1 LEFTHANDDRIVE
+		2 GEARCHANGECUT
+		4 GEARCHANGEBLIP
+		8 AUTOGEAR
+		16 -
+		32 -
+		64 BRAKEHELP
+		128 THROTTLEHELP
+		256 -
+		512 -
+		1024 MOUSESTEER *
+		2048 KN *
+		4096 KS *
+		(*) if not 1024, 2048 or 4096, steering is wheel.
+
+**NEW**
+<id_hl>		ID used for hotlaps download : http://www.lfsworld.net/get_spr.php?file=<id_hl>
+
+**NEW**
+<id_wr>		ID used for wr-hotlaps download : http://www.lfsworld.net/get_spr.php?file=<id_wr>&w=1
+
+**NEW**
+<log_filter>	1=WR's - 2=top10 - 3=top50 - 4=ALL
+
+**NEW**
+<format>	used for hotlaps upload log. Can be 1, 2 or 3.
+		See the hl_log explanation for all possible formats
+
+-----------------------------------------------------------------
+-----------------------------------------------------------------
+
+
+NEW : Version numbers
+---------------------
+Since v1.1, Version numbers have been introduced, to make future updates easier while not having to disrupt your existing scripts. If you are already running a script, you don't have to change anything, unless you want to make use of the new features that come with the latest versions.
+The current version is v1.2
+Version numbers should be indicated in the url, via the "version" variable.
+
+
+SCRIPT LOCATION and ACTIONS (requests):
+---------------------------------------
+
+script url: http://www.lfsworld.net/pubstat/get_stat2.php?version=1.2&action=...
+
+
+?action=hl
+----------
+(get all hotlaps of a racer)
+
+requires:	&racer=<racer>
+optional:	-
+returns:	<id_hl> <track> <car> <time> <flags_hlaps>
+
+
+----------
+?action=pb
+----------
+(get all online pb's of a racer)
+
+requires:	&racer=<racer>
+optional:	-
+returns:	<track> <car> <time> <lapcount>
+
+
+----------
+?action=ch
+----------
+(get all entries of a specific hotlap chart)
+
+requires:	&track=<track>&car=<car>
+optional:	&control=<steering>
+returns:	<time> <flags_hlaps> <racername>
+
+
+----------
+?action=wr
+----------
+(all available wr's)
+
+requires:	-
+optional:	-
+returns:	<id_wr> <track> <car> <time> <flags_hlaps> <racername>
+
+
+-----------
+?action=pst
+-----------
+(online statistics of one racer)
+
+requires:	&racer=<racer>
+optional:	-
+returns:	distance in metres
+		fuel burnt in cl
+		laps
+		hosts joined
+		wins
+		second
+		third
+		finished
+		quals
+		pole
+		online credits
+		drags
+		drag wins
+	        online or not (0 = no, 1 = yes)
+        	hostname      (or blank line if not online or on hidden host)
+
+-------------
+?action=hosts
+-------------
+(get host list & information and online racers)
+
+requires:	-
+optional:	-
+returns:	HOST STRUCT:
+
+HOSTNAME        char[32]
+TMLT	        byte[4]
+TCRM            byte[4] // Track, Config, Reversed, Max players allowed
+CARS            ulong (4 bytes)
+RULES           ulong (4 bytes)
+LAPS            byte [1]
+QUALMINS        byte [1]
+spare           byte [1]
+spare           byte [1]
+NROFRACERS      byte[1]
+RACERNAMES      char[24 * NROFRACERS]
+
+LAPS work like this:
+    L is the given Laps value
+    0=practice
+    1-100=laps
+    101-190=110-1000 laps...  100+(L-100)*10
+    191-238=1-48 hours... L-190
+
+TMLT means:
+Type		0 : old S1 / 1 : new S1 / 2 : S2
+Main		version times 10 (e.g. 3 means version 0.3)
+Letter		e.g. 'H' in 0.3H
+TestId		zero : official / non-zero : test patch id
+
+(*) TRC is in numbers:
+000 = bl1
+001 = bl1r
+010 = bl2
+..
+220 = fe3
+221 = fe3r
+etc.
+
+cars bits:
+    XFG          1
+    XRG          2
+    XRT          4
+    RB4          8
+    FXO          16
+    LX4          32
+    LX6          64
+    MRT          128
+    etc          etc
+
+rules bits :
+    CAN_VOTE     1
+    CAN_SELECT   2
+    QUALIFY      4
+    PRIVATE      8
+    MODIFIED     16
+    MIDRACEJOIN  32
+    MUSTPIT      64
+
+-------------
+?action=teams
+-------------
+(get the entire teams database stored on lfs world)
+
+requires:	-
+optional:	-
+returns:	TEAM STRUCT:
+
+TEAM          char [64]
+TAG           char [6]
+COUNTRY       char [32]
+URL           char [64]
+BITS          unsigned int (4 bytes)
+INFO_LEN      word (2 bytes)
+INFO          char [INFO_LEN]  (Note : urlencoded)
+NR_MEMBERS    word (2 bytes)
+MEMBERS       char [24] * NR_MEMBERS
+
+BITS :
+// 1 : race
+// 2 : drift
+// 4 : drag
+// 8 : can apply
+// 16 : has host
+// 32 : Demo
+// 64 : S1
+// 128 : S2
+// 256 : S3
+
+
+----**NEW**---
+?action=hl_log
+----**NEW**---
+(get latest entries from the hotlap upload log)
+
+requires:	&version=1.2	(or higher)
+optional:	&log_filter=<log_filter>&lines=[1-150]&control=<steering>
+special:	&format=<format>
+returns:	<format = 1>	(default) preformatted text, "<u>18:36/05-01-2006</u> <b>sanxav</b> has uploaded a new hotlap to 4th place: <b>1:56.240</b> on <a href="http://www.lfsworld.net/?win=hotlaps&whichTab=trackcharts&track=as&config=national_rev&car=XFR&racer=sanxav" target="_blank"><b>AS national rev</b> with the <b>xf gtr</b></a>\n"
+
+		<format = 2>	XML formatted, all values separated via XML.
+				See output for self-explanatory values.
+
+		<format = 3>	binary, using struct:
+		time		int;		// upload-time (unix timestamp, GMT+1 (UK))
+		racer		char[24];	// username
+		tcrc		char[4];	// track config reversed car
+		split1		int;		// split 1 in ms
+		split2		int;		// split 2 in ms
+		split3		int;		// split 3 in ms
+		split4		int;		// split 4 in ms
+		pos		word;		// position in chart when uploaded
+		steering	byte;		// steering, 0=w, 1=m, 2=ks, 3=kn
+		spare1		byte;
+
+
+-------------------
+Output compression
+-------------------
+(The output this script generates can be gzip compressed in 3 ways)
+
+&c=1    gzencode
+&c=2    gzcompress
+&c=3    gzdeflate

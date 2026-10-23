@@ -4,7 +4,6 @@ use crate::api::{ApiError, ApiState};
 use axum::{
     extract::{FromRequestParts, Path},
     http::request::Parts,
-    response::{IntoResponse, Response},
 };
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
@@ -18,7 +17,7 @@ struct EraParameter {
 }
 
 impl FromRequestParts<ApiState> for Era {
-    type Rejection = Response;
+    type Rejection = ApiError;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -26,12 +25,9 @@ impl FromRequestParts<ApiState> for Era {
     ) -> Result<Self, Self::Rejection> {
         let Path(EraParameter { era }) = Path::from_request_parts(parts, state)
             .await
-            .map_err(IntoResponse::into_response)?;
+            .map_err(|error| ApiError::new(error.status(), "invalid_path", error.body_text()))?;
 
-        resolve_era(&state.database, &era)
-            .await
-            .map(Self)
-            .map_err(IntoResponse::into_response)
+        resolve_era(&state.database, &era).await.map(Self)
     }
 }
 
