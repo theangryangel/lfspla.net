@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DateTime from '#lib/components/app/DateTime.svelte';
 	import { page } from '$app/state';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import {
@@ -9,7 +10,7 @@
 		type PaginatedResponseHotlap,
 		useApi,
 	} from '#lib/api.js';
-	import { dateTime, lapTime } from '#lib/format.js';
+	import { lapTime } from '#lib/format.js';
 
 	import type { ListHotlapsRequest } from '@lfsplanet/sdk/api';
 	import CompareButton from '#lib/components/app/CompareButton.svelte';
@@ -41,6 +42,7 @@
 		perPage = 25,
 		appearance = 'default',
 		title = 'Hotlaps',
+		showContributions = true,
 	}: {
 		eraId?: string;
 		lfsUsername?: string;
@@ -50,6 +52,7 @@
 		perPage?: number;
 		appearance?: 'default' | 'data';
 		title?: string;
+		showContributions?: boolean;
 	} = $props();
 
 	const session = useSession();
@@ -242,7 +245,8 @@
 								activeColumn={column}
 								{order}
 							/>
-							<Table.Head>Contributes to</Table.Head>
+							{#if showContributions}<Table.Head>Contributes to</Table.Head
+								>{/if}
 							<SortableHead
 								column="lap_time"
 								label="Lap time"
@@ -257,9 +261,7 @@
 							{@const isRecord = lap.position === 1}
 							<Table.Row>
 								<Table.Cell class="text-muted-foreground">
-									<time datetime={lap.created_at}
-										>{dateTime(lap.created_at)}</time
-									>
+									<DateTime value={lap.created_at} />
 								</Table.Cell>
 								<Table.Cell>
 									<div class="flex w-max items-center gap-1">
@@ -300,17 +302,19 @@
 									class="tabular-nums {isRecord ? 'text-time-best' : ''}"
 									>{lap.position ?? '-'}</Table.Cell
 								>
-								<Table.Cell>
-									<div class="flex flex-wrap gap-1">
-										{#each lap.contributes_to as ranking (ranking.id)}
-											<Badge
-												variant="outline"
-												href={`/hotlaps/${lap.era_id}/rankings/${encodeURIComponent(ranking.id)}`}
-												>{ranking.title}</Badge
-											>
-										{:else}<span class="text-muted-foreground">-</span>{/each}
-									</div>
-								</Table.Cell>
+								{#if showContributions}
+									<Table.Cell>
+										<div class="flex flex-wrap gap-1">
+											{#each lap.contributes_to as ranking (ranking.id)}
+												<Badge
+													variant="outline"
+													href={`/hotlaps/${lap.era_id}/rankings/${encodeURIComponent(ranking.id)}`}
+													>{ranking.title}</Badge
+												>
+											{:else}<span class="text-muted-foreground">-</span>{/each}
+										</div>
+									</Table.Cell>
+								{/if}
 								<Table.Cell
 									class="font-mono tabular-nums {isRecord
 										? 'font-semibold text-time-best'

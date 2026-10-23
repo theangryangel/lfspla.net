@@ -239,7 +239,9 @@ ends_at: "2026-12-01T00:00:00Z"
 ```
 
 `enabled: false` hides the card regardless of its dates. Lower `sequence` values
-appear first; equal values are ordered by `id`. Defaults are `enabled: true` and
+appear first in API responses; equal values are ordered by `id`. The homepage
+shuffles authored cards on each page load. Upcoming events have a separate
+“Racing this week” section. Defaults are `enabled: true` and
 `sequence: 0`.
 
 Both date fields are optional. Omit `starts_at` for immediate availability; omit

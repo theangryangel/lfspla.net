@@ -4,6 +4,7 @@ pub mod attachments;
 pub mod community_cards;
 pub mod countries;
 pub mod eras;
+pub mod events;
 pub mod hotlaps;
 pub mod me;
 pub mod player_comparison;
@@ -51,6 +52,7 @@ pub(crate) fn router(max_spr_upload_bytes: usize) -> OpenApiRouter<ApiState> {
         .merge(countries::router())
         .merge(community_cards::router())
         .merge(eras::router(max_spr_upload_bytes))
+        .merge(events::router())
         .merge(hotlaps::router())
         .merge(me::router())
         .merge(players::router())

@@ -1,0 +1,451 @@
+<!-- Public LFS markup captured 2026-10-22; see README.md. -->
+<div id="BodyDiv">
+
+<article class="ContentArea2 m_b20">
+    <h1 class="m_0 m_l10">
+        Fragmaster's GTi Thursday
+
+    </h1>
+    <div class="ContentArticle2">
+        <div class="right"><img class="leagueLogo" src="/dynamic/leaguelogos/Mo0gaGOM.png" alt="Fragmaster's GTi Thursday" /></div>
+
+        <p>GTi Thursday is an ongoing league of (FM) Fragmaster that takes place every Thursday.</p>
+
+        <div class="left w_200 bold">Tag</div>
+        <div class="overHidden">(FM) GTi</div>
+
+        <div class="left w_200 bold">Region</div>
+        <div class="overHidden">Europe</div>
+
+        <div class="left w_200 bold">Country</div>
+        <div class="overHidden">International</div>
+
+        <div class="left w_200 bold">Website</div>
+        <div class="overHidden"><a href="http://borntorace.eu/fragmaster/">http://borntorace.eu/fragmaster/</a></div>
+
+        <div class="left w_200 bold">Discussion Forum</div>
+        <div class="overHidden"><a href="/forum/509-GTI-Thursday">&quot;GTI Thursday&quot; on the LFS Forums</a></div>
+
+        <div class="left w_200 bold">League Type</div>
+        <div class="overHidden">Normal Road Car League</div>
+
+        <div class="left w_200 bold">Experience</div>
+        <div class="overHidden">Normal</div>
+
+        <div class="left w_200 bold">Required License</div>
+        <div class="overHidden">S1</div>
+
+        <div class="left w_200 bold">Founded on</div>
+        <div class="overHidden"><time class="DateField" datetime="2017-08-01 01:00Z" data-format="date">Tue 1 Aug 2017, 01:00</time></div>
+        <div class="clear"></div>
+
+        <div class="left w_200 bold">Last Race</div>
+        <div class="overHidden">
+            <time class="DateField" datetime="2026-10-15 19:00Z">Thu 15 Oct 2026, 19:00</time>
+
+        </div>
+        <div class="clear"></div>
+
+        <div class="left w_200 bold">Next Race</div>
+        <div class="overHidden">
+            <time class="DateField" datetime="2026-10-22 18:30Z">Today, 18:30</time>
+
+        </div>
+        <div class="clear"></div>
+
+        <div class="left w_200 bold">Administrators</div>
+        <div class="overHidden"><a class="UserLink f_11" href="/profile/151427" onclick="openMenu(event, this, 3, [151427, 0, 1]);">RC-Maus</a> - <a class="UserLink f_11" href="/profile/183883" onclick="openMenu(event, this, 3, [183883, 0, 1]);">Fras44</a> - <a class="UserLink f_11" href="/profile/223700" onclick="openMenu(event, this, 3, [223700, 0, 1]);">NumberTwo</a> - <a class="UserLink f_11" href="/profile/272079" onclick="openMenu(event, this, 3, [272079, 0, 1]);">Bila_KHS</a> - <a class="UserLink f_11" href="/profile/563557" onclick="openMenu(event, this, 3, [563557, 0, 1]);">jackson93</a></div>
+        <div class="clear"></div>
+
+    </div>
+</article>
+
+<article class="ContentArea2 m_b20">
+    <h1 class="m_0 m_l10">
+        League Information
+    </h1>
+    <div class="ContentArticle2">
+        <p>[FM] Fragmaster’s GTi Thursday<br />
+<br />
+<br />
+Season 2025 is brought to you by:<br />
+<br />
+(FM) Fragmaster<br />
+<br />
+B2R Born 2 Race<br />
+<br />
+RG^M@CI3K<br />
+<br />
+Schedule:<br />
+<br />
+Every Thursday:<br />
+19:00 UTC Session start<br />
+19:30 UTC Qualification (approximate time)<br />
+20:00 UTC Race (1h, approximate time)<br />
+(during summer time: 18:00 UTC, 18:30 UTC, 19:00 UTC)<br />
+<br />
+Points System:<br />
+<br />
+1st – 50 pts<br />
+2nd – 45 pts<br />
+3rd – 40 pts<br />
+4th – 36 pts<br />
+5th – 32 pts<br />
+6th – 29 pts<br />
+7th – 26 pts<br />
+8th – 23 pts<br />
+9th – 20 pts<br />
+10th – 18 pts<br />
+11th – 16 pts<br />
+12th – 14 pts<br />
+13th – 13 pts<br />
+14th – 12 pts<br />
+15th – 11 pts<br />
+16th - 10 pts<br />
+17th - 9 pts<br />
+18th - 8 pts<br />
+19th - 7 pts<br />
+20th - 6 pts<br />
+21st - 5 pts<br />
+22nd - 4 pts<br />
+23rd - 3 pts<br />
+24th - 2 pts<br />
+25th - 1 pt<br />
+<br />
+Pole Position – 5 pts<br />
+Fastest Lap – 5 pts<br />
+Highest Climber – 2 pts<br />
+<br />
+Regulations (up-to-date rules under this link: http://borntorace.eu/fragmaster/seasons/gti-rules.html)<br />
+<br />
+Our regulations are very simple and let you enjoy what is the most important in our events: racing and meeting your friends! Remember following:<br />
+<br />
+General Conditions:<br />
+<br />
+    In order to race you need to have Discord and to join our server – invitation link: https://discord.gg/vKTyGDp (you don&#039;t need to have a mic, only listen).<br />
+    No sign-up needed.<br />
+    Race takes place at (FM) GTi Thursday host in Live For Speed.<br />
+    The server will be password protected before the Qualifications, so come early enough to join us. You can also ask the password on Discord.<br />
+    Race clean, respect other drivers.<br />
+    Misbehaving might end up with ban.<br />
+<br />
+Race Conditions:<br />
+<br />
+    Every Race length is set to achieve approximately 1 hour race (number of laps depends on track). Livestreamed events are in general two shorter races with second race having top 15 of race 1 finishers reversed.<br />
+    One mandatory pitstop in each race.<br />
+    Qualifications: Race Director calls every driver to do his (or her) 1 hotlap in Qualifying mode (1 outlap, 1 hot lap, spectate).<br />
+    Next track and car choice is picked by a winner of previous event The same track environment can’t be picked 2 or more times in a row. Available car picks: separate XFG and XRG, or you can choose both cars at the same time.<br />
+    BC (button clutch) is disabled and forbidden. Axls clutch can only be used with H-Shifter. If you are detected your result in the race will be erased.<br />
+    Points are calculated in a form to reward top 25 racers with points to overall Championship.<br />
+    Crossing yellow line when entering or exiting pits generally is allowed and doesn&#039;t cause any warnings or penalty if executed safely. Any extra rules about pit entry or exit line will be announced few days before start of the race.<br />
+    Complaints: You can report everyone who caused crash, misbehaved or disturbed you or somebody in the race - please write a post on the forum or our Discord explaining what happened – every claim will be resolved by admins with further actions taken depending on specific type of claim.<br />
+    You can enter our championship with only one name/LFS license: switching names doesn&#039;t affect standings it can end with a ban.<br />
+    Cheating and using third party programs to achieve advantage ends up with a ban.</p>
+    </div>
+</article>
+
+<article class="ContentArea2 m_b20">
+    <h1 class="m_0 m_l10">
+        Current Season
+    </h1>
+    <div class="ContentArticle2 p_0">
+        <table class="basic w_100p">
+        <tr>
+            <th class="textleft">Season</th>
+            <th class="textleft">Rounds</th>
+            <th class="textleft">Remaining</th>
+            <th class="textleft">First Round</th>
+            <th class="textleft">Next Round</th>
+
+        </tr>
+        <tr>
+            <td>
+                <a href="/leagues/432/season/1347">GTi Thursday 2026</a>
+
+            </td>
+            <td>44</td>
+            <td>2</td>
+            <td>
+                <time class="DateField" datetime="2026-01-01 19:30Z">Thu 1 Jan 2026, 19:30</time>
+
+            </td>
+            <td>
+                <a href="/leagues/432/season/1347#round43"><time class="DateField" datetime="2026-10-22 18:30Z">Today, 18:30</time></a>
+
+            </td>
+
+        </tr>
+        </table>
+    </div>
+</article>
+
+<article class="ContentArea2 m_b20">
+    <h1 class="m_0 m_l10">
+        Latest News Update
+    </h1>
+    <div class="ContentArticle2">
+        <p><time class="DateField" datetime="2026-09-09 10:16Z">Wed 9 Sep 2026, 10:16</time>, by jackson93</p>
+        <div class="textCenter"><img class="FInlineImage" src="/mp/http://borntorace.eu/fragmaster/mpres/images/event_logos/fm-gti-t-logo300.png" alt=""  /></div><br />
+<br />
+<div class="textCenter"><b>9TH GTi THURSDAY ANNIVERSARY</b></div><br />
+<br />
+This Thursday&#039;s race is going to be livestreamed.<br />
+Start time: <b>18:30 UTC</b><br />
+<a class="FPostTextLink" href="https://www.lfs.net/leagues/432/season/1347/round/6611" target="_blank">Round 37</a>: XRG, XFG and XFG+XRG on Norisring, three races, third race with top 15 reversed grid.<br />
+<br />
+<u>Bringing you weekly GTi racing since 2017.</u><br />
+<br />
+<br />
+<b>A few useful links:</b><ul><li>(FM) Fragmaster on Facebook: <a class="FPostTextLink" href="https://www.facebook.com/fragmaster.net" target="_blank">https://www.facebook.com/fragmaster.net</a><br />
+<br />
+</li><li>Sim Broadcasts: <a class="FPostTextLink" href="https://simbroadcasts.tv/" target="_blank">https://simbroadcasts.tv/</a><br />
+<br />
+</li><li>Discord invitation (being on discord before the race is required): <a class="FPostTextLink" href="https://discord.gg/vKTyGDp" target="_blank">https://discord.gg/vKTyGDp</a><br />
+<br />
+</li><li>Race stats and points: <a class="FPostTextLink" href="http://borntorace.eu/fragmaster" target="_blank">http://borntorace.eu/fragmaster</a><br />
+<br />
+</li><li>Google drive with replays: <a class="FPostTextLink" href="https://drive.google.com/drive/u/4/folders/1I3tzhSmxTYHxApTDg-qxe8hPDDhdCn-2" target="_blank">https://drive.google.com/drive ... xTYHxApTDg-qxe8hPDDhdCn-2</a><br />
+<br />
+</li><li>Join server: <a class="FPostTextLink" href="lfs://join=%28FM%29%20GTi%20Thursday/pass=">Click here</a><br />
+</li></ul>
+        <div class="clear"></div>
+    </div>
+</article>
+
+<article class="ContentArea2 m_b20">
+    <h1 class="m_0 m_l10">
+        Past, Present and Upcoming Seasons
+    </h1>
+    <div class="ContentArticle2 p_0">
+        <table class="basic w_100p">
+        <tr>
+            <th class="textleft">Season</th>
+            <th class="textleft">Rounds</th>
+            <th class="textleft">Remaining</th>
+            <th class="textleft">First Round</th>
+            <th class="textleft">Next Round</th>
+            <th class="textleft">Active</th>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/497">GTi Thursday 2017</a>
+
+            </td>
+            <td>17</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2017-09-07 18:00Z">Thu 7 Sep 2017, 18:00</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/523">GTi Thursday 2018</a>
+
+            </td>
+            <td>51</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2018-01-04 19:30Z">Thu 4 Jan 2018, 19:30</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/581">GTi Thursday 2019</a>
+
+            </td>
+            <td>51</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2019-01-03 19:30Z">Thu 3 Jan 2019, 19:30</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/615">GTi Thursday 2020</a>
+
+            </td>
+            <td>51</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2020-01-02 19:30Z">Thu 2 Jan 2020, 19:30</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/671">GTi Endurance 2020</a>
+
+            </td>
+            <td>1</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2020-09-12 14:15Z">Sat 12 Sep 2020, 14:15</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/708">GTi Thursday 2021</a>
+
+            </td>
+            <td>51</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2021-01-07 19:30Z">Thu 7 Jan 2021, 19:30</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/763">GTi Endurance 2021</a>
+
+            </td>
+            <td>1</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2021-11-13 15:15Z">Sat 13 Nov 2021, 15:15</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/784">GTi Thursday 2022</a>
+
+            </td>
+            <td>51</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2022-01-06 19:30Z">Thu 6 Jan 2022, 19:30</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/916">GTi Thursday 2023</a>
+
+            </td>
+            <td>51</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2023-01-05 19:30Z">Thu 5 Jan 2023, 19:30</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/1078">GTi Thursday 2024</a>
+
+            </td>
+            <td>50</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2024-01-04 19:30Z">Thu 4 Jan 2024, 19:30</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr class="dimmed">
+            <td>
+                <a href="/leagues/432/season/1200">GTi Thursday 2025</a>
+
+            </td>
+            <td>51</td>
+            <td>0</td>
+            <td>
+                <time class="DateField" datetime="2025-01-02 19:30Z">Thu 2 Jan 2025, 19:30</time>
+
+            </td>
+            <td>
+
+                N/A
+            </td>
+            <td>No</td>
+
+        </tr>
+        <tr>
+            <td>
+                <a href="/leagues/432/season/1347">GTi Thursday 2026</a>
+
+            </td>
+            <td>44</td>
+            <td>2</td>
+            <td>
+                <time class="DateField" datetime="2026-01-01 19:30Z">Thu 1 Jan 2026, 19:30</time>
+
+            </td>
+            <td>
+                <a href="/leagues/432/season/1347#round43"><time class="DateField" datetime="2026-10-22 18:30Z">Today, 18:30</time></a>
+
+            </td>
+            <td>Yes</td>
+
+        </tr>
+        </table>
+    </div>
+</article>
+
+</div>
+</div></div>

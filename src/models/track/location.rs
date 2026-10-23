@@ -1,5 +1,6 @@
 //! Shared location identity and authored presentation for track configurations.
 
+#[cfg(any(test, debug_assertions))]
 use insim_core::track::Track;
 use sea_orm::entity::prelude::*;
 
@@ -20,6 +21,7 @@ pub struct Model {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// Canonical location code, including Autocross under Other.
+#[cfg(any(test, debug_assertions))]
 pub(crate) fn canonical_code(track: Track) -> &'static str {
     match track.code()[..2].to_ascii_uppercase().as_str() {
         "BL" => "BL",

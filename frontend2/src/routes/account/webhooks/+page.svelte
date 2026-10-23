@@ -1,11 +1,11 @@
 <script lang="ts">
+	import DateTime from '#lib/components/app/DateTime.svelte';
 	import {
 		apiErrorMessage,
 		useApi,
 		type WebhookNotificationResponse,
 		type WebhookResponse,
 	} from '#lib/api.js';
-	import { dateTime } from '#lib/format.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 
@@ -296,14 +296,18 @@
 								<p class="text-sm">{statusLabel(notification.status)}</p>
 							</div>
 							<p class="text-sm text-muted-foreground">
-								Created {dateTime(notification.created_at)} - {notification.attempt_count}
+								Created <DateTime value={notification.created_at} /> - {notification.attempt_count}
 								{notification.attempt_count === 1 ? 'attempt' : 'attempts'}
 								{#if notification.next_attempt_at}
-									- Next try {dateTime(notification.next_attempt_at)}{/if}
+									- Next try <DateTime
+										value={notification.next_attempt_at}
+									/>{/if}
 								{#if notification.delivered_at}
-									- Delivered {dateTime(notification.delivered_at)}{/if}
+									- Delivered <DateTime
+										value={notification.delivered_at}
+									/>{/if}
 								{#if notification.failed_at}
-									- Failed {dateTime(notification.failed_at)}{/if}
+									- Failed <DateTime value={notification.failed_at} />{/if}
 							</p>
 							{#if notification.error_detail}
 								<p class="text-sm text-destructive">

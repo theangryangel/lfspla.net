@@ -126,4 +126,48 @@ mod tests {
         assert!(Args::try_parse_from(["lfsplanet", "maintenance", "mods-sync"]).is_err());
         assert!(Args::try_parse_from(["lfsplanet", "era", "apply", "era.yaml"]).is_err());
     }
+
+    #[test]
+    fn event_sync_modes_and_positive_league_are_validated() {
+        assert!(
+            Args::try_parse_from(["lfsplanet", "maintenance", "sync-events", "--dry-run"]).is_ok()
+        );
+        assert!(
+            Args::try_parse_from([
+                "lfsplanet",
+                "maintenance",
+                "sync-events",
+                "--dry-run",
+                "--league",
+                "432"
+            ])
+            .is_ok()
+        );
+        assert!(Args::try_parse_from(["lfsplanet", "maintenance", "sync-events"]).is_ok());
+        assert!(
+            Args::try_parse_from(["lfsplanet", "maintenance", "sync-events", "--source-only"])
+                .is_ok()
+        );
+        assert!(
+            Args::try_parse_from([
+                "lfsplanet",
+                "maintenance",
+                "sync-events",
+                "--source-only",
+                "--dry-run"
+            ])
+            .is_err()
+        );
+        assert!(
+            Args::try_parse_from([
+                "lfsplanet",
+                "maintenance",
+                "sync-events",
+                "--dry-run",
+                "--league",
+                "0"
+            ])
+            .is_err()
+        );
+    }
 }

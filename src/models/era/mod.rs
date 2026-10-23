@@ -13,7 +13,9 @@ use insim_core::{game_version::GameVersion, track::Track, vehicle::Vehicle};
 
 use lfsplanet_game_version_req::GameVersionReq;
 
-use sea_orm::{ConnectionTrait, QueryOrder, QuerySelect, QueryTrait, Select, entity::prelude::*};
+#[cfg(any(test, debug_assertions))]
+use sea_orm::QueryOrder;
+use sea_orm::{ConnectionTrait, QuerySelect, QueryTrait, Select, entity::prelude::*};
 
 mod activity;
 mod badges;
@@ -66,6 +68,7 @@ impl Model {
     }
 
     /// All distinct charts selected in this era.
+    #[cfg(any(test, debug_assertions))]
     pub fn combinations(&self) -> Select<ChartEntity> {
         ChartEntity::find()
             .filter(ChartColumn::EraId.eq(self.id))

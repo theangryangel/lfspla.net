@@ -77,6 +77,19 @@ trim confirmation and output remain in `cli/lfs/trim.rs`.
 | `catalogue::eras`      | Persist era policy and manage era lifecycle changes                                        |
 | `deliver_webhook`      | Send queued notifications and record delivery, cooldown, and retry outcomes                |
 | `catalogue::sync_mods` | Synchronise upstream Vehicle Mod metadata and covers                                       |
+| `sync_events`          | Fetch public LFS schedules and synchronise event advertisements                            |
+
+`crates/lfsplanet_lfs_leagues` owns public league page fetching, parsing,
+calendar reconciliation, source types and validated logo downloads. Its snapshot
+function accepts the current time and any known league IDs from the caller;
+it has no database or object storage dependency. The application owns import
+locking, persistence, dry runs and logo caching.
+
+`maintenance sync-events` imports complete league snapshots in short transactions;
+`--dry-run` compares changes and rolls them back. `--source-only` previews upcoming
+source records without a database. The public events API and `/events` page read
+the stored advertisements. Event imports also run as part of `maintenance run-all`
+through the daily deployment maintenance timer.
 
 The validation and delivery services implement `lfsplanet_jobs::Processor`
 directly. `cli/worker.rs` constructs and registers them with the generic runner;

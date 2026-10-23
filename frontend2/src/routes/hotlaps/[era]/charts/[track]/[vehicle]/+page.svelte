@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DateTime from '#lib/components/app/DateTime.svelte';
 	import ChartContributions from '#lib/components/app/ChartContributions.svelte';
 	import FloatingPanel from '#lib/components/app/FloatingPanel.svelte';
 	import HotlapComparison from '#lib/components/app/HotlapComparison.svelte';
@@ -20,13 +21,7 @@
 	import SearchSelect from '#lib/components/app/SearchSelect.svelte';
 	import Empty from '#lib/components/app/Empty.svelte';
 	import Flag from '#lib/components/app/Flag.svelte';
-	import {
-		controlTags,
-		dateTime,
-		delta,
-		lapTime,
-		steeringLabels,
-	} from '#lib/format.js';
+	import { controlTags, delta, lapTime, steeringLabels } from '#lib/format.js';
 	import { page } from '$app/state';
 	import { setQuery } from '#lib/query.js';
 	import { useSession } from '#lib/session.svelte.js';
@@ -353,7 +348,7 @@
 											</div>
 										</Table.Cell>
 										<Table.Cell class="text-muted-foreground">
-											{dateTime(entry.created_at)} - {entry.game_version}
+											<DateTime value={entry.created_at} /> - {entry.game_version}
 										</Table.Cell>
 										<Table.Cell>
 											{#if entry.spr?.url}
