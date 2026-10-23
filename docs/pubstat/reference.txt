@@ -1,0 +1,62 @@
+LFSplanet: LFSWorld Pubstat compatibility
+
+GET /api/pubstat/{era}/get_stat2.php?action=...
+
+This is a partial LFSWorld Pubstat compatible API for LFSplanet data. We have
+tried to keep the supported queries and output close to LFSWorld, but this is
+not a complete replacement. LFSplanet is an independent community project.
+
+Replace {era} with an LFSplanet era slug, as used on the site's leaderboard.
+All results belong to that era. Read access is public; no ident key is needed.
+Do not send LFSWorld credentials.
+
+Supported actions
+
+  hl  Player's best hotlaps. Required: racer (LFS username).
+  ch  Chart's best hotlaps. Required: track (numeric Pubstat ID), car.
+      Optional: control=w/m/ks/kn; country=GB (version 1.5 only).
+  wr  Each populated chart's leading lap.
+      Optional: track and car (version 1.4 or later).
+
+For example, track=000 selects BL1; car=XFG selects the XF GTI. Cars use stock
+vehicle codes or six-digit hexadecimal mod IDs. URL-encode query values such
+as usernames. Results are complete collections without pagination.
+
+Versions and formats
+
+  version=1.0 through 1.5; default: 1.5.
+  s=0  Plain text (default), with the selected version's columns.
+  s=1  JSON array (versions 1.4 and 1.5).
+  s=3  XML (versions 1.4 and 1.5).
+
+  c=0  Normal HTTP compression negotiation (default).
+  c=1  gzip, with Content-Encoding: gzip.
+  c=2  zlib-wrapped DEFLATE; decode the binary body explicitly.
+  c=3  Raw DEFLATE; decode the binary body explicitly.
+
+JSON and XML describe the same version-specific fields as plain text. Track
+codes are strings, times are milliseconds, and timestamps are Unix seconds.
+For c=2 and c=3, Content-Type is application/octet-stream and there is no
+Content-Encoding header. Otherwise content types describe the output format.
+
+Examples (the demo era is available on development installations)
+
+  /api/pubstat/demo/get_stat2.php?action=wr
+  /api/pubstat/demo/get_stat2.php?action=wr&s=1
+  /api/pubstat/demo/get_stat2.php?action=ch&track=000&car=XFG&s=3
+  /api/pubstat/demo/get_stat2.php?action=hl&racer=example&version=1.2
+
+Compatibility limits
+
+Only hl, ch, and wr are supported. Other documented LFSWorld actions and PHP
+serialization (s=2) return HTTP 501. Invalid queries return 400; missing eras,
+players, or charts return 404. Errors are plain text in every format.
+
+Results use LFSplanet's current best valid laps, including imported laps,
+ranking order, and available data. They do not mirror LFSWorld's database.
+Hotlap IDs are local IDs usable at /api/v1/hotlaps/{id}, not LFSWorld download
+IDs. Track codes cover supported closed configurations; open layouts are
+excluded. Countries reflect current profiles. XML uses UTF-8. JSON and binary
+responses use appropriate content types, which may differ from LFSWorld.
+
+The native LFSplanet API reference is at /api/docs.

@@ -1,0 +1,29 @@
+[
+  {
+    "id_hl": 114191,
+    "split1": 30340,
+    "split2": 67070,
+    "split3": 0,
+    "laptime": 93870,
+    "flags_hlaps": 513,
+    "racername": "exapetaloudos1997"
+  },
+  {
+    "id_hl": 108816,
+    "split1": 30560,
+    "split2": 67410,
+    "split3": 0,
+    "laptime": 94420,
+    "flags_hlaps": 4609,
+    "racername": "BOOMER!"
+  },
+  {
+    "id_hl": 111177,
+    "split1": 30670,
+    "split2": 67820,
+    "split3": 0,
+    "laptime": 94900,
+    "flags_hlaps": 513,
+    "racername": "stadio18"
+  }
+]

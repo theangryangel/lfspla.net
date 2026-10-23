@@ -3,6 +3,7 @@
 mod credentials;
 mod era;
 mod player;
+pub(crate) mod pubstat;
 
 pub(crate) use credentials::AuthenticatedPlayer;
 pub(crate) use credentials::BrowserAuthenticatedPlayer;

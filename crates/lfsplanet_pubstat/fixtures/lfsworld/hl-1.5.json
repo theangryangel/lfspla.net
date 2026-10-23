@@ -1,0 +1,134 @@
+[
+  {
+    "id_hl": 120027,
+    "track": "400",
+    "car": "XFR",
+    "split1": 15920,
+    "split2": 0,
+    "split3": 0,
+    "laptime": 45310,
+    "flags_hlaps": 1,
+    "timestamp": 1671559157
+  },
+  {
+    "id_hl": 119729,
+    "track": "011",
+    "car": "LX6",
+    "split1": 21610,
+    "split2": 54020,
+    "split3": 0,
+    "laptime": 77070,
+    "flags_hlaps": 1,
+    "timestamp": 1784346521
+  },
+  {
+    "id_hl": 119734,
+    "track": "011",
+    "car": "XFG",
+    "split1": 25330,
+    "split2": 64090,
+    "split3": 0,
+    "laptime": 91810,
+    "flags_hlaps": 1,
+    "timestamp": 1784087904
+  },
+  {
+    "id_hl": 124264,
+    "track": "020",
+    "car": "XRG",
+    "split1": 36020,
+    "split2": 0,
+    "split3": 0,
+    "laptime": 68740,
+    "flags_hlaps": 0,
+    "timestamp": 1760495334
+  },
+  {
+    "id_hl": 119797,
+    "track": "110",
+    "car": "FBM",
+    "split1": 14170,
+    "split2": 0,
+    "split3": 0,
+    "laptime": 49310,
+    "flags_hlaps": 129,
+    "timestamp": 1724378672
+  },
+  {
+    "id_hl": 119969,
+    "track": "230",
+    "car": "UF1",
+    "split1": 72500,
+    "split2": 130690,
+    "split3": 151480,
+    "laptime": 206220,
+    "flags_hlaps": 1,
+    "timestamp": 1671558253
+  },
+  {
+    "id_hl": 120116,
+    "track": "510",
+    "car": "XFG",
+    "split1": 36190,
+    "split2": 86260,
+    "split3": 0,
+    "laptime": 152980,
+    "flags_hlaps": 1,
+    "timestamp": 1671715105
+  },
+  {
+    "id_hl": 120131,
+    "track": "530",
+    "car": "UF1",
+    "split1": 12940,
+    "split2": 0,
+    "split3": 0,
+    "laptime": 30380,
+    "flags_hlaps": 513,
+    "timestamp": 1731723271
+  },
+  {
+    "id_hl": 120142,
+    "track": "540",
+    "car": "RB4",
+    "split1": 16010,
+    "split2": 39490,
+    "split3": 0,
+    "laptime": 58510,
+    "flags_hlaps": 1,
+    "timestamp": 1780807741
+  },
+  {
+    "id_hl": 120161,
+    "track": "700",
+    "car": "XRT",
+    "split1": 30460,
+    "split2": 56090,
+    "split3": 0,
+    "laptime": 90460,
+    "flags_hlaps": 1,
+    "timestamp": 1742678989
+  },
+  {
+    "id_hl": 120183,
+    "track": "720",
+    "car": "XRR",
+    "split1": 15430,
+    "split2": 0,
+    "split3": 0,
+    "laptime": 31640,
+    "flags_hlaps": 1,
+    "timestamp": 1763331996
+  },
+  {
+    "id_hl": 121068,
+    "track": "7100",
+    "car": "XFR",
+    "split1": 20710,
+    "split2": 40380,
+    "split3": 0,
+    "laptime": 64530,
+    "flags_hlaps": 513,
+    "timestamp": 1729802110
+  }
+]
