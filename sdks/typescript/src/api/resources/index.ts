@@ -29,5 +29,6 @@ export * as tracks from "./tracks/index.js";
 export * from "./tracks/client/requests/index.js";
 export * as vehicles from "./vehicles/index.js";
 export * from "./vehicles/client/requests/index.js";
+export * from "./vehicles/types/index.js";
 export * as webhooks from "./webhooks/index.js";
 export * from "./webhooks/client/requests/index.js";

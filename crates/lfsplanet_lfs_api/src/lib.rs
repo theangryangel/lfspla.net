@@ -4,7 +4,9 @@ mod oauth;
 mod vehicle_mods;
 
 pub use oauth::{LfsAccount, OAuthProvider};
-pub use vehicle_mods::{CoverImage, RemoteVehicleMod};
+pub use vehicle_mods::{
+    CoverImage, RemoteVehicleMod, VehicleModMetadata, VehicleModSpecifications,
+};
 
 use std::{sync::Arc, time::Duration};
 

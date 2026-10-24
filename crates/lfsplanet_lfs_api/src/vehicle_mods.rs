@@ -1,6 +1,6 @@
 //! The official LFS Vehicle Mods catalogue.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{Error, LfsClient, endpoints};
@@ -29,6 +29,24 @@ pub struct CoverImage {
 }
 
 impl LfsClient {
+    /// Fetches the full response, including structured vehicle specifications.
+    pub async fn vehicle_mod(&self, id: &str) -> Result<RemoteVehicleMod, Error> {
+        if id.len() != 6 || !id.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(Error::InvalidCatalogue("invalid mod ID".to_owned()));
+        }
+        let token = self.service_token().await?;
+        let response = self
+            .http
+            .get(format!("{}/{id}", endpoints::VEHICLE_MODS))
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<DetailEnvelope>()
+            .await?;
+        parse_detail(id, response.data)
+    }
+
     /// Lists every current mod in the official catalogue.
     pub async fn vehicle_mods(&self) -> Result<Vec<RemoteVehicleMod>, Error> {
         let access_token = self.service_token().await?;
@@ -80,32 +98,72 @@ struct CatalogueEnvelope {
     data: Vec<serde_json::Value>,
 }
 
-/// One entry of the catalogue envelope, as the official API documents it.
-///
-/// The raw `Value` is kept alongside this because the whole entry is stored,
-/// but every field the application reads is declared here rather than walked
-/// out of the `Value` by hand.
 #[derive(Deserialize)]
-struct CatalogueEntry {
-    id: String,
-    name: String,
-    version: u16,
-    class: Option<u8>,
-    #[serde(rename = "userName")]
-    user_name: Option<String>,
-    #[serde(default)]
-    wip: bool,
-    #[serde(rename = "private", default)]
-    is_private: bool,
-    #[serde(rename = "tweakMod", default)]
-    is_tweak_mod: bool,
-    #[serde(rename = "publishedAt")]
-    published_at: Option<i64>,
-    #[serde(rename = "coverUrl")]
-    cover_url: Option<String>,
+struct DetailEnvelope {
+    data: serde_json::Value,
 }
 
-impl CatalogueEntry {
+/// Shared schema for list and detail responses. Required fields have no defaults:
+/// missing or incorrectly typed data must not become a successful cache marker.
+/// Fields we do not consume are retained without imposing a schema on them.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "mirrors independent flags in the upstream API"
+)]
+pub struct VehicleModMetadata {
+    pub id: String,
+    pub name: String,
+    pub version: u16,
+    pub class: Option<u8>,
+    #[serde(rename = "userName")]
+    pub user_name: Option<String>,
+    pub wip: bool,
+    #[serde(rename = "private")]
+    pub is_private: bool,
+    #[serde(rename = "tweakMod")]
+    pub is_tweak_mod: bool,
+    #[serde(rename = "publishedAt")]
+    pub published_at: Option<i64>,
+    #[serde(rename = "coverUrl")]
+    pub cover_url: Option<String>,
+    pub approved: bool,
+    #[serde(rename = "ev")]
+    pub electric: bool,
+    pub rating: f64,
+    #[serde(rename = "numRatings")]
+    pub num_ratings: u64,
+    #[serde(rename = "numDownloads")]
+    pub num_downloads: u64,
+    /// Absent in catalogue lists; required by the individual detail endpoint.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vehicle: Option<VehicleModSpecifications>,
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+/// Numeric fields used by the explorer, in the units supplied by LFS.
+/// Zero is a valid value (for example engine displacement on an electric vehicle).
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VehicleModSpecifications {
+    pub ice_cc: f64,
+    pub ice_num_cylinders: u8,
+    pub ice_layout: u8,
+    pub drive: u8,
+    pub shift_type: u8,
+    pub power: f64,
+    pub max_power_rpm: u32,
+    pub torque: f64,
+    pub max_torque_rpm: u32,
+    pub mass: f64,
+    pub power_weight_ratio: f64,
+    pub fuel_tank_size: f64,
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+impl VehicleModMetadata {
     /// Derives the smaller cover representation without letting one malformed
     /// optional URL invalidate the complete Vehicle Mods catalogue.
     fn cover_thumb_url(&self) -> Option<String> {
@@ -133,7 +191,7 @@ fn parse_catalogue(entries: Vec<serde_json::Value>) -> Result<Vec<RemoteVehicleM
     let mods = entries
         .into_iter()
         .map(|metadata| {
-            let entry: CatalogueEntry = serde_json::from_value(metadata.clone())
+            let entry: VehicleModMetadata = serde_json::from_value(metadata.clone())
                 .map_err(|error| Error::InvalidCatalogue(error.to_string()))?;
             let cover_thumb_url = entry.cover_thumb_url();
 
@@ -181,6 +239,20 @@ fn parse_catalogue(entries: Vec<serde_json::Value>) -> Result<Vec<RemoteVehicleM
         .collect())
 }
 
+fn parse_detail(id: &str, metadata: serde_json::Value) -> Result<RemoteVehicleMod, Error> {
+    let typed: VehicleModMetadata = serde_json::from_value(metadata.clone())
+        .map_err(|error| Error::InvalidCatalogue(error.to_string()))?;
+    if typed.vehicle.is_none() {
+        return Err(Error::InvalidCatalogue(
+            "missing vehicle specifications".to_owned(),
+        ));
+    }
+    parse_catalogue(vec![metadata])?
+        .pop()
+        .filter(|entry| entry.id.eq_ignore_ascii_case(id))
+        .ok_or_else(|| Error::InvalidCatalogue("mod is unavailable or its ID changed".to_owned()))
+}
+
 fn lfs_cover_url(value: &str) -> Result<Url, Error> {
     let url = Url::parse(value)
         .map_err(|error| Error::InvalidCatalogue(format!("invalid cover URL: {error}")))?;
@@ -199,21 +271,28 @@ fn lfs_cover_url(value: &str) -> Result<Url, Error> {
 mod tests {
     use super::*;
 
+    fn metadata() -> serde_json::Value {
+        serde_json::json!({
+            "id": "41a2a0", "name": "PIRAN FIREFLY 200", "version": 7,
+            "class": 2, "userName": "PiranMOTO", "wip": false,
+            "private": false, "tweakMod": false, "approved": true, "ev": false,
+            "rating": 4.84, "numRatings": 28, "numDownloads": 100,
+            "publishedAt": 1_700_000_000, "coverUrl": "https://www.lfs.net/cover.png"
+        })
+    }
+
+    fn specifications() -> serde_json::Value {
+        serde_json::json!({
+            "iceCc": 1998.0, "iceNumCylinders": 6, "iceLayout": 0,
+            "drive": 1, "shiftType": 1, "power": 160.0, "maxPowerRpm": 6416,
+            "torque": 275.0, "maxTorqueRpm": 4512, "mass": 1425.0,
+            "powerWeightRatio": 112.0, "fuelTankSize": 65.0
+        })
+    }
+
     #[test]
     fn parses_the_documented_catalogue_envelope_fields() {
-        let entries = serde_json::json!([{
-            "id": "41a2a0",
-            "name": "PIRAN FIREFLY 200",
-            "version": 7,
-            "class": 2,
-            "userName": "PiranMOTO",
-            "wip": false,
-            "private": false,
-            "tweakMod": false,
-            "publishedAt": 1_700_000_000,
-            "coverUrl": "https://www.lfs.net/cover.png"
-        }]);
-        let parsed = parse_catalogue(entries.as_array().unwrap().clone()).unwrap();
+        let parsed = parse_catalogue(vec![metadata()]).unwrap();
         assert_eq!(parsed[0].id, "41A2A0");
         assert_eq!(parsed[0].name, "PIRAN FIREFLY 200");
         assert_eq!(parsed[0].version, 7);
@@ -221,64 +300,106 @@ mod tests {
             parsed[0].cover_thumb_url.as_deref(),
             Some("https://www.lfs.net/cover.png/thumb")
         );
+        let typed: VehicleModMetadata = serde_json::from_value(parsed[0].metadata.clone()).unwrap();
+        assert!(typed.vehicle.is_none());
     }
 
     #[test]
     fn rejects_an_empty_or_structurally_invalid_full_refresh() {
         assert!(parse_catalogue(Vec::new()).is_err());
-        assert!(
-            parse_catalogue(vec![serde_json::json!({
-                "id": "not-an-id",
-                "name": "Example",
-                "version": 1
-            })])
-            .is_err()
+        let mut invalid = metadata();
+        invalid["id"] = "not-an-id".into();
+        assert!(parse_catalogue(vec![invalid]).is_err());
+    }
+
+    #[test]
+    fn requires_consumed_metadata_fields_and_their_types() {
+        for key in [
+            "id",
+            "name",
+            "version",
+            "wip",
+            "private",
+            "tweakMod",
+            "approved",
+            "ev",
+            "rating",
+            "numRatings",
+            "numDownloads",
+        ] {
+            let mut missing = metadata();
+            missing.as_object_mut().unwrap().remove(key);
+            assert!(parse_catalogue(vec![missing]).is_err(), "missing {key}");
+        }
+        for (key, value) in [
+            ("numRatings", serde_json::json!(-1)),
+            ("rating", serde_json::json!("five")),
+            ("approved", serde_json::Value::Null),
+        ] {
+            let mut invalid = metadata();
+            invalid[key] = value;
+            assert!(parse_catalogue(vec![invalid]).is_err(), "invalid {key}");
+        }
+    }
+
+    #[test]
+    fn detail_requires_complete_numeric_specifications() {
+        assert!(parse_detail("41A2A0", metadata()).is_err());
+        let mut detail = metadata();
+        detail["vehicle"] = serde_json::json!({});
+        assert!(parse_detail("41A2A0", detail.clone()).is_err());
+        for key in specifications().as_object().unwrap().keys() {
+            detail["vehicle"] = specifications();
+            detail["vehicle"].as_object_mut().unwrap().remove(key);
+            assert!(
+                parse_detail("41A2A0", detail.clone()).is_err(),
+                "missing {key}"
+            );
+        }
+        detail["vehicle"] = specifications();
+        detail["vehicle"]["power"] = "160 kW".into();
+        assert!(parse_detail("41A2A0", detail.clone()).is_err());
+        detail["vehicle"] = specifications();
+        detail["vehicle"]["iceCc"] = 0.into();
+        assert!(parse_detail("41A2A0", detail.clone()).is_ok());
+        assert!(parse_detail("ABCDEF", detail).is_err());
+    }
+
+    #[test]
+    fn retains_extra_fields_at_both_levels() {
+        let mut detail = metadata();
+        detail["vehicle"] = specifications();
+        detail["futureField"] = serde_json::json!({"nested": [1, "two", null]});
+        detail["vehicle"]["futureSpec"] =
+            serde_json::json!({"unit": "something", "values": [3, 4]});
+        let parsed = parse_detail("41A2A0", detail.clone()).unwrap();
+        assert_eq!(parsed.metadata, detail);
+        let typed: VehicleModMetadata = serde_json::from_value(detail.clone()).unwrap();
+        assert_eq!(typed.extra["futureField"], detail["futureField"]);
+        assert_eq!(
+            typed.vehicle.as_ref().unwrap().extra["futureSpec"],
+            detail["vehicle"]["futureSpec"]
         );
+        assert_eq!(serde_json::to_value(typed).unwrap(), detail);
     }
 
     #[test]
     fn omits_work_in_progress_private_and_tweak_mods() {
-        let parsed = parse_catalogue(vec![serde_json::json!({
-            "id": "41a2a0",
-            "name": "Example",
-            "version": 1,
-            "wip": true
-        })])
-        .unwrap();
-        assert!(parsed.is_empty());
-
-        let parsed = parse_catalogue(vec![serde_json::json!({
-            "id": "41a2a0",
-            "name": "Example",
-            "version": 1,
-            "tweakMod": true
-        })])
-        .unwrap();
-        assert!(parsed.is_empty());
-
-        let parsed = parse_catalogue(vec![serde_json::json!({
-            "id": "41a2a0",
-            "name": "Example",
-            "version": 1,
-            "private": true
-        })])
-        .unwrap();
-        assert!(parsed.is_empty());
+        for key in ["wip", "private", "tweakMod"] {
+            let mut hidden = metadata();
+            hidden[key] = true.into();
+            assert!(parse_catalogue(vec![hidden.clone()]).unwrap().is_empty());
+            hidden["vehicle"] = specifications();
+            assert!(parse_detail("41A2A0", hidden).is_err());
+        }
     }
 
     #[test]
     fn derives_thumbnails_only_from_https_lfs_cover_urls() {
-        let entry = |cover_url| CatalogueEntry {
-            id: "41a2a0".to_owned(),
-            name: "Example".to_owned(),
-            version: 1,
-            class: None,
-            user_name: None,
-            wip: false,
-            is_private: false,
-            is_tweak_mod: false,
-            published_at: None,
-            cover_url,
+        let entry = |cover_url| {
+            let mut entry: VehicleModMetadata = serde_json::from_value(metadata()).unwrap();
+            entry.cover_url = cover_url;
+            entry
         };
         assert_eq!(
             entry(Some("https://www.lfs.net/attachment/788868".to_owned()))

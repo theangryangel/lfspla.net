@@ -56,6 +56,13 @@ impl crate::models::Vehicle {
         let transaction = database.begin().await?;
         crate::db::lock_catalogue_write(&transaction).await?;
         let observed_at = time::OffsetDateTime::now_utc();
+        let previous = VehicleEntity::find()
+            .filter(VehicleColumn::Kind.eq("mod"))
+            .all(&transaction)
+            .await?
+            .into_iter()
+            .map(|vehicle| (vehicle.id.to_string(), (vehicle.version, vehicle.metadata)))
+            .collect::<HashMap<_, _>>();
 
         VehicleEntity::update_many()
             .filter(VehicleColumn::Kind.eq("mod"))
@@ -86,7 +93,7 @@ impl crate::models::Vehicle {
                             .transpose()
                             .map_err(|error| sea_orm::DbErr::Type(error.to_string()))?),
                         available: Set(true),
-                        metadata: Set(Some(entry.metadata.clone())),
+                        metadata: Set(Some(merged_metadata(entry, previous.get(&entry.id)))),
                         fetched_at: Set(Some(observed_at)),
                         last_seen_at: Set(Some(observed_at)),
                         image_attachment_id: Set(None),
@@ -119,6 +126,24 @@ impl crate::models::Vehicle {
         }
 
         transaction.commit().await
+    }
+}
+
+/// Keep detail-only fields on unchanged revisions while refreshing list counters.
+/// A new revision starts with the list payload, making missing details retryable.
+fn merged_metadata(
+    entry: &RemoteVehicleMod,
+    previous: Option<&(Option<i16>, Option<serde_json::Value>)>,
+) -> serde_json::Value {
+    if let Some((Some(version), Some(serde_json::Value::Object(cached)))) = previous
+        && u16::try_from(*version).ok() == Some(entry.version)
+        && let Some(current) = entry.metadata.as_object()
+    {
+        let mut merged = cached.clone();
+        merged.extend(current.clone());
+        serde_json::Value::Object(merged)
+    } else {
+        entry.metadata.clone()
     }
 }
 
@@ -185,6 +210,40 @@ fn resolution_from_candidates(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn list_refresh_preserves_details_only_for_the_same_revision() {
+        let mut entry = RemoteVehicleMod {
+            id: "ABCDEF".to_owned(),
+            name: "Example".to_owned(),
+            version: 7,
+            class: None,
+            author_username: None,
+            work_in_progress: false,
+            is_private: false,
+            is_tweak_mod: false,
+            published_at: None,
+            cover_thumb_url: None,
+            metadata: serde_json::json!({"version": 7, "numDownloads": 200}),
+        };
+        let previous = (
+            Some(7),
+            Some(serde_json::json!({
+                "version": 7, "numDownloads": 100, "vehicle": {"power": 160}
+            })),
+        );
+        let merged = merged_metadata(&entry, Some(&previous));
+        assert_eq!(merged["numDownloads"], 200);
+        assert_eq!(merged["vehicle"]["power"], 160);
+        entry.version = 8;
+        entry.metadata["version"] = 8.into();
+        assert!(
+            merged_metadata(&entry, Some(&previous))
+                .get("vehicle")
+                .is_none()
+        );
+        assert_eq!(merged_metadata(&entry, None), entry.metadata);
+    }
 
     fn candidate(id: &str, version: Option<i16>) -> ModCandidate {
         ModCandidate {
