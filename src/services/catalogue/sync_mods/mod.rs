@@ -1,4 +1,5 @@
 //! Synchronise upstream Vehicle Mod metadata and covers.
+mod details;
 mod images;
 use crate::settings::Settings;
 use anyhow::Context;
@@ -22,11 +23,12 @@ pub(crate) async fn sync_mods(
     crate::models::Vehicle::refresh(database, &remote)
         .await
         .context("Vehicle Mods catalogue persistence failed")?;
+    let details = details::cache_details(database, &client, &remote).await?;
     let images = images::cache_images(database, object_store, client, &remote, &previous_images)
         .await
         .context("Vehicle Mods cover synchronization failed")?;
     let mods = remote.len();
 
-    tracing::info!(mods, images, "Vehicle Mods synchronized");
+    tracing::info!(mods, images, details, "Vehicle Mods synchronized");
     Ok(())
 }

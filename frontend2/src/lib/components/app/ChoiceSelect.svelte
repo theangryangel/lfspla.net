@@ -5,11 +5,15 @@
 		label,
 		value,
 		options,
+		class: className,
+		disabled = false,
 		onValueChange,
 	}: {
 		label: string;
 		value: string;
 		options: { value: string; label: string }[];
+		class?: string;
+		disabled?: boolean;
 		onValueChange: (value: string) => void;
 	} = $props();
 
@@ -23,12 +27,15 @@
 
 <Select.Root
 	type="single"
+	{disabled}
 	value={encode(value)}
 	onValueChange={(v) => {
 		if (v) onValueChange(decode(v));
 	}}
 >
-	<Select.Trigger aria-label={label}>{current}</Select.Trigger>
+	<Select.Trigger aria-label={label} class={className}
+		><span class="truncate">{current}</span></Select.Trigger
+	>
 	<Select.Content>
 		{#each options as option (option.value)}
 			<Select.Item value={encode(option.value)} label={option.label} />
