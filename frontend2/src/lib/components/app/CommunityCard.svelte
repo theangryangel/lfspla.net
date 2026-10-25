@@ -20,7 +20,7 @@
 	<div class="community-card-copy min-w-0 space-y-2 px-5 py-3">
 		{#if card.sponsored}
 			<p
-				class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+				class="text-sm font-medium uppercase tracking-wide text-muted-foreground"
 			>
 				Sponsored
 			</p>

@@ -52,14 +52,14 @@
 	});
 </script>
 
-<h3 class="font-medium">{label}</h3>
-<Command.Root shouldFilter={false}>
+<h3 class="px-2.5 pt-3 pb-1 font-medium">{label}</h3>
+<Command.Root shouldFilter={false} class="p-0">
 	<Command.Input
 		bind:value={search}
 		aria-label={`Search ${label} values`}
 		placeholder={placeholder ?? `Search ${label.toLowerCase()}…`}
 	/>
-	<Command.List aria-busy={pending}>
+	<Command.List aria-busy={pending} class="p-1">
 		<Command.Item value="__any__" {disabled} onSelect={() => void onSelect('')}
 			>Any</Command.Item
 		>
@@ -89,7 +89,7 @@
 					<span class="min-w-0">
 						<span class="block truncate">{option.label}</span>
 						{#if option.description}<span
-								class="block truncate text-xs text-muted-foreground"
+								class="block truncate text-sm text-muted-foreground"
 								>{option.description}</span
 							>{/if}
 					</span>

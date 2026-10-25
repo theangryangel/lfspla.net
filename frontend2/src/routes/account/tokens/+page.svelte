@@ -227,7 +227,7 @@
 						<Table.Row>
 							<Table.Cell
 								><div class="font-medium">{token.name}</div>
-								<code class="text-xs text-muted-foreground"
+								<code class="text-sm text-muted-foreground"
 									>{token.token_hint}</code
 								></Table.Cell
 							>

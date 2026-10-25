@@ -83,7 +83,7 @@
 						</li>
 					{/each}
 				</ul>
-				<p class="text-xs text-muted-foreground">
+				<p class="text-sm text-muted-foreground">
 					Matches are shown in username order.
 				</p>
 			{:else if data.players.pagination.total_items > 0}

@@ -61,7 +61,7 @@
 				{#each eraGroups as group (group.label)}
 					<section>
 						<h2
-							class="text-xs font-semibold tracking-wide text-muted-foreground"
+							class="text-sm font-semibold tracking-wide text-muted-foreground"
 						>
 							{group.label}
 						</h2>
@@ -93,7 +93,7 @@
 				</a>
 			{/each}
 			<div class="mt-3 pl-2">
-				<h2 class="text-xs font-semibold tracking-wide text-muted-foreground">
+				<h2 class="text-sm font-semibold tracking-wide text-muted-foreground">
 					My account
 				</h2>
 				<div class="mt-1 border-l pl-3">

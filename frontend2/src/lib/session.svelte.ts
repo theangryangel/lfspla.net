@@ -1,5 +1,6 @@
 import {
   apiErrorMessage,
+  createApi,
   type ApiClient,
   type MeResponse,
   type PlayerSummary,
@@ -22,6 +23,7 @@ export class Session {
     null,
   );
   #refreshing = false;
+  readonly #backgroundApi = createApi(undefined, { progress: false });
 
   /** Set while a sign-out request is in flight. */
   pending = $state(false);
@@ -45,7 +47,7 @@ export class Session {
     this.#refreshing = true;
     const source = this.#me();
     try {
-      const value = await this.api.authentication.get();
+      const value = await this.#backgroundApi.authentication.get();
       if (!this.pending && this.#me() === source) {
         this.#refreshed = { source, value };
       }

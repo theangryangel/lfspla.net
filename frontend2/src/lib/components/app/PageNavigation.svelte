@@ -1,6 +1,8 @@
 <script lang="ts" module>
 	import type { Snippet } from 'svelte';
+	import type TimerIcon from '@lucide/svelte/icons/timer';
 	interface NavigationLinkItem {
+		icon?: typeof TimerIcon;
 		key?: string;
 		content?: never;
 		label: string;
@@ -74,6 +76,12 @@
 							? 'flex items-center text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring rounded-none border-b-2 border-transparent px-3 py-2 font-semibold text-muted-foreground hover:text-foreground data-active:border-primary data-active:bg-transparent data-active:text-foreground data-active:hover:bg-transparent data-active:focus:bg-transparent'
 							: `flex items-center ${orientation === 'vertical' ? 'rounded-sm' : 'rounded-lg'} transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring h-8 px-2.5 py-0 ${navigationTextClass}`}
 					>
+						{#if item.icon}
+							<item.icon
+								class="mr-2 size-4 shrink-0 opacity-70"
+								aria-hidden="true"
+							/>
+						{/if}
 						{item.label}
 					</a>
 				{/if}

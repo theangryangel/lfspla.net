@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { mode, ModeWatcher, toggleMode } from 'mode-watcher';
 	import { page } from '$app/state';
+	import LoadingProgress from '#lib/components/app/LoadingProgress.svelte';
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import SunIcon from '@lucide/svelte/icons/sun';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -15,6 +16,11 @@
 	import CompareTray from '#lib/components/app/CompareTray.svelte';
 
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import TimerIcon from '@lucide/svelte/icons/timer';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
+	import KeyRoundIcon from '@lucide/svelte/icons/key-round';
+	import WebhookIcon from '@lucide/svelte/icons/webhook';
+	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import UserRoundIcon from '@lucide/svelte/icons/user-round';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import Flag from '#lib/components/app/Flag.svelte';
@@ -65,6 +71,7 @@
 	<title>{pageTitle} | lfspla.net</title>
 </svelte:head>
 
+<LoadingProgress />
 <ModeWatcher />
 
 <Tooltip.Provider delayDuration={300}>
@@ -148,31 +155,55 @@
 										</Button>
 									{/snippet}
 								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="end" class="dark w-48">
+								<DropdownMenu.Content align="end" class="dark w-60">
 									<DropdownMenu.Item>
 										{#snippet child({ props })}<a
 												{...props}
-												href="/account/hotlaps">My hotlaps</a
+												href="/account/hotlaps"
+												><TimerIcon
+													class="size-4 text-muted-foreground"
+													aria-hidden="true"
+												/>My hotlaps</a
 											>{/snippet}
 									</DropdownMenu.Item>
 									<DropdownMenu.Item>
 										{#snippet child({ props })}<a
 												{...props}
-												href="/account/personal">Personal settings</a
+												href="/account/personal"
+												><SettingsIcon
+													class="size-4 text-muted-foreground"
+													aria-hidden="true"
+												/>Personal settings</a
 											>{/snippet}
 									</DropdownMenu.Item>
 									<DropdownMenu.Item>
 										{#snippet child({ props })}<a
 												{...props}
-												href="/account/tokens">Personal access tokens</a
-											>
-											<a {...props} href="/account/webhooks">Webhooks</a
+												href="/account/tokens"
+												><KeyRoundIcon
+													class="size-4 text-muted-foreground"
+													aria-hidden="true"
+												/>Personal access tokens</a
+											>{/snippet}
+									</DropdownMenu.Item>
+									<DropdownMenu.Item>
+										{#snippet child({ props })}<a
+												{...props}
+												href="/account/webhooks"
+												><WebhookIcon
+													class="size-4 text-muted-foreground"
+													aria-hidden="true"
+												/>Webhooks</a
 											>{/snippet}
 									</DropdownMenu.Item>
 									<DropdownMenu.Separator />
 									<DropdownMenu.Item
 										disabled={session.pending}
-										onSelect={session.signOut}>Sign out</DropdownMenu.Item
+										onSelect={session.signOut}
+										><LogOutIcon
+											class="size-4 text-muted-foreground"
+											aria-hidden="true"
+										/>Sign out</DropdownMenu.Item
 									>
 								</DropdownMenu.Content>
 							</DropdownMenu.Root>

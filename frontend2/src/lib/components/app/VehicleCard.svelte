@@ -27,7 +27,7 @@
 				class="block truncate text-sm font-medium"
 				>{vehicle.name}</svelte:element
 			>
-			<div class="text-xs text-muted-foreground">
+			<div class="text-sm text-muted-foreground">
 				<span class="font-mono">{vehicle.code}</span>
 				{#if !onSelect}<span> - {mod ? 'Mod' : 'Standard'}</span>{/if}
 			</div>

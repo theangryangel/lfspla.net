@@ -1,3 +1,4 @@
+import { progressFetch } from "#lib/loading-progress.js";
 import { getContext, setContext } from "svelte";
 import { LfsplanetApiClient, LfsplanetApiError } from "@lfsplanet/sdk";
 import type { ErrorBody, ErrorResponse } from "@lfsplanet/sdk/types";
@@ -17,12 +18,18 @@ export type Fetch = typeof globalThis.fetch;
 export type ApiClient = LfsplanetApiClient;
 
 /** Load functions supply their fetch to preserve SvelteKit invalidation. */
-export function createApi(fetch?: Fetch): ApiClient {
+export function createApi(
+  fetch?: Fetch,
+  { progress = !fetch }: { progress?: boolean } = {},
+): ApiClient {
   return new LfsplanetApiClient({
     environment: "/",
     auth: false,
     maxRetries: 0,
-    fetch,
+    fetch:
+      typeof window !== "undefined" && progress
+        ? progressFetch(fetch ?? globalThis.fetch)
+        : fetch,
   });
 }
 

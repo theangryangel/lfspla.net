@@ -190,7 +190,10 @@
 				</div>
 				<Popover.Content
 					align="start"
-					class="w-72 max-w-[calc(100vw-2rem)] p-3"
+					class={[
+						'w-72 max-w-[calc(100vw-2rem)] rounded-sm',
+						definition.loadOptions || definition.options ? 'gap-0 p-0' : 'p-3',
+					]}
 					aria-label={`${definition.label} filter`}
 					onCloseAutoFocus={(event) => {
 						if (!active(definition)) {
@@ -209,13 +212,13 @@
 							onSelect={(value) => choose(definition, value)}
 						/>
 					{:else if definition.options}
-						<h3 class="font-medium">{definition.label}</h3>
-						<Command.Root>
+						<h3 class="px-2.5 pt-3 pb-1 font-medium">{definition.label}</h3>
+						<Command.Root class="p-0">
 							<Command.Input
 								aria-label={`Search ${definition.label} values`}
 								placeholder={`Search ${definition.label.toLowerCase()}…`}
 							/>
-							<Command.List>
+							<Command.List class="p-1">
 								<Command.Empty>No matching values.</Command.Empty>
 								{#each [{ value: '', label: 'Any' }, ...definition.options] as option (option.value)}
 									<Command.Item
@@ -247,7 +250,7 @@
 									void applyRange(definition, min, max);
 								}}
 							/>
-							<p class="text-xs text-muted-foreground">
+							<p class="text-sm text-muted-foreground">
 								The + end leaves the maximum open.
 							</p>
 							<Button
@@ -283,7 +286,13 @@
 							>
 						</form>
 					{/if}
-					{#if errorMessage}<p role="alert" class="text-sm text-destructive">
+					{#if errorMessage}<p
+							role="alert"
+							class={[
+								'text-sm text-destructive',
+								(definition.loadOptions || definition.options) && 'px-2.5 pb-3',
+							]}
+						>
 							{errorMessage}
 						</p>{/if}
 				</Popover.Content>
@@ -304,18 +313,18 @@
 			</Popover.Trigger>
 			<Popover.Content
 				align="start"
-				class="w-64 p-0"
+				class="w-64 rounded-sm p-0"
 				aria-label="Add a filter"
 				onCloseAutoFocus={(event) => {
 					if (editor) event.preventDefault();
 				}}
 			>
-				<Command.Root>
+				<Command.Root class="p-0">
 					<Command.Input
 						aria-label="Find a filter"
 						placeholder="Select a filter…"
 					/>
-					<Command.List>
+					<Command.List class="p-1">
 						<Command.Empty>No matching filters.</Command.Empty>
 						{#each available as definition (definition.key)}<Command.Item
 								value={definition.key}

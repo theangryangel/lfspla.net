@@ -98,7 +98,7 @@
 								>{side.player.display_name}</a
 							>
 						</div>
-						<p class="mt-1 break-words text-xs text-muted-foreground">
+						<p class="mt-1 break-words text-sm text-muted-foreground">
 							{side.player.lfs_username}
 						</p>
 						<p class="mt-3 flex items-baseline gap-2">
@@ -182,7 +182,7 @@
 														difference < 0}>{lapTime(result?.lap_time_ms)}</span
 												>
 												{#if result}<span
-														class="block text-xs text-muted-foreground"
+														class="block text-sm text-muted-foreground"
 														class:text-time-best={difference !== null &&
 															difference < 0}
 														>{difference === null

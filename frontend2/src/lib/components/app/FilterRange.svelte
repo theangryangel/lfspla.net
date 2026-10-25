@@ -64,7 +64,7 @@
 				type="button"
 				variant="ghost"
 				size="xs"
-				class="h-5 px-1 text-xs text-muted-foreground"
+				class="h-5 px-1 text-sm text-muted-foreground"
 				aria-label={`Reset ${label} range`}
 				onclick={reset}>Reset</Button
 			>{/if}
@@ -104,7 +104,7 @@
 			{/snippet}
 		</Slider.Root>
 		<div
-			class="flex justify-between text-[0.65rem] tabular-nums text-muted-foreground"
+			class="flex justify-between text-sm tabular-nums text-muted-foreground"
 			aria-hidden="true"
 		>
 			<span>0</span><span>{limit.toLocaleString()}+</span>
@@ -123,7 +123,7 @@
 			placeholder="Min"
 			class="min-w-0"
 		/>
-		<span class="text-xs text-muted-foreground" aria-hidden="true">–</span>
+		<span class="text-sm text-muted-foreground" aria-hidden="true">–</span>
 		<Input
 			type="number"
 			min="0"

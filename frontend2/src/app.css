@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@bprogress/core/css";
 @import "./lib/styles/ui.css";
 @import "@fontsource-variable/geist";
 @import "@fontsource/barlow-condensed/latin-700-italic.css";
@@ -81,7 +82,7 @@
   --radius: 0.2rem;
   --brand-yellow: oklch(0.852 0.199 91.936);
   --emphasis: var(--brand-yellow);
-  --data-font-size: 0.875rem;
+  --data-font-size: var(--text-sm);
   --data-row-height: 2.5rem;
   --control-height: 2rem;
   --panel-cut: 1.125rem;
@@ -159,7 +160,7 @@
     cursor: pointer;
   }
   body {
-    @apply bg-background font-sans text-foreground;
+    @apply bg-background font-sans text-sm text-foreground;
   }
   html {
     color-scheme: light;
@@ -169,7 +170,7 @@
   }
 }
 
-/* Opt-in first pass: the combination chart adopts the new density and hierarchy. */
+/* Shared heading hierarchy; body and data text use the text-sm scale. */
 .racing-page-title {
   font-family: var(--font-heading);
   font-size: 1.875rem;

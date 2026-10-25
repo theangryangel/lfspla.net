@@ -1,4 +1,8 @@
 <script lang="ts">
+	import TimerIcon from '@lucide/svelte/icons/timer';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
+	import KeyRoundIcon from '@lucide/svelte/icons/key-round';
+	import WebhookIcon from '@lucide/svelte/icons/webhook';
 	import type { LayoutProps } from './$types';
 	import { page } from '$app/state';
 	import PageHeading from '#lib/components/app/PageHeading.svelte';
@@ -10,22 +14,26 @@
 	const sections = [
 		{
 			label: 'My hotlaps',
+			icon: TimerIcon,
 			to: '/account/hotlaps',
 			description: 'All your hotlap submissions across every era.',
 		},
 		{
 			label: 'Personal settings',
+			icon: SettingsIcon,
 			to: '/account/personal',
 			description: 'Manage the preferences for your LFS account.',
 		},
 		{
 			label: 'Personal access tokens',
+			icon: KeyRoundIcon,
 			to: '/account/tokens',
 			description:
 				'Create credentials for tools that use the API on your behalf. Keep them private.',
 		},
 		{
 			label: 'Webhooks',
+			icon: WebhookIcon,
 			to: '/account/webhooks',
 			description:
 				'Choose which notifications to receive and where to send them.',
