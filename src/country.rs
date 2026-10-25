@@ -7,7 +7,7 @@ use sea_orm::{
     sea_query::{ArrayType, ColumnType, Nullable, StringLen, Value, ValueType, ValueTypeErr},
 };
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// An ISO 3166-1 country, stored as its alpha-2 code.
 ///
@@ -19,6 +19,16 @@ impl CountryCode {
     /// The alpha-2 code, as stored and as sent over the wire.
     pub fn as_str(&self) -> &'static str {
         self.0.alpha2
+    }
+}
+
+/// Accepts ISO alpha-2 query values in either case.
+impl<'de> Deserialize<'de> for CountryCode {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = String::deserialize(deserializer)?;
+        Country::from_alpha2(value.trim().to_ascii_uppercase())
+            .map(Self)
+            .map_err(serde::de::Error::custom)
     }
 }
 

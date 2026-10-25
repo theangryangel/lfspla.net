@@ -54,6 +54,8 @@ pub struct Model {
     #[sea_orm(has_many)]
     pub era_badges: HasMany<crate::models::badge::Entity>,
     #[sea_orm(has_many)]
+    pub authored_vehicles: HasMany<crate::models::vehicle::Entity>,
+    #[sea_orm(has_many)]
     pub hotlaps: HasMany<crate::models::hotlap::Entity>,
     #[sea_orm(has_many)]
     pub personal_access_tokens: HasMany<crate::models::personal_access_token::Entity>,

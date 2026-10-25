@@ -74,6 +74,7 @@ impl VehicleDefinition {
                     version: Set(None),
                     class: Set(None),
                     author_username: Set(None),
+                    author_player_id: Set(None),
                     work_in_progress: Set(false),
                     published_at: Set(None),
                     metadata: Set(None),

@@ -132,7 +132,7 @@ export class VehiclesClient {
   public listVehicles(
     request: LfsplanetApi.ListVehiclesRequest = {},
     requestOptions?: VehiclesClient.RequestOptions,
-  ): core.HttpResponsePromise<LfsplanetApi.PaginatedResponseVehicleSummary> {
+  ): core.HttpResponsePromise<LfsplanetApi.PaginatedResponseExplorerVehicle> {
     return core.HttpResponsePromise.fromPromise(
       this.__listVehicles(request, requestOptions),
     );
@@ -142,11 +142,51 @@ export class VehiclesClient {
     request: LfsplanetApi.ListVehiclesRequest = {},
     requestOptions?: VehiclesClient.RequestOptions,
   ): Promise<
-    core.WithRawResponse<LfsplanetApi.PaginatedResponseVehicleSummary>
+    core.WithRawResponse<LfsplanetApi.PaginatedResponseExplorerVehicle>
   > {
-    const { q, page, per_page: perPage } = request;
+    const {
+      q,
+      kind,
+      class: class_,
+      author,
+      approved,
+      electric,
+      drive,
+      transmission,
+      min_power_kw: minPowerKw,
+      max_power_kw: maxPowerKw,
+      min_torque_nm: minTorqueNm,
+      max_torque_nm: maxTorqueNm,
+      min_mass_kg: minMassKg,
+      max_mass_kg: maxMassKg,
+      min_displacement_cc: minDisplacementCc,
+      max_displacement_cc: maxDisplacementCc,
+      min_power_weight: minPowerWeight,
+      max_power_weight: maxPowerWeight,
+      sort,
+      page,
+      per_page: perPage,
+    } = request;
     const _queryParams: Record<string, unknown> = {
       q,
+      kind: kind != null ? kind : undefined,
+      class: class_ != null ? class_ : undefined,
+      author,
+      approved,
+      electric,
+      drive: drive != null ? drive : undefined,
+      transmission: transmission != null ? transmission : undefined,
+      min_power_kw: minPowerKw,
+      max_power_kw: maxPowerKw,
+      min_torque_nm: minTorqueNm,
+      max_torque_nm: maxTorqueNm,
+      min_mass_kg: minMassKg,
+      max_mass_kg: maxMassKg,
+      min_displacement_cc: minDisplacementCc,
+      max_displacement_cc: maxDisplacementCc,
+      min_power_weight: minPowerWeight,
+      max_power_weight: maxPowerWeight,
+      sort: sort != null ? sort : undefined,
       page,
       per_page: perPage,
     };
@@ -178,7 +218,7 @@ export class VehiclesClient {
     });
     if (_response.ok) {
       return {
-        data: _response.body as LfsplanetApi.PaginatedResponseVehicleSummary,
+        data: _response.body as LfsplanetApi.PaginatedResponseExplorerVehicle,
         rawResponse: _response.rawResponse,
       };
     }

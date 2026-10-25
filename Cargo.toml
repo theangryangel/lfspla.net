@@ -68,7 +68,7 @@ itertools = "0.15"
 lfsplanet_game_version_req = { workspace = true, features = ["sea-orm"] }
 lfsplanet_jobs = { path = "crates/lfsplanet_jobs" }
 lfsplanet_lfs = { path = "crates/lfsplanet_lfs" }
-lfsplanet_lfs_api = { path = "crates/lfsplanet_lfs_api" }
+lfsplanet_lfs_api = { path = "crates/lfsplanet_lfs_api", features = ["openapi", "sea-orm"] }
 lfsplanet_lfs_leagues = { path = "crates/lfsplanet_lfs_leagues" }
 lfsplanet_spr = { path = "crates/lfsplanet_spr" }
 lfsplanet_pubstat = { path = "crates/lfsplanet_pubstat" }

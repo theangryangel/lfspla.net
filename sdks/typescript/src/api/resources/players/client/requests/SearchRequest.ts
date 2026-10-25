@@ -2,11 +2,17 @@
 
 /**
  * @example
- *     {
- *         q: "q"
- *     }
+ *     {}
  */
 export interface SearchRequest {
   /** Username or display name search text. */
-  q: string;
+  q?: string;
+  /** ISO alpha-2 country code; matches the ranking country, not a display flag. */
+  country?: string;
+  /** Whether the player authors an available vehicle mod. */
+  vehicle_author?: boolean;
+  /** One-based page number; defaults to 1. */
+  page?: number;
+  /** Results per page, from 1 to 100; defaults to 50. */
+  per_page?: number;
 }

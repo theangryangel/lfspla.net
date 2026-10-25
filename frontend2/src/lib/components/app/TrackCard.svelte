@@ -26,8 +26,8 @@
 				this={onSelect ? 'span' : 'h2'}
 				class="block truncate text-sm font-medium">{track.name}</svelte:element
 			>
-			<div class="font-mono text-xs text-muted-foreground">{track.code}</div>
-			{#if !onSelect}<div class="truncate text-xs text-muted-foreground">
+			<div class="font-mono text-sm text-muted-foreground">{track.code}</div>
+			{#if !onSelect}<div class="truncate text-sm text-muted-foreground">
 					{track.location.name}
 				</div>{/if}
 		</div>

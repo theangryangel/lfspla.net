@@ -108,14 +108,17 @@
 			</Button>
 		{/snippet}
 	</Popover.Trigger>
-	<Popover.Content class="w-56 p-0">
-		<Command.Root shouldFilter={!search}>
+	<Popover.Content
+		align="start"
+		class="w-(--bits-popover-anchor-width) rounded-sm p-0"
+	>
+		<Command.Root shouldFilter={!search} class="p-0">
 			<Command.Input
 				{placeholder}
 				bind:value={term}
 				oninput={(e) => onSearch(e.currentTarget.value)}
 			/>
-			<Command.List>
+			<Command.List class="p-1">
 				{#if pending}
 					<Command.Loading>
 						<p class="py-6 text-center text-sm text-muted-foreground">
@@ -137,7 +140,7 @@
 						>
 							<span class="truncate">{option.label}</span>
 							{#if option.hint}
-								<span class="text-xs text-muted-foreground">{option.hint}</span>
+								<span class="text-sm text-muted-foreground">{option.hint}</span>
 							{/if}
 						</Command.Item>
 					{/each}

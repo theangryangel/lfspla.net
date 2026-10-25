@@ -103,7 +103,7 @@
 	</div>
 	{#if !minimized}
 		<div class="overflow-x-auto">
-			<table class="w-full min-w-[22rem] table-fixed text-xs">
+			<table class="w-full min-w-[22rem] table-fixed text-sm">
 				<caption class="sr-only"
 					>Relative times measure each segment; absolute times measure elapsed
 					time from the start. Differences are first minus second relative time.
@@ -114,7 +114,7 @@
 						{#each [0, 1] as index}
 							{#if index === 1}<th
 									scope="col"
-									class="pb-2 text-center text-xs font-medium text-muted-foreground"
+									class="pb-2 text-center text-sm font-medium text-muted-foreground"
 									title="First selected relative time minus second selected relative time"
 									>Diff</th
 								>{/if}
@@ -143,7 +143,7 @@
 											><X class="size-3.5" aria-hidden="true" /></Button
 										>
 									</div>
-								{:else}<span class="text-xs text-muted-foreground"
+								{:else}<span class="text-sm text-muted-foreground"
 										>Select a second lap</span
 									>{/if}
 							</th>

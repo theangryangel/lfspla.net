@@ -284,7 +284,7 @@
 									>
 									{#if hotlap.submission?.error_detail}
 										<p
-											class="max-w-xs whitespace-normal text-xs text-muted-foreground"
+											class="max-w-xs whitespace-normal text-sm text-muted-foreground"
 										>
 											{hotlap.submission.error_detail}
 										</p>

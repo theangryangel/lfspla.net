@@ -128,27 +128,39 @@ export class PlayersClient {
    * @param {LfsplanetApi.SearchRequest} request
    * @param {PlayersClient.RequestOptions} requestOptions - Request-specific configuration.
    *
+   * @throws {@link LfsplanetApi.BadRequestError}
+   *
    * @example
-   *     await client.players.search({
-   *         q: "q"
-   *     })
+   *     await client.players.search()
    */
   public search(
-    request: LfsplanetApi.SearchRequest,
+    request: LfsplanetApi.SearchRequest = {},
     requestOptions?: PlayersClient.RequestOptions,
-  ): core.HttpResponsePromise<LfsplanetApi.ListResponsePlayerSummary> {
+  ): core.HttpResponsePromise<LfsplanetApi.PaginatedResponsePlayerSummary> {
     return core.HttpResponsePromise.fromPromise(
       this.__search(request, requestOptions),
     );
   }
 
   private async __search(
-    request: LfsplanetApi.SearchRequest,
+    request: LfsplanetApi.SearchRequest = {},
     requestOptions?: PlayersClient.RequestOptions,
-  ): Promise<core.WithRawResponse<LfsplanetApi.ListResponsePlayerSummary>> {
-    const { q } = request;
+  ): Promise<
+    core.WithRawResponse<LfsplanetApi.PaginatedResponsePlayerSummary>
+  > {
+    const {
+      q,
+      country,
+      vehicle_author: vehicleAuthor,
+      page,
+      per_page: perPage,
+    } = request;
     const _queryParams: Record<string, unknown> = {
       q,
+      country,
+      vehicle_author: vehicleAuthor,
+      page,
+      per_page: perPage,
     };
     let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
       this._options?.headers,
@@ -178,17 +190,25 @@ export class PlayersClient {
     });
     if (_response.ok) {
       return {
-        data: _response.body as LfsplanetApi.ListResponsePlayerSummary,
+        data: _response.body as LfsplanetApi.PaginatedResponsePlayerSummary,
         rawResponse: _response.rawResponse,
       };
     }
 
     if (_response.error.reason === "status-code") {
-      throw new errors.LfsplanetApiError({
-        statusCode: _response.error.statusCode,
-        body: _response.error.body,
-        rawResponse: _response.rawResponse,
-      });
+      switch (_response.error.statusCode) {
+        case 400:
+          throw new LfsplanetApi.BadRequestError(
+            _response.error.body as LfsplanetApi.ErrorResponse,
+            _response.rawResponse,
+          );
+        default:
+          throw new errors.LfsplanetApiError({
+            statusCode: _response.error.statusCode,
+            body: _response.error.body,
+            rawResponse: _response.rawResponse,
+          });
+      }
     }
 
     return handleNonStatusCodeError(

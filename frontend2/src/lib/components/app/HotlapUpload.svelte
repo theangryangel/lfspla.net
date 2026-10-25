@@ -2,6 +2,7 @@
 	import { LfsplanetApiError } from '@lfsplanet/sdk';
 	import {
 		apiErrorMessage,
+		createApi,
 		apiErrorBody,
 		apiErrorRetryable,
 		type HotlapState,
@@ -32,6 +33,7 @@
 	import { useSession } from '#lib/session.svelte.js';
 
 	const api = useApi();
+	const backgroundApi = createApi(undefined, { progress: false });
 
 	let {
 		era,
@@ -102,7 +104,7 @@
 		const results = await Promise.all(
 			pending.map(async (item) => {
 				try {
-					const detail = await api.hotlaps.getHotlap({
+					const detail = await backgroundApi.hotlaps.getHotlap({
 						hotlap: item.hotlap!.id,
 					});
 
@@ -380,7 +382,7 @@
 							? 'Drop your replays here'
 							: 'Drop SPR files here or choose files'}
 					</span>
-					<span class="text-xs text-muted-foreground">
+					<span class="text-sm text-muted-foreground">
 						One or more single-player replays - {fileSize(maxBytes)} each at most
 					</span>
 					<input
@@ -412,7 +414,7 @@
 								{replays(items.length)} selected
 							</p>
 							{#if pendingUploads().length}
-								<p class="text-xs text-muted-foreground" aria-live="polite">
+								<p class="text-sm text-muted-foreground" aria-live="polite">
 									Refreshing pending uploads in {refreshCountdown}s
 								</p>
 							{/if}
@@ -460,7 +462,7 @@
 										>
 											{item.file.name}
 										</p>
-										<p class="mt-0.5 text-xs text-muted-foreground">
+										<p class="mt-0.5 text-sm text-muted-foreground">
 											{#if item.status === 'accepted' && item.hotlap}
 												{eraTitle(item.hotlap.era_id)} - {item.hotlap.track} - {item
 													.hotlap.vehicle ??

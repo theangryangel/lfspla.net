@@ -2,9 +2,13 @@
 
 mod oauth;
 mod vehicle_mods;
+mod vehicle_types;
+pub use vehicle_types::{Drivetrain, EngineLayout, Transmission, VehicleClass};
 
 pub use oauth::{LfsAccount, OAuthProvider};
-pub use vehicle_mods::{CoverImage, RemoteVehicleMod};
+pub use vehicle_mods::{
+    CoverImage, RemoteVehicleMod, VehicleModMetadata, VehicleModSpecifications,
+};
 
 use std::{sync::Arc, time::Duration};
 
