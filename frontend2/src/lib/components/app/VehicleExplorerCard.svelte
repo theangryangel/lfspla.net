@@ -1,6 +1,4 @@
 <script lang="ts">
-	import StarIcon from '@lucide/svelte/icons/star';
-	import DownloadIcon from '@lucide/svelte/icons/download';
 	import type { ExplorerVehicle } from '#lib/api.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import {
@@ -15,7 +13,10 @@
 	const specs = $derived(vehicle.specifications);
 	const number = (value: number) => Math.round(value).toLocaleString();
 	const details = $derived([
-		['Class', vehicleClasses[vehicle.class ?? -1]],
+		[
+			'Class',
+			vehicle.class != null ? vehicleClasses[vehicle.class] : undefined,
+		],
 		[
 			'Engine',
 			vehicle.electric
@@ -26,8 +27,13 @@
 						? 'Combustion'
 						: null,
 		],
-		['Drivetrain', drives[specs?.drive ?? -1]],
-		['Gearbox', transmissions[specs?.transmission ?? -1]],
+		['Drivetrain', specs?.drive != null ? drives[specs.drive] : undefined],
+		[
+			'Gearbox',
+			specs?.transmission != null
+				? transmissions[specs.transmission]
+				: undefined,
+		],
 		...(specs
 			? [
 					[
@@ -68,7 +74,9 @@
 			</p>
 			{#if vehicle.author}<p class="mt-1 break-words text-muted-foreground">
 					By <a
-						href="/vehicles?author={encodeURIComponent(vehicle.author)}"
+						href={vehicle.author_player_id != null
+							? `/drivers/${encodeURIComponent(vehicle.author)}`
+							: `/vehicles?author=${encodeURIComponent(vehicle.author)}`}
 						class="hover:underline">{vehicle.author}</a
 					>
 				</p>{/if}
@@ -79,7 +87,7 @@
 			{#if vehicle.approved}<Badge variant="secondary">Approved</Badge>{/if}
 		</div>
 		{#if details.some(([, value]) => value != null)}
-			<dl class="-mx-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t px-3 py-2">
+			<dl class="-mx-3 grid grid-cols-2 gap-x-3 gap-y-2 px-3 py-2">
 				{#each details as [label, value]}
 					{#if value != null}<div class="min-w-0">
 							<dt class="text-muted-foreground">{label}</dt>
@@ -93,24 +101,5 @@
 		{#if !specs}<p class="text-muted-foreground">
 				Specifications unavailable
 			</p>{/if}
-		{#if vehicle.rating != null || vehicle.downloads != null}
-			<div
-				class="-mx-3 mt-auto flex flex-wrap justify-between gap-x-3 gap-y-1 border-t px-3 pt-3 text-muted-foreground"
-			>
-				{#if vehicle.rating != null}
-					<span class="inline-flex items-center gap-1.5">
-						<StarIcon class="size-3.5 shrink-0" aria-hidden="true" />
-						<span class="sr-only">Rating</span>
-						{vehicle.rating.toFixed(2)} ({vehicle.num_ratings ?? 0} ratings)
-					</span>
-				{/if}
-				{#if vehicle.downloads != null}
-					<span class="inline-flex items-center gap-1.5">
-						<DownloadIcon class="size-3.5 shrink-0" aria-hidden="true" />
-						{number(vehicle.downloads)} downloads
-					</span>
-				{/if}
-			</div>
-		{/if}
 	</div>
 </article>

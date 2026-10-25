@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{Error, LfsClient, endpoints};
+use crate::{Drivetrain, EngineLayout, Error, LfsClient, Transmission, VehicleClass, endpoints};
 
 /// One current mod record returned by the official catalogue.
 #[derive(Debug, Clone)]
@@ -11,7 +11,7 @@ pub struct RemoteVehicleMod {
     pub id: String,
     pub name: String,
     pub version: u16,
-    pub class: Option<u8>,
+    pub class: Option<VehicleClass>,
     pub author_username: Option<String>,
     pub work_in_progress: bool,
     pub is_private: bool,
@@ -115,7 +115,8 @@ pub struct VehicleModMetadata {
     pub id: String,
     pub name: String,
     pub version: u16,
-    pub class: Option<u8>,
+    #[serde(default, with = "crate::vehicle_types::optional_numeric")]
+    pub class: Option<VehicleClass>,
     #[serde(rename = "userName")]
     pub user_name: Option<String>,
     pub wip: bool,
@@ -149,9 +150,12 @@ pub struct VehicleModMetadata {
 pub struct VehicleModSpecifications {
     pub ice_cc: f64,
     pub ice_num_cylinders: u8,
-    pub ice_layout: u8,
-    pub drive: u8,
-    pub shift_type: u8,
+    #[serde(with = "crate::vehicle_types::numeric")]
+    pub ice_layout: EngineLayout,
+    #[serde(with = "crate::vehicle_types::numeric")]
+    pub drive: Drivetrain,
+    #[serde(with = "crate::vehicle_types::numeric")]
+    pub shift_type: Transmission,
     pub power: f64,
     pub max_power_rpm: u32,
     pub torque: f64,
@@ -177,8 +181,6 @@ impl VehicleModMetadata {
     }
 }
 
-/// Highest vehicle class the official catalogue assigns.
-const MAX_VEHICLE_CLASS: u8 = 14;
 /// Mod versions are the three-digit revision LFS writes into replay metadata.
 const MAX_MOD_VERSION: u16 = 999;
 
@@ -208,9 +210,6 @@ fn parse_catalogue(entries: Vec<serde_json::Value>) -> Result<Vec<RemoteVehicleM
                     "invalid mod version {}",
                     entry.version
                 )));
-            }
-            if entry.class.is_some_and(|class| class > MAX_VEHICLE_CLASS) {
-                return Err(Error::InvalidCatalogue("invalid vehicle class".to_owned()));
             }
 
             Ok(RemoteVehicleMod {
@@ -363,6 +362,19 @@ mod tests {
         detail["vehicle"]["iceCc"] = 0.into();
         assert!(parse_detail("41A2A0", detail.clone()).is_ok());
         assert!(parse_detail("ABCDEF", detail).is_err());
+    }
+
+    #[test]
+    fn rejects_unknown_categorical_codes() {
+        let mut invalid = metadata();
+        invalid["class"] = 15.into();
+        assert!(parse_catalogue(vec![invalid]).is_err());
+        for (key, value) in [("iceLayout", 3), ("drive", 4), ("shiftType", 8)] {
+            let mut invalid = metadata();
+            invalid["vehicle"] = specifications();
+            invalid["vehicle"][key] = value.into();
+            assert!(parse_detail("41A2A0", invalid).is_err(), "invalid {key}");
+        }
     }
 
     #[test]

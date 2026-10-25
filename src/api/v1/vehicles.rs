@@ -235,7 +235,7 @@ mod tests {
                 id: "ABCDEF".to_owned(),
                 name: "Test vehicle".to_owned(),
                 version: 1,
-                class: Some(2),
+                class: Some(lfsplanet_lfs_api::VehicleClass::SaloonCar),
                 author_username: Some("Rubie".to_owned()),
                 work_in_progress: false,
                 is_private: false,
@@ -288,6 +288,16 @@ mod tests {
         assert_eq!(found["pagination"]["total_items"], 1);
         assert_eq!(found["items"][0]["specifications"]["power_kw"], 160.0);
         assert_eq!(found["items"][0]["author"], "Rubie");
+        assert!(found["items"][0]["author_player_id"].as_i64().is_some());
+        assert_eq!(found["items"][0]["class"], "saloon_car");
+        assert_eq!(
+            found["items"][0]["specifications"]["drive"],
+            "rear_wheel_drive"
+        );
+        assert_eq!(
+            found["items"][0]["specifications"]["transmission"],
+            "h_pattern"
+        );
         assert!(found["items"][0].get("metadata").is_none());
         let found = body(request(state.clone(), "?q=TEST").await).await;
         assert_eq!(found["pagination"]["total_items"], 1);
@@ -303,11 +313,11 @@ mod tests {
         }
 
         let filtered = body(request(state.clone(),
-            "?class=2&author=rubie&approved=true&electric=false&drive=1&transmission=1&min_power_kw=150&max_mass_kg=1500&sort=power"
+            "?class=saloon_car&author=rubie&approved=true&electric=false&drive=rear_wheel_drive&transmission=h_pattern&min_power_kw=150&max_mass_kg=1500&sort=power"
         ).await).await;
         assert_eq!(filtered["pagination"]["total_items"], 1);
         for query in [
-            "?drive=2",
+            "?drive=front_wheel_drive",
             "?max_power_kw=100",
             "?min_mass_kg=1500",
             "?electric=true",
@@ -318,6 +328,27 @@ mod tests {
                 0
             );
         }
+        // Author filtering follows the indexed player identity, not a cached name.
+        Entity::update_many()
+            .filter(Column::Id.eq("ABCDEF"))
+            .col_expr(
+                Column::AuthorUsername,
+                sea_orm::sea_query::Expr::value("outdated-name"),
+            )
+            .exec(&state.database)
+            .await?;
+        assert_eq!(
+            body(request(state.clone(), "?author=%20RUBIE%20").await).await["pagination"]["total_items"],
+            1
+        );
+        assert_eq!(
+            body(request(state.clone(), "?author=outdated-name").await).await["pagination"]["total_items"],
+            0
+        );
+        assert_eq!(
+            body(request(state.clone(), "?author=missing").await).await["pagination"]["total_items"],
+            0
+        );
         // Unknown specs do not match ranges; malformed JSON numbers also stay unknown.
         Entity::update_many()
             .filter(Column::Id.eq("ABCDEF"))

@@ -3,7 +3,6 @@
 	import Empty from '#lib/components/app/Empty.svelte';
 	import VehicleExplorerCard from '#lib/components/app/VehicleExplorerCard.svelte';
 	import VehicleFilterBar from '#lib/components/app/VehicleFilterBar.svelte';
-	import CornerRibbon from '#lib/components/app/CornerRibbon.svelte';
 	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
 	import PageHeading from '#lib/components/app/PageHeading.svelte';
 	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
@@ -19,7 +18,6 @@
 
 <main id="main" class="w-full min-w-0 flex-1">
 	<PageIdentity label="Vehicle directory identity">
-		{#snippet overlay()}<CornerRibbon />{/snippet}
 		<div class="py-2">
 			<PageHeading title="Vehicles"
 				>Explore standard vehicles and vehicle mods.</PageHeading
@@ -35,7 +33,7 @@
 		>
 			{#if data.vehicles.items.length}
 				<ul
-					class="grid grid-cols-1 gap-3 min-[560px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6"
+					class="grid grid-cols-1 gap-3 min-[560px]:grid-cols-3 lg:grid-cols-6"
 				>
 					{#each data.vehicles.items as vehicle (vehicle.code)}<li
 							class="min-w-0"

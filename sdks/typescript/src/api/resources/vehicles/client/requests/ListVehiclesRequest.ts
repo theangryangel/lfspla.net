@@ -10,19 +10,14 @@ export interface ListVehiclesRequest {
   /** Case-insensitive vehicle code or name search. */
   q?: string;
   kind?: LfsplanetApi.ListVehiclesRequestKind;
-  /** LFS vehicle class (0-14). Vehicles without a class do not match. */
-  class?: number;
+  /** Vehicle category. Vehicles without a class do not match. */
+  class?: LfsplanetApi.VehicleClass;
   /** Case-insensitive exact uploader username. */
   author?: string;
   approved?: boolean;
   electric?: boolean;
-  /** 0: none, 1: RWD, 2: FWD, 3: AWD. */
-  drive?: number;
-  /**
-   * 0: none, 1: H-pattern, 2: motorbike, 3: sequential, 4: sequential with cut,
-   * 5: paddle, 6: electric, 7: centrifugal clutch.
-   */
-  transmission?: number;
+  drive?: LfsplanetApi.Drivetrain;
+  transmission?: LfsplanetApi.Transmission;
   min_power_kw?: number;
   max_power_kw?: number;
   min_torque_nm?: number;
@@ -34,7 +29,10 @@ export interface ListVehiclesRequest {
   /** Power to weight in watts per kilogram. */
   min_power_weight?: number;
   max_power_weight?: number;
-  /** Descending except mass (lightest first); unknown values sort last. */
+  /**
+   * Descending except mass (lightest first); unknown values sort last.
+   * Rating blends the vehicle average with the catalogue average using 20 prior votes.
+   */
   sort?: LfsplanetApi.ListVehiclesRequestSort;
   /** One-based page number; defaults to 1. */
   page?: number;

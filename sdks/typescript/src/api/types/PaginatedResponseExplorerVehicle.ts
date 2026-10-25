@@ -17,7 +17,9 @@ export namespace PaginatedResponseExplorerVehicle {
     export interface Item extends LfsplanetApi.VehicleSummary {
       approved?: (boolean | null) | undefined;
       author?: (string | null) | undefined;
-      class?: (number | null) | undefined;
+      /** Player identity linked to the upstream author username, when available. */
+      author_player_id?: (number | null) | undefined;
+      class?: (LfsplanetApi.VehicleClass | null) | undefined;
       downloads?: (number | null) | undefined;
       electric?: (boolean | null) | undefined;
       num_ratings?: (number | null) | undefined;

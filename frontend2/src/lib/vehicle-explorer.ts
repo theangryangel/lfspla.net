@@ -1,32 +1,43 @@
-export const vehicleClasses = [
-  "Object",
-  "Touring car",
-  "Saloon car",
-  "Buggy",
-  "Formula",
-  "GT",
-  "Kart",
-  "Bike",
-  "Van",
-  "Truck",
-  "Formula 1",
-  "Formula SAE",
-  "Bus",
-  "Prototype",
-];
-export const drives = ["None", "RWD", "FWD", "AWD"];
-export const transmissions = [
-  "None",
-  "H-pattern",
-  "Motorbike",
-  "Sequential",
-  "Sequential with cut",
-  "Paddle shift",
-  "Electric motor",
-  "Centrifugal clutch",
-];
-const choices = (labels: string[]): [string, string][] =>
-  labels.map((label, i) => [String(i), label]);
+import { VehicleClass, Drivetrain, Transmission } from "@lfsplanet/sdk/types";
+
+export const vehicleClasses = {
+  [VehicleClass.Object]: "Object",
+  [VehicleClass.TouringCar]: "Touring car",
+  [VehicleClass.SaloonCar]: "Saloon car",
+  [VehicleClass.Buggy]: "Buggy",
+  [VehicleClass.Formula]: "Formula",
+  [VehicleClass.Gt]: "GT",
+  [VehicleClass.Kart]: "Kart",
+  [VehicleClass.Bike]: "Bike",
+  [VehicleClass.Van]: "Van",
+  [VehicleClass.Truck]: "Truck",
+  [VehicleClass.Formula1]: "Formula 1",
+  [VehicleClass.FormulaSae]: "Formula SAE",
+  [VehicleClass.Bus]: "Bus",
+  [VehicleClass.Prototype]: "Prototype",
+  [VehicleClass.Reserved14]: "Class 14",
+} satisfies Record<VehicleClass, string>;
+
+export const drives = {
+  [Drivetrain.None]: "None",
+  [Drivetrain.RearWheelDrive]: "RWD",
+  [Drivetrain.FrontWheelDrive]: "FWD",
+  [Drivetrain.AllWheelDrive]: "AWD",
+} satisfies Record<Drivetrain, string>;
+
+export const transmissions = {
+  [Transmission.None]: "None",
+  [Transmission.HPattern]: "H-pattern",
+  [Transmission.Motorbike]: "Motorbike",
+  [Transmission.Sequential]: "Sequential",
+  [Transmission.SequentialWithCut]: "Sequential with cut",
+  [Transmission.Paddle]: "Paddle shift",
+  [Transmission.Electric]: "Electric motor",
+  [Transmission.CentrifugalClutch]: "Centrifugal clutch",
+} satisfies Record<Transmission, string>;
+
+const choices = (labels: Record<string, string>): [string, string][] =>
+  Object.entries(labels);
 export const selects: {
   key: string;
   label: string;

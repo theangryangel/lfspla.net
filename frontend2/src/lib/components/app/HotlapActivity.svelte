@@ -230,13 +230,15 @@
 								activeColumn={column}
 								{order}
 							/>
-							<SortableHead
-								column="driver"
-								label="Driver"
-								activeColumn={column}
-								{order}
-							/>
-							<Table.Head>Era</Table.Head>
+							{#if !lfsUsername}
+								<SortableHead
+									column="driver"
+									label="Driver"
+									activeColumn={column}
+									{order}
+								/>
+							{/if}
+							{#if !eraId}<Table.Head>Era</Table.Head>{/if}
 							<Table.Head>Track / Vehicle</Table.Head>
 							<SortableHead
 								column="rank"
@@ -245,14 +247,14 @@
 								activeColumn={column}
 								{order}
 							/>
-							{#if showContributions}<Table.Head>Contributes to</Table.Head
-								>{/if}
 							<SortableHead
 								column="lap_time"
 								label="Lap time"
 								activeColumn={column}
 								{order}
 							/>
+							{#if showContributions}<Table.Head>Contributes to</Table.Head
+								>{/if}
 							{#if view === 'mine'}<Table.Head>State</Table.Head>{/if}
 						</Table.Row>
 					</Table.Header>
@@ -263,32 +265,36 @@
 								<Table.Cell class="text-muted-foreground">
 									<DateTime value={lap.created_at} />
 								</Table.Cell>
-								<Table.Cell>
-									<div class="flex w-max items-center gap-1">
-										<Flag
-											code={lap.player.flag_code}
-											fallback={lap.player.country_code}
-										/>
-										<a
-											class="shrink-0 whitespace-nowrap font-medium hover:underline"
-											href="/drivers/{encodeURIComponent(
-												lap.player.lfs_username,
-											)}">{lap.player.display_name}</a
-										>
-										{#each lap.player.badges ?? [] as badge (badge.id)}
-											<PlayerBadge {badge} />
-										{/each}
-										<CompareButton driver={lap.player} />
-									</div>
-								</Table.Cell>
-								<Table.Cell>
-									<a class="hover:underline" href={`/hotlaps/${lap.era_id}`}>
-										<Badge variant="secondary"
-											>{eras.find((era) => era.id === lap.era_id)?.title ??
-												lap.era_id}</Badge
-										>
-									</a>
-								</Table.Cell>
+								{#if !lfsUsername}
+									<Table.Cell>
+										<div class="flex w-max items-center gap-1">
+											<Flag
+												code={lap.player.flag_code}
+												fallback={lap.player.country_code}
+											/>
+											<a
+												class="shrink-0 whitespace-nowrap font-medium hover:underline"
+												href="/drivers/{encodeURIComponent(
+													lap.player.lfs_username,
+												)}">{lap.player.display_name}</a
+											>
+											{#each lap.player.badges ?? [] as badge (badge.id)}
+												<PlayerBadge {badge} />
+											{/each}
+											<CompareButton driver={lap.player} />
+										</div>
+									</Table.Cell>
+								{/if}
+								{#if !eraId}
+									<Table.Cell>
+										<a class="hover:underline" href={`/hotlaps/${lap.era_id}`}>
+											<Badge variant="secondary"
+												>{eras.find((era) => era.id === lap.era_id)?.title ??
+													lap.era_id}</Badge
+											>
+										</a>
+									</Table.Cell>
+								{/if}
 								<Table.Cell>
 									{#if lap.vehicle}
 										<a
@@ -299,8 +305,14 @@
 									{:else}{lap.track} / -{/if}
 								</Table.Cell>
 								<Table.Cell
-									class="tabular-nums {isRecord ? 'text-time-best' : ''}"
-									>{lap.position ?? '-'}</Table.Cell
+									class="tabular-nums {isRecord
+										? 'font-semibold text-time-best'
+										: ''}">{lap.position ?? '-'}</Table.Cell
+								>
+								<Table.Cell
+									class="font-mono tabular-nums {isRecord
+										? 'font-semibold text-time-best'
+										: ''}">{lapTime(lap.lap_time_ms)}</Table.Cell
 								>
 								{#if showContributions}
 									<Table.Cell>
@@ -315,11 +327,6 @@
 										</div>
 									</Table.Cell>
 								{/if}
-								<Table.Cell
-									class="font-mono tabular-nums {isRecord
-										? 'font-semibold text-time-best'
-										: ''}">{lapTime(lap.lap_time_ms)}</Table.Cell
-								>
 								{#if view === 'mine'}<Table.Cell class="capitalize"
 										>{lap.state.replace('_', ' ')}</Table.Cell
 									>{/if}

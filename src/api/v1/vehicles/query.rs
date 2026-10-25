@@ -1,11 +1,16 @@
 //! URL filters for the explorer; specifications remain in the upstream JSONB.
 use crate::{
     api::ApiError,
-    models::vehicle::{Column, Entity, VehicleOrder},
+    models::{
+        player::{self, PlayerFilter},
+        vehicle::{Column, Entity, VehicleOrder},
+    },
 };
 use axum::http::StatusCode;
+use lfsplanet_lfs_api::{Drivetrain, Transmission, VehicleClass};
 use sea_orm::{
-    ColumnTrait, ExprTrait, Order, QueryFilter, QueryOrder, Select,
+    ColumnTrait, EntityTrait, ExprTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
+    Select,
     sea_query::{Expr, NullOrdering, SimpleExpr},
 };
 use serde::Deserialize;
@@ -38,17 +43,14 @@ pub(crate) struct VehicleQuery {
     pub q: Option<String>,
     #[param(inline)]
     pub kind: Option<VehicleKind>,
-    /// LFS vehicle class (0-14). Vehicles without a class do not match.
-    pub class: Option<u8>,
+    /// Vehicle category. Vehicles without a class do not match.
+    pub class: Option<VehicleClass>,
     /// Case-insensitive exact uploader username.
     pub author: Option<String>,
     pub approved: Option<bool>,
     pub electric: Option<bool>,
-    /// 0: none, 1: RWD, 2: FWD, 3: AWD.
-    pub drive: Option<u8>,
-    /// 0: none, 1: H-pattern, 2: motorbike, 3: sequential, 4: sequential with cut,
-    /// 5: paddle, 6: electric, 7: centrifugal clutch.
-    pub transmission: Option<u8>,
+    pub drive: Option<Drivetrain>,
+    pub transmission: Option<Transmission>,
     pub min_power_kw: Option<f64>,
     pub max_power_kw: Option<f64>,
     pub min_torque_nm: Option<f64>,
@@ -69,19 +71,16 @@ pub(crate) struct VehicleQuery {
 
 impl VehicleQuery {
     pub fn validate(&self) -> Result<(), ApiError> {
-        let invalid = self.class.is_some_and(|v| v > 14)
-            || self.drive.is_some_and(|v| v > 3)
-            || self.transmission.is_some_and(|v| v > 7)
-            || self.ranges().iter().any(|(_, min, max)| {
-                min.is_some_and(|v| !v.is_finite() || v < 0.0)
-                    || max.is_some_and(|v| !v.is_finite() || v < 0.0)
-                    || matches!((min, max), (Some(min), Some(max)) if min > max)
-            });
+        let invalid = self.ranges().iter().any(|(_, min, max)| {
+            min.is_some_and(|v| !v.is_finite() || v < 0.0)
+                || max.is_some_and(|v| !v.is_finite() || v < 0.0)
+                || matches!((min, max), (Some(min), Some(max)) if min > max)
+        });
         if invalid {
             return Err(ApiError::new(
                 StatusCode::BAD_REQUEST,
                 "invalid_vehicle_filter",
-                "Use valid class, drivetrain and transmission codes, and finite non-negative ranges with minimum <= maximum",
+                "Use finite non-negative ranges with minimum <= maximum",
             ));
         }
         Ok(())
@@ -109,7 +108,7 @@ impl VehicleQuery {
             }));
         }
         if let Some(class) = self.class {
-            vehicles = vehicles.filter(Column::Class.eq(i16::from(class)));
+            vehicles = vehicles.filter(Column::Class.eq(class));
         }
         if let Some(author) = self
             .author
@@ -118,10 +117,13 @@ impl VehicleQuery {
             .filter(|v| !v.is_empty())
         {
             vehicles = vehicles.filter(
-                Expr::expr(sea_orm::sea_query::Func::lower(Expr::col(
-                    Column::AuthorUsername,
-                )))
-                .eq(author.to_lowercase()),
+                Column::AuthorPlayerId.in_subquery(
+                    player::Entity::find()
+                        .select_only()
+                        .column(player::Column::Id)
+                        .with_username(author)
+                        .into_query(),
+                ),
             );
         }
         for (key, value) in [("approved", self.approved), ("ev", self.electric)] {
@@ -131,7 +133,10 @@ impl VehicleQuery {
                     .filter(Expr::cust(format!("metadata->'{key}'")).eq(serde_json::json!(value)));
             }
         }
-        for (key, value) in [("drive", self.drive), ("shiftType", self.transmission)] {
+        for (key, value) in [
+            ("drive", self.drive.map(u8::from)),
+            ("shiftType", self.transmission.map(u8::from)),
+        ] {
             if let Some(value) = value {
                 vehicles = vehicles.filter(spec_number(key).eq(f64::from(value)));
             }
@@ -205,9 +210,6 @@ mod tests {
     #[test]
     fn rejects_invalid_codes_non_finite_and_inverted_ranges() {
         for query in [
-            "class=15",
-            "drive=4",
-            "transmission=8",
             "min_power_kw=NaN",
             "max_mass_kg=inf",
             "min_mass_kg=-1",
@@ -216,8 +218,12 @@ mod tests {
             let query: VehicleQuery = serde_urlencoded::from_str(query).unwrap();
             assert!(query.validate().is_err());
         }
+        for query in ["class=15", "drive=4", "transmission=8"] {
+            assert!(serde_urlencoded::from_str::<VehicleQuery>(query).is_err());
+        }
         let query: VehicleQuery =
-            serde_urlencoded::from_str("drive=1&min_power_kw=100&max_power_kw=200").unwrap();
+            serde_urlencoded::from_str("drive=rear_wheel_drive&min_power_kw=100&max_power_kw=200")
+                .unwrap();
         assert!(query.validate().is_ok());
     }
 }

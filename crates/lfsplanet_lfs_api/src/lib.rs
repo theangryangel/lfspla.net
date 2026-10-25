@@ -2,6 +2,8 @@
 
 mod oauth;
 mod vehicle_mods;
+mod vehicle_types;
+pub use vehicle_types::{Drivetrain, EngineLayout, Transmission, VehicleClass};
 
 pub use oauth::{LfsAccount, OAuthProvider};
 pub use vehicle_mods::{

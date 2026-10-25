@@ -21,11 +21,7 @@ export const load: PageLoad = async ({ url, fetch }) => {
   for (const [key, value] of Object.entries(filters)) {
     if (!value) continue;
     request[key] =
-      key.startsWith("min_") ||
-      key.startsWith("max_") ||
-      ["class", "drive", "transmission"].includes(key)
-        ? Number(value)
-        : value;
+      key.startsWith("min_") || key.startsWith("max_") ? Number(value) : value;
   }
   // Keep URL values intact for validation by the API's query extractor.
   for (const key of ["approved", "electric"]) {

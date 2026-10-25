@@ -1,20 +1,36 @@
-import { createApi } from "#lib/api.js";
-
+import { error } from "@sveltejs/kit";
+import { LfsplanetApiError } from "@lfsplanet/sdk";
+import { createApi, apiErrorMessage } from "#lib/api.js";
 import type { PageLoad } from "./$types";
 
-/**
- * Searches the public driver directory.
- *
- * The endpoint requires search text and has no "list everyone" mode, so an
- * empty box loads nothing rather than guessing at a query.
- */
 export const load: PageLoad = async ({ url, fetch }) => {
   const api = createApi(fetch);
-  const search = url.searchParams.get("q")?.trim() ?? "";
-  if (!search) return { search, players: null };
-
-  const players = await api.players
-    .search({ q: search })
-    .then((response) => response.items);
-  return { search, players };
+  const filters = {
+    q: url.searchParams.get("q")?.trim() ?? "",
+    country: url.searchParams.get("country")?.trim().toUpperCase() ?? "",
+  };
+  const requestedPage = Number(url.searchParams.get("page") ?? "1");
+  const page =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
+  try {
+    const [players, countries] = await Promise.all([
+      api.players.search({
+        q: filters.q || undefined,
+        country: filters.country || undefined,
+        page,
+        per_page: 25,
+      }),
+      api.countries.listCountries(),
+    ]);
+    return { filters, players, countries: countries.items };
+  } catch (cause) {
+    error(
+      cause instanceof LfsplanetApiError && cause.statusCode === 400
+        ? 400
+        : 502,
+      apiErrorMessage(cause),
+    );
+  }
 };

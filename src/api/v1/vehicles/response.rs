@@ -1,7 +1,10 @@
 //! Typed public specifications, deserialized from the cached upstream JSON.
 use super::super::{attachments, eras::vehicles::VehicleSummary};
 use crate::models::vehicle::Model;
-use lfsplanet_lfs_api::{VehicleModMetadata, VehicleModSpecifications};
+use lfsplanet_lfs_api::{
+    Drivetrain, EngineLayout, Transmission, VehicleClass, VehicleModMetadata,
+    VehicleModSpecifications,
+};
 use serde::Serialize;
 use std::collections::HashMap;
 use utoipa::ToSchema;
@@ -10,8 +13,10 @@ use utoipa::ToSchema;
 pub(crate) struct ExplorerVehicle {
     #[serde(flatten)]
     vehicle: VehicleSummary,
-    class: Option<i16>,
+    class: Option<VehicleClass>,
     author: Option<String>,
+    /// Player identity linked to the upstream author username, when available.
+    author_player_id: Option<i64>,
     approved: Option<bool>,
     electric: Option<bool>,
     rating: Option<f64>,
@@ -25,11 +30,9 @@ pub(crate) struct ExplorerVehicle {
 pub(crate) struct VehicleSpecifications {
     displacement_cc: Option<f64>,
     cylinders: Option<u8>,
-    /// 0: inline, 1: flat, 2: V.
-    engine_layout: Option<u8>,
-    /// 0: none, 1: RWD, 2: FWD, 3: AWD.
-    drive: Option<u8>,
-    transmission: Option<u8>,
+    engine_layout: Option<EngineLayout>,
+    drive: Option<Drivetrain>,
+    transmission: Option<Transmission>,
     power_kw: Option<f64>,
     power_rpm: Option<u32>,
     torque_nm: Option<f64>,
@@ -57,6 +60,7 @@ impl ExplorerVehicle {
         Self {
             class: vehicle.class,
             author: vehicle.author_username.clone(),
+            author_player_id: vehicle.author_player_id,
             approved: metadata.as_ref().map(|m| m.approved),
             electric: metadata.as_ref().map(|m| m.electric),
             rating: metadata.as_ref().map(|m| m.rating),

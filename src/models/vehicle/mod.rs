@@ -30,8 +30,9 @@ pub struct Model {
     pub normalized_name: String,
     pub license: String,
     pub version: Option<i16>,
-    pub class: Option<i16>,
+    pub class: Option<lfsplanet_lfs_api::VehicleClass>,
     pub author_username: Option<String>,
+    pub author_player_id: Option<i64>,
     pub work_in_progress: bool,
     pub published_at: Option<TimeDateTimeWithTimeZone>,
     pub available: bool,
@@ -42,6 +43,13 @@ pub struct Model {
     pub image_fetched_at: Option<TimeDateTimeWithTimeZone>,
     /// Mod revision whose cover was successfully cached; independent of metadata.
     pub image_version: Option<i16>,
+    #[sea_orm(
+        belongs_to,
+        from = "author_player_id",
+        to = "id",
+        on_delete = "SetNull"
+    )]
+    pub author: BelongsTo<Option<crate::models::player::Entity>>,
     #[sea_orm(has_many)]
     pub charts: HasMany<crate::models::chart::Entity>,
     #[sea_orm(has_many)]
