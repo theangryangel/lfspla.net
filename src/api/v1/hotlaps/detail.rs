@@ -163,6 +163,7 @@ mod tests {
             deny_uploads: false,
             country_code: None,
             flag_code: None,
+            profile_links: Default::default(),
             created_at: time::OffsetDateTime::UNIX_EPOCH,
             last_authenticated_at: None,
             lfsworld_id: None,

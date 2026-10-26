@@ -15,9 +15,11 @@ export const load: PageLoad = async ({
 }) => {
   const api = createApi(fetch);
   depends("app:hotlaps");
-  const { countries, breadcrumbs } = await parent();
-  const requestedCountry = url.searchParams.get("country");
-  const country = requestedCountry ? match(countries, requestedCountry) : null;
+  const { breadcrumbs } = await parent();
+  const filters = {
+    country: url.searchParams.get("country")?.toUpperCase() ?? "",
+    controller: url.searchParams.get("controller") ?? "",
+  };
 
   // The leaderboard supplies catalogue metadata even when its page is empty.
   const chart = await api.charts
@@ -25,8 +27,8 @@ export const load: PageLoad = async ({
       era: params.era,
       track: params.track,
       vehicle: params.vehicle,
-      country: requestedCountry || undefined,
-      controller: url.searchParams.get("controller") || undefined,
+      country: filters.country || undefined,
+      controller: filters.controller || undefined,
       page: url.searchParams.get("page")
         ? Number(url.searchParams.get("page"))
         : undefined,
@@ -57,7 +59,7 @@ export const load: PageLoad = async ({
   const vehicle = chart?.chart.vehicle ?? null;
 
   return {
-    country,
+    filters,
     chart,
     track,
     vehicle,
@@ -71,12 +73,3 @@ export const load: PageLoad = async ({
     ],
   };
 };
-
-/** The catalogue entry a code names, ignoring case as the API does. */
-function match<T extends { code: string }>(
-  options: T[],
-  code: string,
-): T | null {
-  const wanted = code.toLowerCase();
-  return options.find((option) => option.code.toLowerCase() === wanted) ?? null;
-}

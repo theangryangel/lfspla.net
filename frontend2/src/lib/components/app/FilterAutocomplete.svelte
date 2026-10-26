@@ -57,14 +57,16 @@
 	<Command.Input
 		bind:value={search}
 		aria-label={`Search ${label} values`}
-		placeholder={placeholder ?? `Search ${label.toLowerCase()}…`}
+		placeholder={placeholder ?? `Search ${label.toLowerCase()}...`}
 	/>
 	<Command.List aria-busy={pending} class="p-1">
 		<Command.Item value="__any__" {disabled} onSelect={() => void onSelect('')}
 			>Any</Command.Item
 		>
 		{#if pending}
-			<p role="status" class="p-3 text-sm text-muted-foreground">Searching…</p>
+			<p role="status" class="p-3 text-sm text-muted-foreground">
+				Searching...
+			</p>
 		{:else if failed}
 			<div class="space-y-2 p-3">
 				<p role="alert" class="text-sm text-destructive">

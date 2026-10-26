@@ -11,7 +11,7 @@
 	}: { filters: Record<string, string>; loading: boolean } = $props();
 	const api = useApi();
 	const definitions: FilterDefinition[] = [
-		{ key: 'q', label: 'Name or code', placeholder: 'Name or code…' },
+		{ key: 'q', label: 'Name or code', placeholder: 'Name or code...' },
 		...selects.map((select) => ({
 			...select,
 			options: select.options.map(([value, label]) => ({ value, label })),
@@ -20,7 +20,7 @@
 		{
 			key: 'author',
 			label: 'Uploaded by',
-			placeholder: 'Username or display name…',
+			placeholder: 'Username or display name...',
 			loadOptions: async (query, signal) => {
 				const response = await api.players.search(
 					{ q: query || undefined, vehicle_author: true, per_page: 10 },

@@ -14,7 +14,9 @@ use sea_orm::{
 
 mod activity;
 mod comparison;
+mod links;
 mod profile;
+pub use links::ProfileLinks;
 
 pub(crate) use activity::PlayerChartResult;
 pub(crate) use comparison::PlayerComparison;
@@ -44,6 +46,9 @@ pub struct Model {
     pub country_code: Option<CountryCode>,
     /// Optional FlagCDN display override; null follows the country.
     pub flag_code: Option<FlagCode>,
+    /// Optional owner-managed links shown on the public profile.
+    #[sea_orm(column_type = "JsonBinary")]
+    pub profile_links: ProfileLinks,
     /// Time at which this player was first created.
     pub created_at: TimeDateTimeWithTimeZone,
     /// Time at which LFS most recently authenticated this player.
@@ -112,6 +117,7 @@ impl Model {
             deny_uploads: NotSet,
             country_code: NotSet,
             flag_code: NotSet,
+            profile_links: NotSet,
             created_at: NotSet,
             last_authenticated_at: Set(Some(time::OffsetDateTime::now_utc())),
             lfsworld_id: Set(Some(account.lfsworld_id)),
@@ -137,6 +143,7 @@ impl Model {
         database: &impl ConnectionTrait,
         country_code: Option<CountryCode>,
         flag_code: Option<FlagCode>,
+        profile_links: ProfileLinks,
     ) -> Result<Self, DbErr> {
         use sea_orm::ActiveModelTrait;
         use sea_orm::IntoActiveModel;
@@ -144,6 +151,7 @@ impl Model {
         let mut active = self.into_active_model();
         active.country_code = Set(country_code);
         active.flag_code = Set(flag_code);
+        active.profile_links = Set(profile_links);
         active.update(database).await
     }
 }

@@ -216,7 +216,7 @@
 						<Command.Root class="p-0">
 							<Command.Input
 								aria-label={`Search ${definition.label} values`}
-								placeholder={`Search ${definition.label.toLowerCase()}…`}
+								placeholder={`Search ${definition.label.toLowerCase()}...`}
 							/>
 							<Command.List class="p-1">
 								<Command.Empty>No matching values.</Command.Empty>
@@ -322,7 +322,7 @@
 				<Command.Root class="p-0">
 					<Command.Input
 						aria-label="Find a filter"
-						placeholder="Select a filter…"
+						placeholder="Select a filter..."
 					/>
 					<Command.List class="p-1">
 						<Command.Empty>No matching filters.</Command.Empty>

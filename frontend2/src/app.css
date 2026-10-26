@@ -192,7 +192,12 @@
 }
 
 :is(.racing-chart, .racing-data)
-  :where([data-slot="button"], [data-slot="select-trigger"], input) {
+  :where(
+    [data-slot="button"],
+    [data-slot="select-trigger"],
+    input:not([data-slot="input-group-control"]),
+    [data-slot="input-group"]
+  ) {
   border-radius: var(--radius-sm);
 }
 
@@ -236,7 +241,12 @@
   background: color-mix(in oklch, var(--primary) 12%, var(--background));
 }
 
-:is(.racing-chart, .racing-data) :where(a, button, input):focus-visible {
+:is(.racing-chart, .racing-data)
+  :where(
+    a,
+    button,
+    input:not([data-slot="input-group-control"])
+  ):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }

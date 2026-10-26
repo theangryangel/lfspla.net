@@ -16,20 +16,19 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import TableFrame from '#lib/components/app/TableFrame.svelte';
 	import * as Table from '#lib/components/ui/table/index.js';
-	import ChoiceSelect from '#lib/components/app/ChoiceSelect.svelte';
+	import FilterBar from '#lib/components/app/FilterBar.svelte';
+	import type { FilterDefinition } from '#lib/filter-bar.js';
 	import { useCombinationPicker } from '#lib/picker.js';
-	import SearchSelect from '#lib/components/app/SearchSelect.svelte';
 	import Empty from '#lib/components/app/Empty.svelte';
 	import Flag from '#lib/components/app/Flag.svelte';
 	import { controlTags, delta, lapTime, steeringLabels } from '#lib/format.js';
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import { setQuery } from '#lib/query.js';
 	import { useSession } from '#lib/session.svelte.js';
 	import {
 		type HotlapListColumn,
 		type Hotlap,
 		type Ordering,
-		type CodeNameSummary,
 	} from '#lib/api.js';
 	import type { PageProps } from './$types';
 
@@ -55,11 +54,9 @@
 		}
 	});
 
+	const loading = $derived(navigating.to?.url.pathname === page.url.pathname);
 	const filtered = $derived(
-		Boolean(
-			(page.url.searchParams.get('country') ?? '') ||
-			(page.url.searchParams.get('controller') ?? ''),
-		),
+		Boolean(data.filters.country || data.filters.controller),
 	);
 	const requestedColumn = $derived(page.url.searchParams.get('column') ?? '');
 	const column = $derived(
@@ -96,69 +93,39 @@
 		};
 	}
 
-	const ANY_NATION = { value: '', label: 'All nations' };
-	const countryOption = (c: CodeNameSummary) => ({
-		value: c.code,
-		label: c.name,
-		hint: c.code,
-	});
-
-	const countryOptions = $derived([
-		ANY_NATION,
-		...data.countries.map(countryOption),
+	const definitions: FilterDefinition[] = $derived([
+		{
+			key: 'country',
+			label: 'Nation',
+			options: data.countries.map((country) => ({
+				value: country.code,
+				label: country.name,
+			})),
+		},
+		{
+			key: 'controller',
+			label: 'Controller',
+			options: Object.entries(steeringLabels).map(([value, label]) => ({
+				value,
+				label,
+			})),
+		},
 	]);
-	const controllerOptions = [
-		{ value: '', label: 'All controllers' },
-		...Object.entries(steeringLabels).map(([value, label]) => ({
-			value,
-			label,
-		})),
-	];
-
-	const searchCountries = async (term: string) => {
-		const search = term.trim().toLowerCase();
-		return [
-			ANY_NATION,
-			...data.countries
-				.filter(
-					(country) =>
-						country.code.toLowerCase().includes(search) ||
-						country.name.toLowerCase().includes(search),
-				)
-				.map(countryOption),
-		];
-	};
 </script>
 
 <div class="racing-chart space-y-4">
 	<div class="flex flex-wrap items-center gap-2">
-		<div class="flex flex-wrap items-center gap-2">
-			{#if chosen}
-				<SearchSelect
-					label="Nation"
-					value={page.url.searchParams.get('country') ?? ''}
-					selectedLabel={data.country?.name ?? ''}
-					options={countryOptions}
-					search={searchCountries}
-					placeholder="Search nations..."
-					onValueChange={(v) => setQuery({ country: v, page: '' })}
+		{#if chosen}
+			<div class="min-w-0 flex-1">
+				<FilterBar
+					filters={data.filters}
+					{loading}
+					{definitions}
+					label="Hotlap filters"
+					onApply={(values) => setQuery({ ...values, page: '' })}
 				/>
-				<ChoiceSelect
-					label="Controller"
-					value={page.url.searchParams.get('controller') ?? ''}
-					options={controllerOptions}
-					onValueChange={(v) => setQuery({ controller: v, page: '' })}
-				/>
-				{#if filtered}
-					<Button
-						variant="ghost"
-						onclick={() => setQuery({ country: '', controller: '', page: '' })}
-					>
-						Clear filters
-					</Button>
-				{/if}
-			{/if}
-		</div>
+			</div>
+		{/if}
 		{#if data.chart}
 			<div class="ml-auto">
 				<ChartContributions
