@@ -4,6 +4,11 @@ The validator runs LFS HLVC against queued SPR replays. It requires Linux,
 Wine, and Bubblewrap. Their paths are configured under `lfs`; see
 [configuration](configuration.md#local-lfs-runtime).
 
+Valid drag replays return `1` (OK). False starts normally return `8` (no HLVC
+best lap in the replay header); a false start with a modified header can return
+`23` (false start). Both are invalid verdicts. Code `13` still means the replay
+ended before the best lap finished.
+
 ## Host requirements
 
 - Wine

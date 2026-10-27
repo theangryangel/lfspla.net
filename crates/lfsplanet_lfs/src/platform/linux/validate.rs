@@ -206,7 +206,13 @@ mod tests {
 
     #[test]
     fn result_file_supplies_the_hlvc_verdict() {
-        for (code, expected) in [(1, HlvcResult::Ok), (21, HlvcResult::FailOutOfBounds)] {
+        for (code, expected) in [
+            (1, HlvcResult::Ok),
+            (8, HlvcResult::NoHlvc),
+            (13, HlvcResult::End),
+            (21, HlvcResult::FailOutOfBounds),
+            (23, HlvcResult::FalseStart),
+        ] {
             let stdout = format!("{{\"child-pid\":123}}\n{{\"exit-code\":{code}}}\n");
             let result = ValidationResult::from_output(
                 &output(code, stdout.as_bytes()),
@@ -226,7 +232,7 @@ mod tests {
             1,
             b"{\"child-pid\":123}\n{\"lfs-exit-code\":1}\n{\"exit-code\":1}\n",
         );
-        for contents in [b"".as_slice(), b"unfinished", b"1\n21", b"23"] {
+        for contents in [b"".as_slice(), b"unfinished", b"1\n21", b"24"] {
             assert!(ValidationResult::from_output(&output, contents).is_err());
         }
     }
