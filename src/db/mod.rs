@@ -80,6 +80,40 @@ pub async fn migrate(settings: &DatabaseSettings) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[sqlx::test(migrations = false)]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn token_hint_migration_converts_existing_hints_and_accepts_ascii_hints(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        let before = sqlx::migrate::Migrator::with_migrations(
+            super::MIGRATOR
+                .iter()
+                .filter(|migration| migration.version < 20261026130000)
+                .cloned()
+                .collect(),
+        );
+        before.run(&pool).await?;
+        sqlx::raw_sql(
+            "INSERT INTO player (lfs_username, display_name) VALUES ('hint-test', 'Hint Test');
+             INSERT INTO personal_access_token (player_id, name, token_hash, token_hint, expires_at)
+             SELECT id, 'Legacy', decode(repeat('ab', 32), 'hex'),
+                'lfspla_' || chr(8230) || '1234abcd', now() + interval '1 day' FROM player;",
+        )
+        .execute(&pool)
+        .await?;
+        super::MIGRATOR.run(&pool).await?;
+        let hint: String = sqlx::query_scalar("SELECT token_hint FROM personal_access_token")
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(hint, "lfspla_...1234abcd");
+        sqlx::raw_sql(
+            "INSERT INTO personal_access_token (player_id, name, token_hash, token_hint, expires_at)
+             SELECT id, 'New', decode(repeat('cd', 32), 'hex'), 'lfspla_...abcdef12',
+                now() + interval '1 day' FROM player;"
+        ).execute(&pool).await?;
+        Ok(())
+    }
+
     #[sqlx::test(migrator = "super::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn migrations_apply_to_fresh_database_and_can_run_again(

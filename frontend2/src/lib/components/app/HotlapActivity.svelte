@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import DateTime from '#lib/components/app/DateTime.svelte';
 	import { page } from '$app/state';
 	import { Badge } from '#lib/components/ui/badge/index.js';
@@ -31,7 +32,12 @@
 	const api = useApi();
 
 	type View =
-		'all' | 'world_records' | 'longest_standing' | 'most_hotlapped' | 'mine';
+		| 'all'
+		| 'world_records'
+		| 'longest_standing'
+		| 'most_hotlapped'
+		| 'mine'
+		| 'by_era';
 
 	let {
 		eraId,
@@ -39,20 +45,24 @@
 		refreshKey,
 		eras = [],
 		views = ['all', 'world_records', 'longest_standing', 'mine'],
+		defaultView = 'all',
 		perPage = 25,
 		appearance = 'default',
 		title = 'Hotlaps',
 		showContributions = true,
+		eraBreakdown,
 	}: {
 		eraId?: string;
 		lfsUsername?: string;
 		refreshKey?: unknown;
 		eras?: Pick<EraSummary, 'id' | 'title'>[];
 		views?: View[];
+		defaultView?: View;
 		perPage?: number;
 		appearance?: 'default' | 'data';
 		title?: string;
 		showContributions?: boolean;
+		eraBreakdown?: Snippet;
 	} = $props();
 
 	const session = useSession();
@@ -65,14 +75,15 @@
 		((page.url.searchParams.get('view') ?? '') ||
 			((page.url.searchParams.get('mine') ?? '') === 'true'
 				? 'mine'
-				: 'all')) as View,
+				: defaultView)) as View,
 	);
 	const view = $derived(
 		views.includes(requestedView) &&
 			(requestedView !== 'most_hotlapped' || eraId) &&
-			(requestedView !== 'mine' || session.signedIn)
+			(requestedView !== 'mine' || session.signedIn) &&
+			(requestedView !== 'by_era' || !!eraBreakdown)
 			? requestedView
-			: 'all',
+			: defaultView,
 	);
 	const column = $derived(
 		((page.url.searchParams.get('column') ?? '') ||
@@ -108,7 +119,7 @@
 
 	$effect(() => {
 		const refresh = refreshKey;
-		if (view === 'most_hotlapped') {
+		if (view === 'most_hotlapped' || view === 'by_era') {
 			++requestId;
 			return;
 		}
@@ -164,9 +175,12 @@
 			{title}
 		</h2>
 		<Tabs.List
-			aria-label="Filter hotlaps"
+			aria-label={eraBreakdown ? 'Driver record views' : 'Filter hotlaps'}
 			class="max-w-full flex-wrap group-data-horizontal/tabs:h-auto"
 		>
+			{#if views.includes('by_era') && eraBreakdown}
+				<Tabs.Trigger value="by_era">Record by era</Tabs.Trigger>
+			{/if}
 			{#if views.includes('all')}<Tabs.Trigger value="all"
 					>All hotlaps</Tabs.Trigger
 				>{/if}
@@ -188,7 +202,9 @@
 		</Tabs.List>
 	</div>
 	<Tabs.Content value={view}>
-		{#if view === 'most_hotlapped' && eraId}
+		{#if view === 'by_era' && eraBreakdown}
+			{@render eraBreakdown()}
+		{:else if view === 'most_hotlapped' && eraId}
 			<MostHotlappedCombos {eraId} {perPage} {appearance} {refreshKey} />
 		{:else if loading}
 			<p class="py-10 text-center text-sm text-muted-foreground" role="status">

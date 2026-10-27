@@ -15,7 +15,7 @@
 	const loading = $derived(navigating.to?.url.pathname === '/drivers');
 	const hasFilters = $derived(Boolean(data.filters.q || data.filters.country));
 	const definitions: FilterDefinition[] = $derived([
-		{ key: 'q', label: 'Name', placeholder: 'Username or display name…' },
+		{ key: 'q', label: 'Name', placeholder: 'Username or display name...' },
 		{
 			key: 'country',
 			label: 'Country',
@@ -50,7 +50,7 @@
 			aria-busy={loading}
 		>
 			{#if loading}<p role="status" class="text-sm text-muted-foreground">
-					Loading drivers…
+					Loading drivers...
 				</p>{/if}
 			{#if data.players.items.length}
 				<ul aria-busy={loading} class="divide-y border-y text-sm">

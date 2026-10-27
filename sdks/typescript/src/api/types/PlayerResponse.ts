@@ -9,5 +9,6 @@ export interface PlayerResponse extends LfsplanetApi.PlayerSummary {
   badges: LfsplanetApi.PlayerBadge[];
   eras: LfsplanetApi.PlayerEraStatsResponse[];
   highlights: LfsplanetApi.Hotlap[];
+  profile_links: LfsplanetApi.ProfileLinks;
   stats: LfsplanetApi.PlayerStatsResponse;
 }

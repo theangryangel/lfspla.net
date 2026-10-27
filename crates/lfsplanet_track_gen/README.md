@@ -38,7 +38,7 @@ points without changing the shape. Timing markers stay on the line.
 Each colour has a theme token and a fallback.
 
 ```svg
-<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" …/>
+<path class="track" stroke="var(--muted-foreground, oklch(0.556 0 0))" .../>
 ```
 
 Inline SVGs use the site's theme. The track uses `--muted-foreground`, the

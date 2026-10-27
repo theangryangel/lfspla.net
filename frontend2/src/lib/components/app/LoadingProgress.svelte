@@ -43,7 +43,7 @@
 	});
 </script>
 
-<div role="status" class="sr-only">{visible ? 'Loading…' : ''}</div>
+<div role="status" class="sr-only">{visible ? 'Loading...' : ''}</div>
 
 <style>
 	:global(.bprogress) {

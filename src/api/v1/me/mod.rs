@@ -11,6 +11,7 @@ use crate::{
         v1::PlayerSummary,
     },
     country::CountryCode,
+    models::player::ProfileLinks,
 };
 use axum::{
     Json,
@@ -33,6 +34,9 @@ pub(crate) struct MeResponse {
     /// Current player, or null when logged out.
     #[schema(required)]
     player: Option<PlayerSummary>,
+    /// Owner-managed public links; null when logged out.
+    #[schema(required)]
+    profile_links: Option<ProfileLinks>,
     /// Token required in `X-CSRF-Token` for state-changing requests. Empty
     /// when logged out, because every such request requires authentication.
     csrf_token: String,
@@ -58,6 +62,8 @@ pub(crate) struct UpdateMeRequest {
     #[serde(default, deserialize_with = "deserialize_patch_field")]
     #[schema(value_type = Option<String>)]
     flag_code: Option<Option<String>>,
+    /// Public links. Omitted preserves links; an empty object clears them.
+    profile_links: Option<ProfileLinks>,
 }
 
 // Missing leaves the field unchanged; null clears it.
@@ -99,6 +105,7 @@ pub(crate) async fn get(
     let issue_csrf_token = !headers.contains_key(header::AUTHORIZATION);
     let allow_uploads =
         state.hotlaps.allow_uploads && player.as_ref().is_some_and(|player| !player.deny_uploads);
+    let profile_links = player.as_ref().map(|player| player.profile_links.clone());
     let player = player.map(PlayerSummary::from);
     // Every route that verifies a CSRF token also requires an authenticated
     // player, so a token issued to an anonymous caller could never authorise
@@ -111,6 +118,7 @@ pub(crate) async fn get(
     };
 
     Ok(Json(MeResponse {
+        profile_links,
         authenticated: player.is_some(),
         player,
         csrf_token,
@@ -136,7 +144,7 @@ pub(crate) async fn get(
     request_body = UpdateMeRequest,
     responses(
         (status = 200, description = "Updated authenticated player", body = PlayerSummary),
-        (status = 400, description = "Invalid country or display flag", body = ErrorResponse),
+        (status = 400, description = "Invalid country, display flag, or public links", body = ErrorResponse),
         (status = 401, description = "Browser authentication required", body = ErrorResponse),
         (status = 403, description = "CSRF token missing or invalid", body = ErrorResponse)
     )
@@ -146,10 +154,16 @@ pub(crate) async fn update(
     BrowserAuthenticatedPlayer(player): BrowserAuthenticatedPlayer,
     Json(request): Json<UpdateMeRequest>,
 ) -> Result<Json<PlayerSummary>, ApiError> {
+    let profile_links = request.resolve_links(player.profile_links.clone())?;
     let (country_code, flag_code) =
         request.resolve(player.country_code.map(|code| code.0), player.flag_code)?;
     let updated = player
-        .update_preferences(&state.database, country_code.map(CountryCode), flag_code)
+        .update_preferences(
+            &state.database,
+            country_code.map(CountryCode),
+            flag_code,
+            profile_links,
+        )
         .await
         .map_err(ApiError::database)?;
     tracing::info!(
@@ -163,6 +177,16 @@ pub(crate) async fn update(
 }
 
 impl UpdateMeRequest {
+    fn resolve_links(&self, current: ProfileLinks) -> Result<ProfileLinks, ApiError> {
+        self.profile_links
+            .clone()
+            .unwrap_or(current)
+            .validate()
+            .map_err(|message| {
+                ApiError::new(StatusCode::BAD_REQUEST, "invalid_profile_links", message)
+            })
+    }
+
     fn resolve(
         self,
         current_country: Option<Country>,
@@ -242,6 +266,28 @@ mod tests {
                 assert!(session.is_empty().await);
             }
         }
+    }
+
+    #[test]
+    fn links_patch_preserves_omitted_links_and_clears_empty_objects() {
+        let current = ProfileLinks {
+            twitch_channel: Some("driver".into()),
+            ..Default::default()
+        };
+        let omitted: UpdateMeRequest =
+            serde_json::from_value(json!({"country_code": "GB"})).unwrap();
+        assert_eq!(omitted.resolve_links(current.clone()).unwrap(), current);
+        let cleared: UpdateMeRequest =
+            serde_json::from_value(json!({"profile_links": {}})).unwrap();
+        assert_eq!(
+            cleared.resolve_links(current.clone()).unwrap(),
+            ProfileLinks::default()
+        );
+        let invalid: UpdateMeRequest = serde_json::from_value(
+            json!({"profile_links": {"website_url": "javascript:alert(1)"}}),
+        )
+        .unwrap();
+        assert!(invalid.resolve_links(current).is_err());
     }
 
     #[test]

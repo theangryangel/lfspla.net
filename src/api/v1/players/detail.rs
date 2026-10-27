@@ -52,6 +52,7 @@ pub(crate) struct PlayerEraStatsResponse {
 pub(crate) struct PlayerResponse {
     #[serde(flatten)]
     player: PlayerSummary,
+    profile_links: crate::models::player::ProfileLinks,
     stats: PlayerStatsResponse,
     badges: Vec<PlayerBadge>,
     eras: Vec<PlayerEraStatsResponse>,
@@ -82,6 +83,7 @@ pub(crate) async fn detail(
 
 impl From<PlayerProfile> for PlayerResponse {
     fn from(profile: PlayerProfile) -> Self {
+        let profile_links = profile.player.profile_links.clone();
         let player: PlayerSummary = profile.player.into();
         let badges_by_era: std::collections::HashMap<_, _> = profile
             .eras
@@ -102,6 +104,7 @@ impl From<PlayerProfile> for PlayerResponse {
             .collect();
         PlayerResponse {
             player,
+            profile_links,
             badges: profile.badges.clone(),
             stats: PlayerStatsResponse {
                 hotlaps: profile.stats.hotlaps,
