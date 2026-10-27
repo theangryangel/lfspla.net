@@ -27,6 +27,8 @@ pub enum HlvcResult {
     FailSpeeding = 20,
     FailOutOfBounds = 21,
     UnknownVehicle = 22,
+    /// False starts normally have no HLVC best lap and return `NoHlvc` instead.
+    FalseStart = 23,
 }
 
 impl HlvcResult {
@@ -61,6 +63,7 @@ impl HlvcResult {
             Self::FailSpeeding => "HLVC violation: speeding",
             Self::FailOutOfBounds => "HLVC violation: out of bounds",
             Self::UnknownVehicle => "unknown vehicle",
+            Self::FalseStart => "false start",
         }
     }
 }
@@ -93,6 +96,7 @@ impl TryFrom<i32> for HlvcResult {
             20 => Self::FailSpeeding,
             21 => Self::FailOutOfBounds,
             22 => Self::UnknownVehicle,
+            23 => Self::FalseStart,
             code => return Err(code),
         })
     }
@@ -104,11 +108,11 @@ mod tests {
 
     #[test]
     fn all_documented_hlvc_results_are_mapped() {
-        for code in 0..=22 {
+        for code in 0..=23 {
             let result = HlvcResult::try_from(code).unwrap();
             assert_eq!(i32::from(result.code()), code);
         }
-        assert!(HlvcResult::try_from(23).is_err());
+        assert!(HlvcResult::try_from(24).is_err());
         assert!(HlvcResult::try_from(-1).is_err());
     }
 }
