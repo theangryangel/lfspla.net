@@ -22,11 +22,9 @@
 	let {
 		entry,
 		indent = 0,
-		showHotlap = false,
 	}: {
 		entry: HotlapCommentResponse;
 		indent?: number;
-		showHotlap?: boolean;
 	} = $props();
 	const api = useApi();
 	const session = useSession();
@@ -197,13 +195,6 @@
 				</EntryActions>
 			{/if}
 		{/snippet}
-		{#if showHotlap}
-			{#if entry.hotlap_id !== null}<a
-					class="text-sm font-medium text-primary hover:underline"
-					href={`/hotlap/${entry.hotlap_id}?around=${entry.id}#comment-${entry.id}`}
-					>Hotlap #{entry.hotlap_id}</a
-				>{:else}<p class="text-xs text-muted-foreground">Removed hotlap</p>{/if}
-		{/if}
 		{#if entry.reason}
 			<div class="flex flex-wrap items-center gap-2 text-sm">
 				<FlagIcon

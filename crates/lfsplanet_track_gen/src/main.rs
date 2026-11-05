@@ -52,7 +52,7 @@ struct Args {
     padding: f32,
 
     /// Width of the centre line. The markers are sized from it.
-    #[arg(long, default_value_t = 5.0)]
+    #[arg(long, default_value_t = 3.5)]
     stroke_width: f32,
 
     /// How far a node may sit from a straight line before it is kept.
@@ -196,6 +196,30 @@ fn convert(
     let centre_line =
         geometry::simplify(&fitted, &outline.timing_points(), outline.closed, simplify);
 
+    // Simplification pins every timing point. Refuse ambiguous coincident
+    // points rather than colour the wrong branch of a crossing circuit.
+    let boundary_nodes =
+        if let Some(finish) = outline.start_finish.filter(|_| !outline.splits.is_empty()) {
+            std::iter::once(if outline.closed { finish } else { 0 })
+                .chain(outline.splits.iter().copied())
+                .chain(std::iter::once(finish))
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+    let sector_boundaries = boundary_nodes
+        .iter()
+        .map(|node| {
+            let mut matches = centre_line
+                .iter()
+                .enumerate()
+                .filter(|(_, point)| **point == fitted[*node]);
+            let index = matches.next()?.0;
+            matches.next().is_none().then_some(index)
+        })
+        .collect::<Option<Vec<_>>>()
+        .unwrap_or_default();
+
     let svg = Drawing {
         name,
         frame,
@@ -204,6 +228,7 @@ fn convert(
         closed: outline.closed,
         start_finish,
         splits: &splits,
+        sector_boundaries: &sector_boundaries,
     }
     .to_svg();
     let destination = output.join(format!("{name}.svg"));

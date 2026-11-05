@@ -54,6 +54,9 @@ pub(crate) struct Drawing<'a> {
     pub(crate) closed: bool,
     pub(crate) start_finish: Option<Tick>,
     pub(crate) splits: &'a [Tick],
+    /// Start, intermediate splits, finish as indices in the simplified curve.
+    /// Empty when the source cannot identify all sector boundaries.
+    pub(crate) sector_boundaries: &'a [usize],
 }
 
 impl Drawing<'_> {
@@ -68,17 +71,34 @@ impl Drawing<'_> {
                 "width=\"{width}\" height=\"{height}\" fill=\"none\" role=\"img\" aria-label=\"{name}\">\n",
                 "<title>{name}</title>\n",
                 "<style>@media(prefers-color-scheme:dark){{svg:root{{{dark}}}}}</style>\n",
-                "<path class=\"track\" stroke=\"{track}\" stroke-width=\"{stroke}\" ",
-                "stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"{data}\"/>\n",
+                "<symbol id=\"track\" viewBox=\"0 0 {width} {height}\" fill=\"none\">\n",
             ),
             width = number(self.frame.width),
             height = number(self.frame.height),
             name = self.name,
             dark = DARK_THEME,
-            track = TRACK_COLOUR,
-            stroke = number(width),
-            data = path_data(self.centre_line, self.closed),
         );
+
+        // Use the original curve's Bezier segments: splitting must not
+        // recalculate tangents and distort the corners at timing boundaries.
+        let sector_paths = self.sector_paths();
+        if sector_paths.is_empty() {
+            let _ = writeln!(
+                svg,
+                "<path class=\"track\" stroke=\"{TRACK_COLOUR}\" stroke-width=\"{stroke}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"{data}\"/>",
+                stroke = number(width),
+                data = path_data(self.centre_line, self.closed)
+            );
+        }
+        for (index, data) in sector_paths.iter().enumerate() {
+            let sector = index + 1;
+            let _ = writeln!(
+                svg,
+                "<g id=\"sector-{sector}\" data-sector=\"{sector}\" fill=\"none\"><title>Sector {sector}</title><path class=\"sector\" stroke=\"var(--sector-{sector}, {TRACK_COLOUR})\" stroke-width=\"{stroke}\" stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"{data}\"/></g>",
+                stroke = number(width),
+            );
+        }
+        svg.push_str("<g class=\"timing-markers\">\n");
 
         // Every cut-out is drawn before every marker, so that two timing
         // points close together cannot punch holes in each other.
@@ -103,8 +123,73 @@ impl Drawing<'_> {
                 width * START_FINISH_WIDTH,
             );
         }
-        svg.push_str("</svg>\n");
+        svg.push_str("</g>\n</symbol>\n");
+        // A count-qualified fragment lets the page opt into colours only when
+        // its timing data has exactly the same number of sectors as the map.
+        if !sector_paths.is_empty() {
+            let _ = writeln!(
+                svg,
+                "<symbol id=\"track-sectors-{}\" viewBox=\"0 0 {} {}\"><use href=\"#track\" width=\"{}\" height=\"{}\"/></symbol>",
+                sector_paths.len(),
+                number(self.frame.width),
+                number(self.frame.height),
+                number(self.frame.width),
+                number(self.frame.height)
+            );
+        }
+        let _ = writeln!(
+            svg,
+            "<use href=\"#track\" width=\"{}\" height=\"{}\"/>\n</svg>",
+            number(self.frame.width),
+            number(self.frame.height)
+        );
         svg
+    }
+
+    fn sector_paths(&self) -> Vec<String> {
+        let points = self.centre_line;
+        let cuts = self.sector_boundaries;
+        if points.len() < 3 || cuts.len() < 3 || cuts.iter().any(|cut| *cut >= points.len()) {
+            return Vec::new();
+        }
+        let lengths = cuts
+            .windows(2)
+            .map(|pair| {
+                if self.closed {
+                    (pair[1] + points.len() - pair[0]) % points.len()
+                } else {
+                    pair[1].saturating_sub(pair[0])
+                }
+            })
+            .collect::<Vec<_>>();
+        let expected = if self.closed {
+            points.len()
+        } else {
+            points.len() - 1
+        };
+        if lengths.contains(&0)
+            || lengths.iter().sum::<usize>() != expected
+            || (self.closed && cuts.first() != cuts.last())
+            || (!self.closed && (cuts[0] != 0 || cuts.last() != Some(&(points.len() - 1))))
+        {
+            return Vec::new();
+        }
+        cuts.windows(2)
+            .zip(lengths)
+            .map(|(pair, length)| {
+                let start = points[pair[0]];
+                let mut data = format!("M{} {}", number(start.x), number(start.y));
+                for step in 0..length {
+                    write_segment(
+                        &mut data,
+                        points,
+                        self.closed,
+                        (pair[0] + step) % points.len(),
+                    );
+                }
+                data
+            })
+            .collect()
     }
 
     /// Every marker, with the width it is drawn at.
@@ -177,44 +262,50 @@ fn path_data(points: &[Point], closed: bool) -> String {
     let last = points.len() - 1;
     let segments = if closed { points.len() } else { last };
     for index in 0..segments {
-        let (before, start, end, after) = if closed {
-            (
-                points[(index + last) % points.len()],
-                points[index],
-                points[(index + 1) % points.len()],
-                points[(index + 2) % points.len()],
-            )
-        } else {
-            (
-                points[index.saturating_sub(1)],
-                points[index],
-                points[index + 1],
-                points[(index + 2).min(last)],
-            )
-        };
-        let control_start = Point {
-            x: start.x + (end.x - before.x) / 6.0,
-            y: start.y + (end.y - before.y) / 6.0,
-        };
-        let control_end = Point {
-            x: end.x - (after.x - start.x) / 6.0,
-            y: end.y - (after.y - start.y) / 6.0,
-        };
-        let _ = write!(
-            data,
-            "C{} {} {} {} {} {}",
-            number(control_start.x),
-            number(control_start.y),
-            number(control_end.x),
-            number(control_end.y),
-            number(end.x),
-            number(end.y),
-        );
+        write_segment(&mut data, points, closed, index);
     }
     if closed {
         data.push('Z');
     }
     data
+}
+
+/// One segment, with neighbours from the whole curve even at a sector seam.
+fn write_segment(data: &mut String, points: &[Point], closed: bool, index: usize) {
+    let last = points.len() - 1;
+    let (before, start, end, after) = if closed {
+        (
+            points[(index + last) % points.len()],
+            points[index],
+            points[(index + 1) % points.len()],
+            points[(index + 2) % points.len()],
+        )
+    } else {
+        (
+            points[index.saturating_sub(1)],
+            points[index],
+            points[index + 1],
+            points[(index + 2).min(last)],
+        )
+    };
+    let control_start = Point {
+        x: start.x + (end.x - before.x) / 6.0,
+        y: start.y + (end.y - before.y) / 6.0,
+    };
+    let control_end = Point {
+        x: end.x - (after.x - start.x) / 6.0,
+        y: end.y - (after.y - start.y) / 6.0,
+    };
+    let _ = write!(
+        data,
+        "C{} {} {} {} {} {}",
+        number(control_start.x),
+        number(control_start.y),
+        number(control_end.x),
+        number(control_end.y),
+        number(end.x),
+        number(end.y),
+    );
 }
 
 /// One coordinate, at the finest precision the drawing can show.
@@ -255,6 +346,10 @@ mod tests {
     }
 
     fn drawing() -> String {
+        drawing_with_boundaries(&[0, 1, 2, 0])
+    }
+
+    fn drawing_with_boundaries(boundaries: &[usize]) -> String {
         Drawing {
             name: "BL1",
             frame: FRAME,
@@ -263,8 +358,105 @@ mod tests {
             closed: true,
             start_finish: Some(tick(8.0, 8.0)),
             splits: &[tick(152.0, 8.0), tick(80.0, 92.0)],
+            sector_boundaries: boundaries,
         }
         .to_svg()
+    }
+
+    #[test]
+    fn draws_either_sectors_or_a_neutral_full_path_without_duplicate_geometry() {
+        let segmented = drawing();
+        assert_eq!(segmented.matches("class=\"sector\"").count(), 3);
+        assert!(!segmented.contains("class=\"track\""));
+        for boundaries in [&[][..], &[0, 2, 1, 0][..]] {
+            let neutral = drawing_with_boundaries(boundaries);
+            assert_eq!(neutral.matches("class=\"track\"").count(), 1);
+            assert!(!neutral.contains("class=\"sector\""));
+            assert!(!neutral.contains("id=\"track-sectors-"));
+            assert!(neutral.contains("class=\"start-finish\""));
+        }
+    }
+
+    #[test]
+    fn exports_a_reusable_track_and_counted_sector_fragment() {
+        let svg = drawing();
+        assert!(svg.contains("<symbol id=\"track\" viewBox=\"0 0 160 100\" fill=\"none\">"));
+        assert!(svg.contains("id=\"track-sectors-3\""));
+        for sector in 1..=3 {
+            assert!(svg.contains(&format!("id=\"sector-{sector}\"")));
+            assert!(svg.contains(&format!("var(--sector-{sector}, {TRACK_COLOUR})")));
+        }
+        assert!(svg.ends_with("<use href=\"#track\" width=\"160\" height=\"100\"/>\n</svg>\n"));
+    }
+
+    fn square(cuts: &[usize], closed: bool) -> Vec<String> {
+        Drawing {
+            name: "test",
+            frame: FRAME,
+            stroke_width: 5.0,
+            centre_line: &[
+                point(0.0, 0.0),
+                point(10.0, 0.0),
+                point(10.0, 10.0),
+                point(0.0, 10.0),
+            ],
+            closed,
+            start_finish: None,
+            splits: &[],
+            sector_boundaries: cuts,
+        }
+        .sector_paths()
+    }
+
+    #[test]
+    fn sectors_follow_travel_from_finish_even_across_the_curve_seam() {
+        let sectors = square(&[2, 3, 1, 2], true);
+        assert_eq!(sectors.len(), 3);
+        assert!(sectors[0].starts_with("M10 10C"));
+        assert!(sectors[0].ends_with("0 10"));
+        assert!(sectors[1].starts_with("M0 10C"));
+        assert!(sectors[1].ends_with("10 0"));
+        assert_eq!(
+            sectors
+                .iter()
+                .map(|path| path.matches('C').count())
+                .sum::<usize>(),
+            4
+        );
+        assert!(sectors.iter().all(|path| !path.contains('Z')));
+    }
+
+    #[test]
+    fn sector_seams_keep_the_unsplit_curves_tangents() {
+        let sectors = square(&[0, 1, 3, 0], true);
+        assert_eq!(sectors[0], "M0 0C1.7 -1.7 8.3 -1.7 10 0");
+        // Recalculating an open curve per sector would clamp its neighbours
+        // and flatten these control points at each split.
+        assert!(sectors[1].starts_with("M10 0C11.7 1.7 11.7 8.3 10 10"));
+        assert_eq!(sectors[2], "M0 10C-1.7 8.3 -1.7 1.7 0 0");
+    }
+
+    #[test]
+    fn open_sectors_cover_start_to_finish_without_wrapping() {
+        let sectors = square(&[0, 1, 3], false);
+        assert_eq!(sectors.len(), 2);
+        assert_eq!(
+            sectors
+                .iter()
+                .map(|path| path.matches('C').count())
+                .sum::<usize>(),
+            3
+        );
+        assert!(sectors.last().unwrap().ends_with("0 10"));
+    }
+
+    #[test]
+    fn incomplete_or_unordered_timing_keeps_a_neutral_track() {
+        for cuts in [&[][..], &[0, 0][..], &[0, 3, 1, 0][..], &[0, 1, 4, 0][..]] {
+            assert!(square(cuts, true).is_empty(), "{cuts:?}");
+        }
+        assert!(square(&[1, 2, 3], false).is_empty());
+        assert!(square(&[0, 2, 1, 3], false).is_empty());
     }
 
     #[test]
@@ -305,7 +497,7 @@ mod tests {
     #[test]
     fn names_every_colour_as_a_token_and_a_literal() {
         let svg = drawing();
-        assert!(svg.contains("stroke=\"var(--muted-foreground, oklch(0.556 0 0))\""));
+        assert!(svg.contains("var(--sector-1, var(--muted-foreground, oklch(0.556 0 0)))"));
         assert!(svg.contains("stroke=\"var(--destructive, oklch(0.577 0.245 27.325))\""));
         assert!(
             svg.contains("@media(prefers-color-scheme:dark){svg:root{--muted-foreground:"),
@@ -348,7 +540,7 @@ mod tests {
     #[test]
     fn a_marker_is_thinner_than_the_line_and_cut_out_of_it() {
         let svg = drawing();
-        let track = stroke_width_of(&svg, "track");
+        let track = stroke_width_of(&svg, "sector");
         let start_finish = stroke_width_of(&svg, "start-finish");
         let split = stroke_width_of(&svg, "split");
         assert!(

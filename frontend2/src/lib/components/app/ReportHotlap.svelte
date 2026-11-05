@@ -30,15 +30,13 @@
 	let own = $state<HotlapCommentResponse | null>(null);
 	let reason = $state<ReportReason | ''>('');
 	let body = $state('');
-	let checking = $state(false);
-	let loaded = $state(false);
+	let loadStatus = $state<'idle' | 'loading' | 'loaded' | 'error'>('idle');
 	let busy = $state(false);
 	let error = $state('');
 	$effect(() => {
 		if (!open || !session.signedIn) return;
 		let active = true;
-		checking = true;
-		loaded = false;
+		loadStatus = 'loading';
 		own = null;
 		error = '';
 		api.comments
@@ -50,24 +48,24 @@
 			.then((response) => {
 				const report = response.items[0] ?? null;
 				if (active) {
-					loaded = true;
-					own = report ?? null;
+					loadStatus = 'loaded';
+					own = report;
 					reason = report?.reason ?? '';
 					body = report?.body ?? '';
 				}
 			})
 			.catch((cause) => {
-				if (active) error = apiErrorMessage(cause);
-			})
-			.finally(() => {
-				if (active) checking = false;
+				if (active) {
+					loadStatus = 'error';
+					error = apiErrorMessage(cause);
+				}
 			});
 		return () => {
 			active = false;
 		};
 	});
 	async function save() {
-		if (busy || checking || !loaded || !reason || !body.trim()) return;
+		if (busy || loadStatus !== 'loaded' || !reason || !body.trim()) return;
 		busy = true;
 		error = '';
 		try {
@@ -140,11 +138,11 @@
 				Sign in to flag hotlap #{hotlap}.
 			</p>
 			<Button onclick={session.signIn}>Sign in with LFS</Button>
-		{:else if checking}
+		{:else if loadStatus === 'loading'}
 			<p role="status" class="text-sm text-muted-foreground">
 				Loading your flag…
 			</p>
-		{:else if !loaded}
+		{:else if loadStatus !== 'loaded'}
 			<p class="text-sm text-muted-foreground">
 				Your flag could not be loaded. Close this dialog and try again.
 			</p>

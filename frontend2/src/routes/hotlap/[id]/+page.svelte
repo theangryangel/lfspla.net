@@ -12,6 +12,9 @@
 	import DateTime from '#lib/components/app/DateTime.svelte';
 	import Flag from '#lib/components/app/Flag.svelte';
 	import Thumbnail from '#lib/components/app/Thumbnail.svelte';
+	import TrackSectorMap from '#lib/components/app/TrackSectorMap.svelte';
+	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
 	import ReportHotlap from '#lib/components/app/ReportHotlap.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
@@ -21,11 +24,17 @@
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import {
 		controlTags,
+		delta,
 		hotlapStates,
 		lapTime,
 		steeringLabels,
 	} from '#lib/format.js';
-	import { intermediateSplits, sectorTimes } from '#lib/hotlap-comparison.js';
+	import {
+		compareSectors,
+		intermediateSplits,
+		sectorTimes,
+		sectorColour,
+	} from '#lib/hotlap-comparison.js';
 	let { data }: PageProps = $props();
 	const api = useApi();
 	const session = useSession();
@@ -41,6 +50,17 @@
 	);
 	const splits = $derived(intermediateSplits(hotlap));
 	const sectors = $derived(sectorTimes(hotlap));
+	const sectorComparison = $derived(
+		data.worldRecord && hotlap.state === 'valid'
+			? compareSectors(hotlap, data.worldRecord)
+			: null,
+	);
+	let hoveredSector = $state<number | null>(null);
+	let focusedSector = $state<number | null>(null);
+	let selectedSector = $state<number | null>(null);
+	const activeSector = $derived(
+		hoveredSector ?? focusedSector ?? selectedSector,
+	);
 	let confirmOpen = $state(false);
 	let busy = $state(false);
 	let actionError = $state('');
@@ -50,6 +70,9 @@
 			previousLap = hotlap.id;
 			actionError = '';
 			confirmOpen = false;
+			hoveredSector = null;
+			focusedSector = null;
+			selectedSector = null;
 		}
 	});
 	async function remove() {
@@ -88,13 +111,6 @@
 	}
 </script>
 
-<svelte:head
-	><title
-		>{lapTime(hotlap.lap_time_ms)} · {hotlap.track} / {hotlap.vehicle} · Hotlap #{hotlap.id}
-		| lfspla.net</title
-	></svelte:head
->
-
 <main id="main" class="w-full min-w-0 flex-1">
 	<div class="mx-auto w-full max-w-screen-2xl px-4 py-4 md:px-6 md:py-3">
 		<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -116,7 +132,7 @@
 					>{/if}
 				{#if hotlap.state === 'valid'}<ReportHotlap
 						hotlap={hotlap.id}
-						existingReport={data.report}
+						existingReport={hotlap.reports}
 						label="Report this hotlap"
 					/>{/if}
 				{#if owner}
@@ -231,35 +247,126 @@
 	<div class="mx-auto w-full max-w-screen-2xl space-y-8 p-4 md:p-6">
 		{#if splits.length}
 			<section class="space-y-3" aria-labelledby="hotlap-splits-title">
-				<h2 id="hotlap-splits-title" class="racing-section-title">
+				<h2
+					id="hotlap-splits-title"
+					class="racing-section-title flex h-8 items-center"
+				>
 					Split times
 				</h2>
-				<div class="racing-data overflow-x-auto border-y">
-					<table class="w-full text-sm">
-						<caption class="sr-only">Split and sector times</caption>
-						<thead class="bg-muted/50 text-left"
-							><tr
-								><th scope="col" class="p-3">Checkpoint</th><th
-									scope="col"
-									class="p-3">Cumulative time</th
-								><th scope="col" class="p-3">Sector time</th></tr
-							></thead
+				<TableFrame appearance="data">
+					<figure class="min-w-0" aria-labelledby="hotlap-splits-title">
+						<div
+							class={data.track?.outline
+								? 'grid min-w-0 items-center lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]'
+								: 'min-w-0'}
 						>
-						<tbody
-							>{#each [...splits, hotlap.lap_time_ms] as time, index (index)}<tr
-									class="border-t"
-									><th scope="row" class="p-3 text-left font-normal"
-										>{index === splits.length
-											? 'Finish'
-											: `Split ${index + 1}`}</th
-									><td class="p-3 font-mono tabular-nums">{lapTime(time)}</td
-									><td class="p-3 font-mono tabular-nums"
-										>{lapTime(sectors[index])}</td
-									></tr
-								>{/each}</tbody
-						>
-					</table>
-				</div>
+							{#if data.track?.outline}
+								<TrackSectorMap
+									outline={data.track.outline}
+									track={hotlap.track}
+									comparison={sectorComparison}
+									bind:hoveredSector
+									bind:focusedSector
+									bind:selectedSector
+								/>
+							{/if}
+							<div
+								class={data.track?.outline
+									? 'min-w-0 overflow-x-auto border-t lg:border-t-0 lg:border-l'
+									: 'min-w-0 overflow-x-auto'}
+							>
+								<Table.Root
+									class="[&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-4 [&_td:last-child]:pr-4"
+								>
+									<Table.Caption id="hotlap-sector-legend" class="sr-only"
+										>Split timing legend. Negative differences are faster than
+										the current world record.</Table.Caption
+									>
+									<Table.Header>
+										<Table.Row>
+											<Table.Head>Split</Table.Head>
+											<Table.Head class="text-right">Elapsed</Table.Head>
+											<Table.Head class="text-right">Time</Table.Head>
+											{#if sectorComparison}<Table.Head class="text-right"
+													>WR</Table.Head
+												><Table.Head class="text-right">Difference</Table.Head
+												>{/if}
+										</Table.Row>
+									</Table.Header>
+									<Table.Body>
+										{#each [...splits, hotlap.lap_time_ms] as time, index (index)}
+											<Table.Row
+												data-state={activeSector === index
+													? 'selected'
+													: undefined}
+												onpointerenter={(event) => {
+													if (
+														event.pointerType !== 'touch' &&
+														sectorComparison &&
+														data.track?.outline
+													)
+														hoveredSector = index;
+												}}
+												onpointerleave={() => {
+													if (hoveredSector === index) hoveredSector = null;
+												}}
+											>
+												<th
+													scope="row"
+													data-slot="table-cell"
+													class="py-2 text-left font-medium"
+												>
+													{#if sectorComparison && data.track?.outline}
+														<button
+															type="button"
+															class="cursor-pointer whitespace-nowrap text-left font-medium outline-none focus-visible:underline"
+															aria-pressed={selectedSector === index}
+															onfocus={() => (focusedSector = index)}
+															onblur={() => {
+																if (focusedSector === index)
+																	focusedSector = null;
+															}}
+															onclick={() =>
+																(selectedSector =
+																	selectedSector === index ? null : index)}
+															onkeydown={(event) => {
+																if (event.key === 'Escape')
+																	selectedSector = null;
+															}}>Split {index + 1}</button
+														>
+													{:else}<span class="whitespace-nowrap"
+															>Split {index + 1}</span
+														>{/if}
+												</th>
+												<Table.Cell
+													class="text-right font-mono tabular-nums text-muted-foreground"
+													>{lapTime(time)}</Table.Cell
+												>
+												<Table.Cell
+													class="text-right font-mono font-medium tabular-nums"
+													style={`color: ${sectorColour(sectorComparison?.[index]?.delta)}`}
+													>{lapTime(sectors[index])}</Table.Cell
+												>
+												{#if sectorComparison}
+													<Table.Cell class="text-right font-mono tabular-nums"
+														>{lapTime(
+															sectorComparison[index].reference,
+														)}</Table.Cell
+													>
+													<Table.Cell
+														class="text-right font-mono tabular-nums"
+														style={`color: ${sectorColour(sectorComparison[index].delta)}`}
+														>{delta(sectorComparison[index].delta)}</Table.Cell
+													>
+												{/if}
+											</Table.Row>
+										{/each}
+									</Table.Body>
+								</Table.Root>
+							</div>
+						</div>
+					</figure>
+				</TableFrame>
 			</section>
 		{/if}
 		{#if owner && hotlap.submission}

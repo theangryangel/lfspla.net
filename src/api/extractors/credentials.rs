@@ -70,30 +70,17 @@ impl AuthenticatedPlayer {
 
 extractor!(AuthenticatedPlayer);
 
-/// An authenticated player with the moderator role. Inherits authentication,
-/// account bans and CSRF protection from `AuthenticatedPlayer`.
-#[derive(Debug)]
-pub(crate) struct Moderator(pub(crate) Player);
-
-impl Moderator {
-    async fn extract(parts: &mut Parts, state: &ApiState) -> Result<Self, ApiError> {
-        let AuthenticatedPlayer(player) = AuthenticatedPlayer::extract(parts, state).await?;
-        Self::from_player(player)
+/// Require the moderator role after authentication and CSRF checks.
+pub(crate) fn require_moderator(player: &Player) -> Result<(), ApiError> {
+    if player.role != crate::models::player::Role::Moderator {
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "moderator_required",
+            "Moderator access is required",
+        ));
     }
-
-    pub(crate) fn from_player(player: Player) -> Result<Self, ApiError> {
-        if player.role != crate::models::player::Role::Moderator {
-            return Err(ApiError::new(
-                StatusCode::FORBIDDEN,
-                "moderator_required",
-                "Moderator access is required",
-            ));
-        }
-        Ok(Self(player))
-    }
+    Ok(())
 }
-
-extractor!(Moderator);
 
 impl OptionalFromRequestParts<ApiState> for AuthenticatedPlayer {
     type Rejection = Response;
@@ -446,6 +433,11 @@ mod tests {
             hotlaps: Default::default(),
         };
         let session = Session::new(None, Arc::new(MemoryStore::default()), None);
+        async fn moderator(parts: &mut Parts, state: &ApiState) -> Result<Player, ApiError> {
+            let AuthenticatedPlayer(player) = AuthenticatedPlayer::extract(parts, state).await?;
+            require_moderator(&player)?;
+            Ok(player)
+        }
         let parts = |bearer: bool, method, csrf: bool| {
             let mut request = axum::http::Request::builder().method(method);
             if bearer {
@@ -459,7 +451,7 @@ mod tests {
             parts
         };
         assert_eq!(
-            Moderator::extract(&mut parts(false, "GET", false), &state)
+            moderator(&mut parts(false, "GET", false), &state)
                 .await
                 .unwrap_err()
                 .status,
@@ -469,7 +461,7 @@ mod tests {
         session.insert(CSRF_TOKEN_KEY, "test-csrf").await?;
         for bearer in [false, true] {
             assert_eq!(
-                Moderator::extract(&mut parts(bearer, "GET", false), &state)
+                moderator(&mut parts(bearer, "GET", false), &state)
                     .await
                     .unwrap_err()
                     .status,
@@ -481,17 +473,16 @@ mod tests {
         let player = Player::record_authentication(&state.database, &account).await?;
         assert_eq!(player.role, Role::Moderator);
         for bearer in [false, true] {
-            let Moderator(current) =
-                Moderator::extract(&mut parts(bearer, "GET", false), &state).await?;
+            let current = moderator(&mut parts(bearer, "GET", false), &state).await?;
             assert_eq!(current.role, Role::Moderator);
             assert!(
-                Moderator::extract(&mut parts(bearer, "POST", true), &state)
+                moderator(&mut parts(bearer, "POST", true), &state)
                     .await
                     .is_ok()
             );
         }
         assert_eq!(
-            Moderator::extract(&mut parts(false, "POST", false), &state)
+            moderator(&mut parts(false, "POST", false), &state)
                 .await
                 .unwrap_err()
                 .status,
@@ -500,7 +491,7 @@ mod tests {
         let player = player.set_role(&state.database, Role::Player).await?;
         for bearer in [false, true] {
             assert_eq!(
-                Moderator::extract(&mut parts(bearer, "GET", false), &state)
+                moderator(&mut parts(bearer, "GET", false), &state)
                     .await
                     .unwrap_err()
                     .status,
@@ -511,7 +502,7 @@ mod tests {
         player.set_auth_denied(&state.database, true).await?;
         for bearer in [false, true] {
             assert_eq!(
-                Moderator::extract(&mut parts(bearer, "GET", false), &state)
+                moderator(&mut parts(bearer, "GET", false), &state)
                     .await
                     .unwrap_err()
                     .status,

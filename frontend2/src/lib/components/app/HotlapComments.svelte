@@ -51,9 +51,7 @@
 					invalidate('app:reports'),
 				]);
 				const url = new URL(page.url.href);
-				url.searchParams.delete('comment');
 				url.searchParams.set('around', String(result.id));
-				url.searchParams.delete('tab');
 				url.searchParams.delete('comments_page');
 				url.hash = `comment-${result.id}`;
 				await goto(url);

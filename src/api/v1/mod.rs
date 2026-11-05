@@ -1,7 +1,6 @@
 //! Version 1 HTTP routes and boundary models.
 
 pub mod attachments;
-pub mod comments;
 pub mod community_cards;
 pub mod countries;
 pub mod eras;
@@ -60,7 +59,6 @@ pub(crate) fn router(max_spr_upload_bytes: usize) -> OpenApiRouter<ApiState> {
         .merge(stats::router())
         .merge(track_locations::router())
         .merge(tracks::router())
-        .merge(comments::router())
         .merge(vehicles::router())
         .merge(player_comparison::router())
 }

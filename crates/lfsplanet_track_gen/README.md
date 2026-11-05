@@ -30,6 +30,9 @@ line. `SRPATH` also gives splits and whether the path loops.
 
 Each track is scaled to fit the thumbnail. The picker shows shape, not length.
 
+The default track stroke is 3.5 drawing units wide; `--stroke-width` overrides
+it, with timing markers scaled to match.
+
 Path files contain more points than a thumbnail needs. `--simplify` removes
 points without changing the shape. Timing markers stay on the line.
 
@@ -46,6 +49,40 @@ finish line uses `--destructive`, and splits use `--foreground`. A wider
 `--muted` marker cuts through the centre line.
 
 In an `<img>`, the page theme cannot reach the SVG. Fallback colours use the
-reader's system theme. Inline SVGs where the theme matters.
+reader's system theme. Inline SVGs or external `<use>` references can inherit
+the page's theme.
 
 [insim]: https://github.com/theangryangel/insim.rs
+
+## Sector maps
+
+Generated files remain standalone thumbnails, and export these SVG fragments:
+
+- `#track`: the complete outline, sectors, and timing markers.
+- `#sector-1`, `#sector-2`, …: individual sectors in order of travel.
+- `#track-sectors-N`: the full map, exported only when all `N` sectors are known.
+
+Each sector uses `stroke="var(--sector-1, var(--muted-foreground, …))"`
+(with its own sector number). Colours default to the original neutral palette.
+Sector-enabled outlines draw only the sector paths; a single full path is drawn
+instead when sector boundaries are unavailable. There is no duplicate centre line.
+The generator reuses the whole curve's Bézier segments, preserving its shape
+and tangents at split boundaries. Timing markers are drawn above the sectors.
+Missing, ambiguous, or out-of-order boundaries leave the outline unsegmented.
+
+The hotlap page references the same-origin outline attachment directly:
+
+```svelte
+<svg viewBox="0 0 160 100" style:--sector-1="var(--time-pb)">
+  <use href={`${outline.url}#track-sectors-3`} width="160" height="100" />
+</svg>
+```
+
+The fragment is a symbol with its own viewBox, so custom generator dimensions
+still scale correctly. The ordinary image remains underneath as a neutral
+fallback for older imports and maps whose sector count differs from the lap.
+
+Regenerate SVGs with the command above, then import the corresponding track
+location YAML definitions using the usual catalogue seed workflow. Regeneration
+alone does not replace the attachments served by a running site. Keep the
+outline names and paths referenced by those definitions unchanged.

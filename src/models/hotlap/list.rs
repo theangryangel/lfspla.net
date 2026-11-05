@@ -319,14 +319,12 @@ impl<'a> HotlapListFilters<'a> {
             hotlaps = hotlaps.filter(HotlapColumn::Vehicle.eq(vehicle.to_string()));
         }
         if let Some(reported) = self.reported {
-            use crate::models::hotlap_comment::{Column, Entity};
+            use crate::models::hotlap_comment::{Column, CommentFilter, Entity};
             let open_reports = Entity::find()
                 .select_only()
                 .column(Column::HotlapId)
                 .filter(Column::HotlapId.is_not_null())
-                .filter(Column::Reason.is_not_null())
-                .filter(Column::DeletedAt.is_null())
-                .filter(Column::ResolvedAt.is_null())
+                .open_reports()
                 .into_query();
             hotlaps = hotlaps.filter(if reported {
                 HotlapColumn::Id.in_subquery(open_reports)

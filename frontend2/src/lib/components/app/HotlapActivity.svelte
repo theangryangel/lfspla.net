@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import DateTime from '#lib/components/app/DateTime.svelte';
-	import FlagIcon from '@lucide/svelte/icons/flag';
 	import { page } from '$app/state';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import {
@@ -201,9 +200,7 @@
 				>
 			{/if}
 			{#if views.includes('reported')}
-				<Tabs.Trigger value="reported"
-					><FlagIcon class="size-4" />Reported</Tabs.Trigger
-				>
+				<Tabs.Trigger value="reported">Reported</Tabs.Trigger>
 			{/if}
 			{#if views.includes('mine') && session.signedIn}
 				<Tabs.Trigger value="mine">Mine</Tabs.Trigger>

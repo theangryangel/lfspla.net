@@ -55,45 +55,27 @@ pub(crate) async fn load_report_counts<'a>(
     database: &impl sea_orm::ConnectionTrait,
     hotlaps: impl IntoIterator<Item = &'a mut Hotlap>,
 ) -> Result<(), crate::api::ApiError> {
-    use crate::models::hotlap_comment as comment;
-    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
-    #[derive(sea_orm::FromQueryResult)]
-    struct Counts {
-        hotlap_id: i64,
-        total: i64,
-        unresolved: i64,
-    }
     let hotlaps = hotlaps.into_iter().collect::<Vec<_>>();
     if hotlaps.is_empty() {
         return Ok(());
     }
-    let counts = comment::Entity::find()
-        .select_only()
-        .column(comment::Column::HotlapId)
-        .column_as(sea_orm::sea_query::Expr::cust("COUNT(*)"), "total")
-        .column_as(
-            sea_orm::sea_query::Expr::cust("COUNT(*) FILTER (WHERE resolved_at IS NULL)"),
-            "unresolved",
+    let counts = crate::models::hotlap_comment::Model::report_counts(
+        database,
+        hotlaps.iter().map(|lap| lap.id).collect(),
+    )
+    .await
+    .map_err(crate::api::ApiError::database)?
+    .into_iter()
+    .map(|row| {
+        (
+            row.hotlap_id,
+            HotlapReportSummary {
+                total: row.total as u64,
+                unresolved: row.unresolved as u64,
+            },
         )
-        .filter(comment::Column::HotlapId.is_in(hotlaps.iter().map(|lap| lap.id)))
-        .filter(comment::Column::Reason.is_not_null())
-        .filter(comment::Column::DeletedAt.is_null())
-        .group_by(comment::Column::HotlapId)
-        .into_model::<Counts>()
-        .all(database)
-        .await
-        .map_err(crate::api::ApiError::database)?
-        .into_iter()
-        .map(|row| {
-            (
-                row.hotlap_id,
-                HotlapReportSummary {
-                    total: row.total as u64,
-                    unresolved: row.unresolved as u64,
-                },
-            )
-        })
-        .collect::<HashMap<_, _>>();
+    })
+    .collect::<HashMap<_, _>>();
     for lap in hotlaps {
         lap.reports = counts.get(&lap.id).cloned().unwrap_or_default();
     }

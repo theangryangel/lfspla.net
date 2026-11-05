@@ -22,8 +22,7 @@ export const load: PageLoad = async ({
     if (cause instanceof NotFoundError) error(404, "Hotlap not found");
     throw cause;
   });
-  const around =
-    url.searchParams.get("around") ?? url.searchParams.get("comment");
+  const around = url.searchParams.get("around");
   if (
     around &&
     (!/^[1-9]\d*$/.test(around) || !Number.isSafeInteger(Number(around)))
@@ -59,7 +58,7 @@ export const load: PageLoad = async ({
     hotlap,
     track: chart?.chart.track ?? null,
     vehicle: chart?.chart.vehicle ?? null,
-    report: hotlap.reports,
+    worldRecord: chart?.world_record ?? null,
     comments,
     breadcrumbs: [
       ...breadcrumbs,
