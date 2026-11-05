@@ -15,7 +15,7 @@ use axum::{
     Json,
     extract::{Path, State},
 };
-use sea_orm::EntityTrait;
+use sea_orm::{EntityTrait, FromQueryResult};
 
 #[utoipa::path(
     get,
@@ -91,7 +91,26 @@ pub(crate) async fn detail(
             .flatten(),
     )
     .await?;
-    Ok(Json(response(hotlap, player, &era, owner, &attachments)))
+    // A lap is ranked only while it is the player's current chart best.
+    // Read the maintained leaderboard position instead of inferring a rank
+    // from lap times, which could include older laps or unpublished uploads.
+    #[derive(FromQueryResult)]
+    struct ChartPosition {
+        position: i64,
+    }
+    let position = if hotlap.state == hotlap::HotlapState::Valid {
+        ChartPosition::find_by_statement(sea_orm::Statement::from_sql_and_values(
+            sea_orm::DbBackend::Postgres,
+            "SELECT position FROM hotlap_personal_best WHERE chart_id = $1 AND player_id = $2 AND hotlap_id = $3",
+            [hotlap.chart_id.into(), hotlap.player_id.into(), hotlap.id.into()],
+        )).one(&state.database).await.map_err(ApiError::database)?.map(|row| row.position)
+    } else {
+        None
+    };
+    let mut response = response(hotlap, player, &era, owner, &attachments);
+    response.position = position;
+    super::response::load_report_counts(&state.database, [&mut response]).await?;
+    Ok(Json(response))
 }
 
 fn hotlap_not_found() -> ApiError {
@@ -120,6 +139,72 @@ mod tests {
         milliseconds::Milliseconds,
         models::hotlap::{HotlapState, SteeringInput},
     };
+
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn database_tests_detail_exposes_only_the_laps_current_chart_position(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        use sea_orm::{ActiveModelTrait, IntoActiveModel, Set};
+        sqlx::raw_sql(include_str!(
+            "../../../services/validate_hotlap/fixtures.sql"
+        ))
+        .execute(&pool)
+        .await?;
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+        let player = player::Entity::find().one(&database).await?.unwrap();
+        let lap = hotlap::Entity::find().one(&database).await?.unwrap();
+        let state = ApiState {
+            database: database.clone(),
+            oauth: None,
+            site_notice: None,
+            hotlaps: Default::default(),
+            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+        };
+        let Json(pending) = detail(
+            Path(lap.id),
+            State(state.clone()),
+            Some(AuthenticatedPlayer(player.clone())),
+        )
+        .await?;
+        assert_eq!(pending.position, None);
+        sqlx::query("UPDATE hotlap SET state = 'valid', hlvc_result_code = 1, finished_at = now()")
+            .execute(&pool)
+            .await?;
+        let lap = hotlap::Entity::find_by_id(lap.id)
+            .one(&database)
+            .await?
+            .unwrap();
+        lap.refresh_personal_best(&database).await?;
+        let Json(first) = detail(Path(lap.id), State(state.clone()), None).await?;
+        assert_eq!(first.position, Some(1));
+
+        let mut rival = player.clone().into_active_model();
+        rival.id = sea_orm::ActiveValue::NotSet;
+        rival.lfs_username = Set("rival".into());
+        let rival = rival.insert(&database).await?;
+        let mut faster = lap.clone().into_active_model();
+        faster.id = sea_orm::ActiveValue::NotSet;
+        faster.player_id = Set(rival.id);
+        faster.fingerprint = Set("b".repeat(64));
+        faster.lap_time_ms = Set(Milliseconds::from_millis(59_000));
+        let faster = faster.insert(&database).await?;
+        faster.refresh_personal_best(&database).await?;
+        let Json(second) = detail(Path(lap.id), State(state.clone()), None).await?;
+        assert_eq!(second.position, Some(2));
+
+        let mut improved = lap.clone().into_active_model();
+        improved.id = sea_orm::ActiveValue::NotSet;
+        improved.fingerprint = Set("c".repeat(64));
+        improved.lap_time_ms = Set(Milliseconds::from_millis(58_000));
+        let improved = improved.insert(&database).await?;
+        improved.refresh_personal_best(&database).await?;
+        let Json(superseded) = detail(Path(lap.id), State(state.clone()), None).await?;
+        assert_eq!(superseded.position, None);
+        let Json(best) = detail(Path(improved.id), State(state), None).await?;
+        assert_eq!(best.position, Some(1));
+        Ok(())
+    }
 
     #[test]
     fn private_submission_metadata_is_only_serialized_for_the_owner() {

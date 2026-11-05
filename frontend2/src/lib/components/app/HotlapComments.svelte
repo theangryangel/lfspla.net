@@ -53,7 +53,7 @@
 				const url = new URL(page.url.href);
 				url.searchParams.delete('comment');
 				url.searchParams.set('around', String(result.id));
-				url.searchParams.set('tab', 'conversation');
+				url.searchParams.delete('tab');
 				url.searchParams.delete('comments_page');
 				url.hash = `comment-${result.id}`;
 				await goto(url);
@@ -85,24 +85,22 @@
 		/>{/if}
 	{#if session.signedIn}
 		<form
-			class="overflow-hidden border-y bg-card focus-within:ring-2 focus-within:ring-primary/30"
+			class="space-y-3"
 			onsubmit={(event) => {
 				event.preventDefault();
 				post();
 			}}
 		>
-			<label class="block"
-				><span class="sr-only">Add a comment</span><textarea
-					class="block min-h-24 w-full resize-y bg-transparent px-4 py-3 text-sm outline-none"
+			<label class="grid gap-2 text-sm font-medium"
+				>Add a comment<textarea
+					class="block min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
 					placeholder="Write a comment…"
 					bind:value={body}
 					maxlength={4000}
 					required
 					disabled={busy}></textarea></label
 			>
-			<div
-				class="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/20 px-3 py-2"
-			>
+			<div class="flex flex-wrap items-center justify-between gap-3">
 				<p class="text-xs text-muted-foreground">
 					Comments are public. Use plain text.
 				</p>

@@ -33,7 +33,6 @@ export * from "./HotlapSubmission.js";
 export * from "./ListResponseCodeNameSummary.js";
 export * from "./ListResponseCommunityCard.js";
 export * from "./ListResponseEraSummary.js";
-export * from "./ListResponseHotlapReportSummary.js";
 export * from "./ListResponseNationContributionResponse.js";
 export * from "./ListResponsePersonalAccessTokenResponse.js";
 export * from "./ListResponseRankingSummary.js";

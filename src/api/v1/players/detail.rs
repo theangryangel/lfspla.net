@@ -78,7 +78,13 @@ pub(crate) async fn detail(
         .profile(&state.database)
         .await
         .map_err(ApiError::database)?;
-    Ok(Json(PlayerResponse::from(profile)))
+    let mut response = PlayerResponse::from(profile);
+    crate::api::v1::hotlaps::response::load_report_counts(
+        &state.database,
+        &mut response.highlights,
+    )
+    .await?;
+    Ok(Json(response))
 }
 
 impl From<PlayerProfile> for PlayerResponse {

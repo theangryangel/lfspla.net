@@ -12,7 +12,6 @@ import { HotlapsClient } from "./api/resources/hotlaps/client/Client.js";
 import { PersonalAccessTokensClient } from "./api/resources/personalAccessTokens/client/Client.js";
 import { PlayersClient } from "./api/resources/players/client/Client.js";
 import { RankingClient } from "./api/resources/ranking/client/Client.js";
-import { ReportsClient } from "./api/resources/reports/client/Client.js";
 import { StatsClient } from "./api/resources/stats/client/Client.js";
 import { TrackLocationsClient } from "./api/resources/trackLocations/client/Client.js";
 import { TracksClient } from "./api/resources/tracks/client/Client.js";
@@ -44,7 +43,6 @@ export class LfsplanetApiClient {
   protected _tracks: TracksClient | undefined;
   protected _vehicles: VehiclesClient | undefined;
   protected _events: EventsClient | undefined;
-  protected _reports: ReportsClient | undefined;
   protected _comments: CommentsClient | undefined;
   protected _authentication: AuthenticationClient | undefined;
   protected _personalAccessTokens: PersonalAccessTokensClient | undefined;
@@ -98,10 +96,6 @@ export class LfsplanetApiClient {
 
   public get events(): EventsClient {
     return (this._events ??= new EventsClient(this._options));
-  }
-
-  public get reports(): ReportsClient {
-    return (this._reports ??= new ReportsClient(this._options));
   }
 
   public get comments(): CommentsClient {

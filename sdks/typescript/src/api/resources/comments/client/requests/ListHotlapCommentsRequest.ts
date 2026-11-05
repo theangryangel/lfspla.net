@@ -14,4 +14,9 @@ export interface ListHotlapCommentsRequest {
   per_page?: number;
   /** Open the root page containing this comment, including replies. */
   around?: number;
+  /** List direct replies instead of root conversations. */
+  parent_id?: number;
+  author_id?: number;
+  /** Filter roots by whether they are reports (including resolved reports). */
+  reported?: boolean;
 }

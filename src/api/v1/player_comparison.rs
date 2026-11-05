@@ -148,7 +148,17 @@ pub(crate) async fn compare(
         .await
         .map_err(ApiError::database)?;
 
-    Ok(Json(PlayerComparisonResponse::from(comparison)))
+    let mut response = PlayerComparisonResponse::from(comparison);
+    crate::api::v1::hotlaps::response::load_report_counts(
+        &state.database,
+        response
+            .left
+            .results
+            .iter_mut()
+            .chain(response.right.results.iter_mut()),
+    )
+    .await?;
+    Ok(Json(response))
 }
 
 impl From<PlayerComparison> for PlayerComparisonResponse {

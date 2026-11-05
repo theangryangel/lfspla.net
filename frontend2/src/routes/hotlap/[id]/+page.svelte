@@ -4,12 +4,14 @@
 	import { useSession } from '#lib/session.svelte.js';
 	import { goto, invalidate } from '$app/navigation';
 	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
-	import RecordHighlight from '#lib/components/app/RecordHighlight.svelte';
+	import RecordHighlight, {
+		recordHighlightValueClass,
+	} from '#lib/components/app/RecordHighlight.svelte';
+	import RecordHighlights from '#lib/components/app/RecordHighlights.svelte';
 	import Breadcrumbs from '#lib/components/app/Breadcrumbs.svelte';
-	import * as Tabs from '#lib/components/ui/tabs/index.js';
-	import { page } from '$app/state';
 	import DateTime from '#lib/components/app/DateTime.svelte';
 	import Flag from '#lib/components/app/Flag.svelte';
+	import Thumbnail from '#lib/components/app/Thumbnail.svelte';
 	import ReportHotlap from '#lib/components/app/ReportHotlap.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
@@ -28,26 +30,6 @@
 	const api = useApi();
 	const session = useSession();
 	const hotlap = $derived(data.hotlap);
-	const selectedTab = $derived(
-		data.comments &&
-			(page.url.searchParams.get('tab') === 'conversation' ||
-				page.url.searchParams.has('around') ||
-				page.url.searchParams.has('comment') ||
-				page.url.hash.startsWith('#comment'))
-			? 'conversation'
-			: 'overview',
-	);
-	function selectTab(value: string) {
-		if (value === selectedTab) return;
-		const url = new URL(page.url.href);
-		url.searchParams.set('tab', value);
-		if (value === 'overview') {
-			url.searchParams.delete('around');
-			url.searchParams.delete('comment');
-			if (url.hash.startsWith('#comment')) url.hash = '';
-		}
-		void goto(url, { replaceState: true, reset: false });
-	}
 	const owner = $derived(
 		session.signedIn &&
 			hotlap.player.id === session.player?.id &&
@@ -161,128 +143,155 @@
 		</div>
 	</div>
 	<PageIdentity label="Hotlap identity">
-		<div class="space-y-4 py-2">
-			<div class="flex flex-wrap items-center gap-3">
-				<h1 class="racing-page-title">
-					Hotlap #{hotlap.id} by
-					<a
-						class="hover:underline"
-						href={`/drivers/${encodeURIComponent(hotlap.player.lfs_username)}`}
-					>
-						<Flag
-							code={hotlap.player.flag_code}
-							fallback={hotlap.player.country_code}
-						/>
-						{hotlap.player.display_name || hotlap.player.lfs_username}
-					</a>
-					on
-					<a class="hover:underline" href={chartHref}
-						>{hotlap.era_title} / {hotlap.track} / {hotlap.vehicle}</a
-					>
-				</h1>
-				<Badge variant={status.variant}>{status.label}</Badge>
+		<div class="space-y-3 py-2">
+			<div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+				<div class="flex min-w-0 items-center gap-3">
+					<Flag
+						code={hotlap.player.flag_code}
+						fallback={hotlap.player.country_code}
+						size="lg"
+					/>
+					<h1 class="racing-page-title min-w-0 break-words">
+						<a
+							class="hover:underline"
+							href={`/drivers/${encodeURIComponent(hotlap.player.lfs_username)}`}
+						>
+							{hotlap.player.display_name || hotlap.player.lfs_username}
+						</a>
+					</h1>
+				</div>
+				<a
+					href={chartHref}
+					title={data.track?.name ?? hotlap.track}
+					aria-label={`View chart for ${data.track?.name ?? hotlap.track}`}
+					class="inline-flex min-w-0 items-center gap-2 rounded-sm py-1 outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+				>
+					<Thumbnail
+						src={data.track?.image?.url ?? data.track?.outline?.url ?? null}
+						class="w-12 shrink-0 bg-transparent sm:w-16"
+					/>
+					<span class="racing-section-title break-all">{hotlap.track}</span>
+				</a>
+				<a
+					href={chartHref}
+					title={data.vehicle?.name ?? hotlap.vehicle}
+					aria-label={`View chart for ${data.vehicle?.name ?? hotlap.vehicle}`}
+					class="inline-flex min-w-0 items-center gap-2 rounded-sm py-1 outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+				>
+					<Thumbnail
+						src={data.vehicle?.image?.url ?? null}
+						class="w-12 shrink-0 bg-transparent sm:w-16"
+					/>
+					<span class="racing-section-title break-all">{hotlap.vehicle}</span>
+				</a>
+			</div>
+			<div
+				class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground"
+				aria-label="Lap details"
+			>
+				<span>Set <DateTime value={hotlap.created_at} /></span>
+				<div class="flex flex-wrap items-center gap-2">
+					<Badge variant={status.variant}>{status.label}</Badge>
+					<Badge variant="outline">LFS {hotlap.game_version}</Badge>
+					<Badge variant="outline">{steeringLabels[hotlap.steering]}</Badge>
+					{#each controlTags(hotlap) as tag (tag)}<Badge variant="outline"
+							>{tag}</Badge
+						>{/each}
+				</div>
 			</div>
 		</div>
 		{#snippet highlight()}
-			<RecordHighlight title="Lap time" variant="cyan">
-				<p
-					class="text-right font-mono text-4xl font-bold tracking-tight tabular-nums"
+			<RecordHighlights class="lg:w-[32rem]">
+				<RecordHighlight
+					title="Lap time"
+					variant="cyan"
+					class="w-auto px-8 lg:w-auto lg:px-10"
 				>
-					{lapTime(hotlap.lap_time_ms)}
-				</p>
-			</RecordHighlight>
+					<p class={recordHighlightValueClass}>
+						{lapTime(hotlap.lap_time_ms)}
+					</p>
+				</RecordHighlight>
+				<RecordHighlight
+					title="Chart position"
+					variant="purple"
+					class="w-auto px-8 lg:w-auto lg:px-10"
+				>
+					<a
+						href={chartHref}
+						class={`${recordHighlightValueClass} hover:underline`}
+					>
+						{hotlap.position !== null
+							? `#${hotlap.position.toLocaleString()}`
+							: 'Unranked'}
+					</a>
+				</RecordHighlight>
+			</RecordHighlights>
 		{/snippet}
 	</PageIdentity>
 	<div class="mx-auto w-full max-w-screen-2xl space-y-8 p-4 md:p-6">
-		<Tabs.Root value={selectedTab} onValueChange={selectTab} class="space-y-5">
-			<Tabs.List aria-label="Hotlap sections">
-				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-				{#if data.comments}<Tabs.Trigger value="conversation"
-						>Conversation</Tabs.Trigger
-					>{/if}
-			</Tabs.List>
-			<Tabs.Content value="overview" class="space-y-4">
-				<dl
-					class="grid gap-5 border-y bg-card px-4 py-5 text-sm sm:grid-cols-2 lg:grid-cols-4"
-				>
-					<div>
-						<dt class="text-muted-foreground">Set</dt>
-						<dd class="mt-1"><DateTime value={hotlap.created_at} /></dd>
-					</div>
-					<div>
-						<dt class="text-muted-foreground">LFS version</dt>
-						<dd class="mt-1">{hotlap.game_version}</dd>
-					</div>
-					<div>
-						<dt class="text-muted-foreground">Controller</dt>
-						<dd class="mt-1">{steeringLabels[hotlap.steering]}</dd>
-					</div>
-					<div>
-						<dt class="text-muted-foreground">Controls</dt>
-						<dd class="mt-2 flex flex-wrap gap-2">
-							{#each controlTags(hotlap) as tag (tag)}<Badge variant="outline"
-									>{tag}</Badge
-								>{/each}
-						</dd>
-					</div>
-				</dl>
-				{#if splits.length}
-					<div class="racing-data overflow-x-auto border-y">
-						<table class="w-full text-sm">
-							<caption class="sr-only">Split and sector times</caption>
-							<thead class="bg-muted/50 text-left"
-								><tr
-									><th scope="col" class="p-3">Checkpoint</th><th
-										scope="col"
-										class="p-3">Cumulative time</th
-									><th scope="col" class="p-3">Sector time</th></tr
-								></thead
-							>
-							<tbody
-								>{#each [...splits, hotlap.lap_time_ms] as time, index (index)}<tr
-										class="border-t"
-										><th scope="row" class="p-3 text-left font-normal"
-											>{index === splits.length
-												? 'Finish'
-												: `Split ${index + 1}`}</th
-										><td class="p-3 font-mono tabular-nums">{lapTime(time)}</td
-										><td class="p-3 font-mono tabular-nums"
-											>{lapTime(sectors[index])}</td
-										></tr
-									>{/each}</tbody
-							>
-						</table>
-					</div>
-				{/if}
-				{#if owner && hotlap.submission}
-					<aside
-						class="space-y-2 border-l-2 border-primary bg-muted/50 p-4 text-sm"
-						aria-label="Your submission details"
+		{#if splits.length}
+			<section class="space-y-3" aria-labelledby="hotlap-splits-title">
+				<h2 id="hotlap-splits-title" class="racing-section-title">
+					Split times
+				</h2>
+				<div class="racing-data overflow-x-auto border-y">
+					<table class="w-full text-sm">
+						<caption class="sr-only">Split and sector times</caption>
+						<thead class="bg-muted/50 text-left"
+							><tr
+								><th scope="col" class="p-3">Checkpoint</th><th
+									scope="col"
+									class="p-3">Cumulative time</th
+								><th scope="col" class="p-3">Sector time</th></tr
+							></thead
+						>
+						<tbody
+							>{#each [...splits, hotlap.lap_time_ms] as time, index (index)}<tr
+									class="border-t"
+									><th scope="row" class="p-3 text-left font-normal"
+										>{index === splits.length
+											? 'Finish'
+											: `Split ${index + 1}`}</th
+									><td class="p-3 font-mono tabular-nums">{lapTime(time)}</td
+									><td class="p-3 font-mono tabular-nums"
+										>{lapTime(sectors[index])}</td
+									></tr
+								>{/each}</tbody
+						>
+					</table>
+				</div>
+			</section>
+		{/if}
+		{#if owner && hotlap.submission}
+			<aside
+				class="space-y-2 border-l-2 border-primary bg-muted/50 p-4 text-sm"
+				aria-label="Your submission details"
+			>
+				<h2 class="font-semibold">Your submission</h2>
+				<p>
+					Replay vehicle: {hotlap.submission.raw_vehicle_name}{hotlap.submission
+						.mod_version === null
+						? ''
+						: ` (mod version ${hotlap.submission.mod_version})`}
+				</p>
+				{#if hotlap.submission.hlvc_result_code !== null}<p>
+						Validation result: {hotlap.submission.hlvc_result_code}
+					</p>{/if}
+				{#if hotlap.submission.error_detail}<p
+						class="whitespace-pre-wrap break-words text-destructive"
 					>
-						<h3 class="font-semibold">Your submission</h3>
-						<p>
-							Replay vehicle: {hotlap.submission.raw_vehicle_name}{hotlap
-								.submission.mod_version === null
-								? ''
-								: ` (mod version ${hotlap.submission.mod_version})`}
-						</p>
-						{#if hotlap.submission.hlvc_result_code !== null}<p>
-								Validation result: {hotlap.submission.hlvc_result_code}
-							</p>{/if}
-						{#if hotlap.submission.error_detail}<p
-								class="whitespace-pre-wrap break-words text-destructive"
-							>
-								{hotlap.submission.error_detail}
-							</p>{/if}
-					</aside>
-				{/if}
-			</Tabs.Content>
-			{#if data.comments}
-				<Tabs.Content value="conversation">
-					<HotlapComments hotlap={hotlap.id} comments={data.comments} />
-				</Tabs.Content>
-			{/if}
-		</Tabs.Root>
+						{hotlap.submission.error_detail}
+					</p>{/if}
+			</aside>
+		{/if}
+		{#if data.comments}
+			<div class="space-y-3">
+				<h2 id="hotlap-conversation-title" class="racing-section-title">
+					Conversation
+				</h2>
+				<HotlapComments hotlap={hotlap.id} comments={data.comments} />
+			</div>
+		{/if}
 	</div>
 </main>
 

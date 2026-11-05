@@ -24,11 +24,9 @@
 
 <article
 	{id}
-	class={`min-w-0 scroll-mt-6 border-y text-card-foreground target:bg-primary/5 ${report ? (resolved ? 'border-l-4 border-l-brand-yellow/50 bg-brand-yellow/5' : 'border-l-4 border-l-brand-yellow bg-brand-yellow/10') : 'bg-card/30'}`}
+	class={`min-w-0 scroll-mt-6 rounded-lg border bg-card text-card-foreground target:ring-3 ${report ? (resolved ? 'border-destructive/25 target:ring-destructive/10' : 'border-destructive/60 target:ring-destructive/20') : 'target:ring-primary/30'}`}
 >
-	<header
-		class={`flex items-start justify-between gap-3 px-4 py-2 ${report ? 'bg-brand-yellow/10' : 'bg-muted/20'}`}
-	>
+	<header class="flex items-start justify-between gap-3 px-4 pt-4">
 		<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs">
 			<a
 				href={`/drivers/${encodeURIComponent(author.lfs_username)}`}
@@ -45,5 +43,5 @@
 				{@render actions()}
 			</div>{/if}
 	</header>
-	<div class="min-w-0 space-y-2 px-4 pt-2 pb-3">{@render children()}</div>
+	<div class="min-w-0 space-y-2 px-4 pt-2 pb-4">{@render children()}</div>
 </article>

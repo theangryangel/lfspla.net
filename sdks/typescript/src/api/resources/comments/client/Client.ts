@@ -57,11 +57,22 @@ export class CommentsClient {
   ): Promise<
     core.WithRawResponse<LfsplanetApi.PaginatedResponseHotlapCommentResponse>
   > {
-    const { hotlap, page, per_page: perPage, around } = request;
+    const {
+      hotlap,
+      page,
+      per_page: perPage,
+      around,
+      parent_id: parentId,
+      author_id: authorId,
+      reported,
+    } = request;
     const _queryParams: Record<string, unknown> = {
       page,
       per_page: perPage,
       around,
+      parent_id: parentId,
+      author_id: authorId,
+      reported,
     };
     let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
       this._options?.headers,
@@ -133,6 +144,7 @@ export class CommentsClient {
    * @throws {@link LfsplanetApi.UnauthorizedError}
    * @throws {@link LfsplanetApi.ForbiddenError}
    * @throws {@link LfsplanetApi.NotFoundError}
+   * @throws {@link LfsplanetApi.ConflictError}
    *
    * @example
    *     await client.comments.createHotlapComment({
@@ -216,85 +228,8 @@ export class CommentsClient {
             _response.error.body as LfsplanetApi.ErrorResponse,
             _response.rawResponse,
           );
-        default:
-          throw new errors.LfsplanetApiError({
-            statusCode: _response.error.statusCode,
-            body: _response.error.body,
-            rawResponse: _response.rawResponse,
-          });
-      }
-    }
-
-    return handleNonStatusCodeError(
-      _response.error,
-      _response.rawResponse,
-      "POST",
-      "/api/v1/hotlaps/{hotlap}/comments",
-    );
-  }
-
-  /**
-   * @param {LfsplanetApi.GetHotlapCommentRequest} request
-   * @param {CommentsClient.RequestOptions} requestOptions - Request-specific configuration.
-   *
-   * @throws {@link LfsplanetApi.NotFoundError}
-   *
-   * @example
-   *     await client.comments.getHotlapComment({
-   *         hotlap: 1000000,
-   *         comment: 1000000
-   *     })
-   */
-  public getHotlapComment(
-    request: LfsplanetApi.GetHotlapCommentRequest,
-    requestOptions?: CommentsClient.RequestOptions,
-  ): core.HttpResponsePromise<LfsplanetApi.HotlapCommentResponse> {
-    return core.HttpResponsePromise.fromPromise(
-      this.__getHotlapComment(request, requestOptions),
-    );
-  }
-
-  private async __getHotlapComment(
-    request: LfsplanetApi.GetHotlapCommentRequest,
-    requestOptions?: CommentsClient.RequestOptions,
-  ): Promise<core.WithRawResponse<LfsplanetApi.HotlapCommentResponse>> {
-    const { hotlap, comment } = request;
-    let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
-      this._options?.headers,
-      requestOptions?.headers,
-    );
-    const _response = await core.fetcher({
-      url: core.url.join(
-        (await core.Supplier.get(this._options.baseUrl)) ??
-          (await core.Supplier.get(this._options.environment)),
-        `api/v1/hotlaps/${core.url.encodePathParam(hotlap)}/comments/${core.url.encodePathParam(comment)}`,
-      ),
-      method: "GET",
-      headers: _headers,
-      queryString: core.url
-        .queryBuilder()
-        .mergeAdditional(requestOptions?.queryParams)
-        .build(),
-      timeoutMs:
-        (requestOptions?.timeoutInSeconds ??
-          this._options?.timeoutInSeconds ??
-          60) * 1000,
-      maxRetries: requestOptions?.maxRetries ?? this._options?.maxRetries,
-      abortSignal: requestOptions?.abortSignal,
-      fetchFn: this._options?.fetch,
-      logging: this._options.logging,
-    });
-    if (_response.ok) {
-      return {
-        data: _response.body as LfsplanetApi.HotlapCommentResponse,
-        rawResponse: _response.rawResponse,
-      };
-    }
-
-    if (_response.error.reason === "status-code") {
-      switch (_response.error.statusCode) {
-        case 404:
-          throw new LfsplanetApi.NotFoundError(
+        case 409:
+          throw new LfsplanetApi.ConflictError(
             _response.error.body as LfsplanetApi.ErrorResponse,
             _response.rawResponse,
           );
@@ -310,8 +245,8 @@ export class CommentsClient {
     return handleNonStatusCodeError(
       _response.error,
       _response.rawResponse,
-      "GET",
-      "/api/v1/hotlaps/{hotlap}/comments/{comment}",
+      "POST",
+      "/api/v1/hotlaps/{hotlap}/comments",
     );
   }
 
@@ -406,55 +341,59 @@ export class CommentsClient {
   }
 
   /**
-   * @param {LfsplanetApi.ListHotlapRepliesRequest} request
+   * @param {LfsplanetApi.UpdateHotlapComment} request
    * @param {CommentsClient.RequestOptions} requestOptions - Request-specific configuration.
    *
    * @throws {@link LfsplanetApi.BadRequestError}
+   * @throws {@link LfsplanetApi.UnauthorizedError}
+   * @throws {@link LfsplanetApi.ForbiddenError}
    * @throws {@link LfsplanetApi.NotFoundError}
+   * @throws {@link LfsplanetApi.ConflictError}
    *
    * @example
-   *     await client.comments.listHotlapReplies({
+   *     await client.comments.updateHotlapComment({
+   *         "X-CSRF-Token": "X-CSRF-Token",
    *         hotlap: 1000000,
    *         comment: 1000000
    *     })
    */
-  public listHotlapReplies(
-    request: LfsplanetApi.ListHotlapRepliesRequest,
+  public updateHotlapComment(
+    request: LfsplanetApi.UpdateHotlapComment,
     requestOptions?: CommentsClient.RequestOptions,
-  ): core.HttpResponsePromise<LfsplanetApi.PaginatedResponseHotlapCommentResponse> {
+  ): core.HttpResponsePromise<LfsplanetApi.HotlapCommentResponse> {
     return core.HttpResponsePromise.fromPromise(
-      this.__listHotlapReplies(request, requestOptions),
+      this.__updateHotlapComment(request, requestOptions),
     );
   }
 
-  private async __listHotlapReplies(
-    request: LfsplanetApi.ListHotlapRepliesRequest,
+  private async __updateHotlapComment(
+    request: LfsplanetApi.UpdateHotlapComment,
     requestOptions?: CommentsClient.RequestOptions,
-  ): Promise<
-    core.WithRawResponse<LfsplanetApi.PaginatedResponseHotlapCommentResponse>
-  > {
-    const { hotlap, comment, page, per_page: perPage } = request;
-    const _queryParams: Record<string, unknown> = {
-      page,
-      per_page: perPage,
-    };
+  ): Promise<core.WithRawResponse<LfsplanetApi.HotlapCommentResponse>> {
+    const { hotlap, comment, "X-CSRF-Token": csrfToken, ..._body } = request;
+    const _authRequest: core.AuthRequest =
+      await this._options.authProvider.getAuthRequest();
     let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
+      _authRequest.headers,
       this._options?.headers,
+      mergeOnlyDefinedHeaders({ "X-CSRF-Token": csrfToken }),
       requestOptions?.headers,
     );
     const _response = await core.fetcher({
       url: core.url.join(
         (await core.Supplier.get(this._options.baseUrl)) ??
           (await core.Supplier.get(this._options.environment)),
-        `api/v1/hotlaps/${core.url.encodePathParam(hotlap)}/comments/${core.url.encodePathParam(comment)}/replies`,
+        `api/v1/hotlaps/${core.url.encodePathParam(hotlap)}/comments/${core.url.encodePathParam(comment)}`,
       ),
-      method: "GET",
+      method: "PATCH",
       headers: _headers,
+      contentType: "application/json",
       queryString: core.url
         .queryBuilder()
-        .addMany(_queryParams)
         .mergeAdditional(requestOptions?.queryParams)
         .build(),
+      requestType: "json",
+      body: _body,
       timeoutMs:
         (requestOptions?.timeoutInSeconds ??
           this._options?.timeoutInSeconds ??
@@ -466,7 +405,7 @@ export class CommentsClient {
     });
     if (_response.ok) {
       return {
-        data: _response.body as LfsplanetApi.PaginatedResponseHotlapCommentResponse,
+        data: _response.body as LfsplanetApi.HotlapCommentResponse,
         rawResponse: _response.rawResponse,
       };
     }
@@ -478,8 +417,23 @@ export class CommentsClient {
             _response.error.body as LfsplanetApi.ErrorResponse,
             _response.rawResponse,
           );
+        case 401:
+          throw new LfsplanetApi.UnauthorizedError(
+            _response.error.body as LfsplanetApi.ErrorResponse,
+            _response.rawResponse,
+          );
+        case 403:
+          throw new LfsplanetApi.ForbiddenError(
+            _response.error.body as LfsplanetApi.ErrorResponse,
+            _response.rawResponse,
+          );
         case 404:
           throw new LfsplanetApi.NotFoundError(
+            _response.error.body as LfsplanetApi.ErrorResponse,
+            _response.rawResponse,
+          );
+        case 409:
+          throw new LfsplanetApi.ConflictError(
             _response.error.body as LfsplanetApi.ErrorResponse,
             _response.rawResponse,
           );
@@ -495,8 +449,8 @@ export class CommentsClient {
     return handleNonStatusCodeError(
       _response.error,
       _response.rawResponse,
-      "GET",
-      "/api/v1/hotlaps/{hotlap}/comments/{comment}/replies",
+      "PATCH",
+      "/api/v1/hotlaps/{hotlap}/comments/{comment}",
     );
   }
 }

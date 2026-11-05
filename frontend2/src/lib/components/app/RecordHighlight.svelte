@@ -1,3 +1,8 @@
+<script lang="ts" module>
+	export const recordHighlightValueClass =
+		'text-right font-sans text-2xl font-bold tabular-nums sm:text-3xl';
+</script>
+
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { cn } from '#lib/utils.js';

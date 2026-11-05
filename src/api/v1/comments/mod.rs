@@ -4,7 +4,7 @@ use crate::{
         ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
         extractors::AuthenticatedPlayer, v1::PlayerSummary,
     },
-    models::{hotlap, hotlap_comment as comment, player, report_reason::ReportReason},
+    models::{hotlap, hotlap_comment as comment, report_reason::ReportReason},
 };
 use axum::{
     Json,
@@ -13,8 +13,8 @@ use axum::{
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, ExprTrait,
-    FromQueryResult, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, Set,
-    TransactionTrait,
+    FromQueryResult, IntoActiveModel, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
+    QueryTrait, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -62,18 +62,43 @@ pub(crate) struct CreateHotlapComment {
     body: String,
     /// Omit for a new top-level comment. Must belong to the same published lap.
     parent_id: Option<i64>,
+    /// A reason flags a top-level comment as a report.
+    reason: Option<ReportReason>,
 }
+
+#[derive(Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct UpdateHotlapComment {
+    body: Option<String>,
+    /// Omit to leave unchanged; null withdraws the flag and preserves the conversation.
+    #[serde(default, deserialize_with = "optional_reason")]
+    #[schema(value_type = Option<ReportReason>, nullable = true)]
+    reason: Option<Option<ReportReason>>,
+    /// Only moderators can resolve or reopen a report.
+    resolved: Option<bool>,
+}
+
+fn optional_reason<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Option<ReportReason>>, D::Error> {
+    Option::<ReportReason>::deserialize(deserializer).map(Some)
+}
+
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub(crate) struct CommentLocationQuery {
     /// Open the root page containing this comment, including replies.
     around: Option<i64>,
+    /// List direct replies instead of root conversations.
+    parent_id: Option<i64>,
+    author_id: Option<i64>,
+    /// Filter roots by whether they are reports (including resolved reports).
+    reported: Option<bool>,
 }
 pub(super) fn router() -> OpenApiRouter<ApiState> {
     OpenApiRouter::new()
         .routes(routes!(list, create))
-        .routes(routes!(detail, remove))
-        .routes(routes!(replies))
+        .routes(routes!(update, remove))
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             axum::http::header::CACHE_CONTROL,
             axum::http::HeaderValue::from_static("no-store"),
@@ -97,92 +122,78 @@ pub(crate) fn text(value: &str) -> Result<String, ApiError> {
 }
 pub(crate) async fn responses(
     database: &impl ConnectionTrait,
-    rows: Vec<(comment::Model, Option<crate::models::Player>)>,
+    selected_ids: Vec<i64>,
 ) -> Result<Vec<HotlapCommentResponse>, ApiError> {
     #[derive(FromQueryResult)]
-    struct Count {
-        parent_id: i64,
-        count: i64,
+    struct ThreadEntry {
+        #[sea_orm(nested)]
+        comment: comment::Model,
+        lfs_username: String,
+        display_name: String,
+        country_code: Option<String>,
+        flag_code: Option<String>,
+        reply_count: i64,
     }
-    if rows.is_empty() {
+    if selected_ids.is_empty() {
         return Ok(Vec::new());
     }
-    let selected_ids = rows.iter().map(|(row, _)| row.id).collect::<Vec<_>>();
-    let root_ids = rows
-        .iter()
-        .map(|(row, _)| row.root_id.unwrap_or(row.id))
-        .collect::<std::collections::BTreeSet<_>>();
-    let minimum_id = selected_ids.iter().copied().min().unwrap_or(0);
-    // One joined query for every selected conversation, never one per parent.
-    // A bounded prefix keeps exceptionally busy conversations manageable; counts
-    // below explicitly identify incomplete branches for manual load-more requests.
-    let descendants = comment::Entity::find()
-        .filter(comment::Column::RootId.is_in(root_ids))
-        .filter(comment::Column::Id.gt(minimum_id))
-        .order_by_asc(comment::Column::Id)
-        .limit(1000)
-        .find_also_related(player::Entity)
-        .all(database)
-        .await
-        .map_err(ApiError::database)?;
-    let mut rows = rows
-        .into_iter()
-        .chain(descendants)
-        .map(|(row, author)| (row.id, (row, author)))
-        .collect::<std::collections::BTreeMap<_, _>>();
-    let ids = rows.keys().copied().collect::<Vec<_>>();
-    let counts = if ids.is_empty() {
-        Vec::new()
-    } else {
-        comment::Entity::find()
-            .select_only()
-            .column(comment::Column::ParentId)
-            .column_as(comment::Column::Id.count(), "count")
-            .filter(comment::Column::ParentId.is_in(ids))
-            .group_by(comment::Column::ParentId)
-            .into_model::<Count>()
-            .all(database)
-            .await
-            .map_err(ApiError::database)?
-    };
-    let counts: std::collections::BTreeMap<_, _> = counts
-        .into_iter()
-        .map(|row| (row.parent_id, row.count as u64))
-        .collect();
+    // Only SQL placeholders are interpolated; all IDs remain bound parameters.
+    let placeholders = (1..=selected_ids.len())
+        .map(|index| format!("${index}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    // Follow actual parent links, so sibling branches cannot consume the
+    // descendant budget when loading a comment or a page of direct replies.
+    // UNION also terminates traversal if malformed stored data contains a cycle.
+    let entries = ThreadEntry::find_by_statement(sea_orm::Statement::from_sql_and_values(
+        sea_orm::DbBackend::Postgres,
+        include_str!("thread.sql").replace("{selected_ids}", &placeholders),
+        selected_ids.iter().copied().map(sea_orm::Value::from),
+    ))
+    .all(database)
+    .await
+    .map_err(ApiError::database)?;
     let mut child_ids: std::collections::BTreeMap<i64, Vec<i64>> =
         std::collections::BTreeMap::new();
-    for (id, (row, _)) in &rows {
-        if let Some(parent) = row.parent_id {
-            child_ids.entry(parent).or_default().push(*id);
+    for entry in &entries {
+        if let Some(parent) = entry.comment.parent_id {
+            child_ids.entry(parent).or_default().push(entry.comment.id);
         }
     }
-    let mut nodes = std::mem::take(&mut rows)
-        .into_values()
-        .map(|(row, author)| {
-            Ok(HotlapCommentResponse {
-                id: row.id,
-                hotlap_id: row.hotlap_id,
-                original_hotlap_id: row.original_hotlap_id,
-                parent_id: row.parent_id,
-                root_id: row.root_id,
-                depth: row.depth,
-                body: row.body,
-                reason: row.reason,
-                reply_count: counts.get(&row.id).copied().unwrap_or(0),
-                replies: Vec::new(),
-                deleted: row.deleted_at.is_some(),
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-                resolved_at: row.resolved_at,
-                resolved_by: row.resolved_by,
-                author: author
-                    .ok_or_else(|| ApiError::internal(&row.author_id, "comment author"))?
-                    .into(),
-            })
+    let mut nodes = entries
+        .into_iter()
+        .map(|entry| {
+            let row = entry.comment;
+            (
+                row.id,
+                HotlapCommentResponse {
+                    id: row.id,
+                    hotlap_id: row.hotlap_id,
+                    original_hotlap_id: row.original_hotlap_id,
+                    parent_id: row.parent_id,
+                    root_id: row.root_id,
+                    depth: row.depth,
+                    body: row.body,
+                    reason: row.reason,
+                    reply_count: entry.reply_count as u64,
+                    replies: Vec::new(),
+                    deleted: row.deleted_at.is_some(),
+                    created_at: row.created_at,
+                    updated_at: row.updated_at,
+                    resolved_at: row.resolved_at,
+                    resolved_by: row.resolved_by,
+                    author: PlayerSummary {
+                        id: row.author_id,
+                        lfs_username: entry.lfs_username,
+                        display_name: entry.display_name,
+                        country_code: entry.country_code,
+                        flag_code: entry.flag_code,
+                    },
+                },
+            )
         })
-        .map(|row: Result<HotlapCommentResponse, ApiError>| row.map(|row| (row.id, row)))
-        .collect::<Result<std::collections::BTreeMap<_, _>, _>>()?;
-    // The only recursion is over already-fetched values in memory.
+        .collect::<std::collections::BTreeMap<_, _>>();
+    // Assemble the fetched subtree in memory, preserving selected-entry order.
     fn nest(
         id: i64,
         nodes: &mut std::collections::BTreeMap<i64, HotlapCommentResponse>,
@@ -207,7 +218,9 @@ pub(crate) async fn find(
     id: i64,
 ) -> Result<HotlapCommentResponse, ApiError> {
     let row = comment::Entity::find_by_id(id)
-        .find_also_related(player::Entity)
+        .select_only()
+        .column(comment::Column::Id)
+        .into_tuple::<i64>()
         .one(database)
         .await
         .map_err(ApiError::database)?
@@ -228,7 +241,7 @@ fn open_report_priority() -> sea_orm::sea_query::SimpleExpr {
 }
 fn ordered_roots(hotlap_id: i64) -> sea_orm::Select<comment::Entity> {
     comment::Entity::find()
-        .filter(comment::Column::HotlapId.eq(hotlap_id))
+        .filter(comment::Column::OriginalHotlapId.eq(hotlap_id))
         .filter(comment::Column::ParentId.is_null())
         .order_by_desc(open_report_priority())
 }
@@ -247,7 +260,9 @@ async fn collection(
         .order_by_asc(comment::Column::Id)
         .offset(offset)
         .limit(page.per_page)
-        .find_also_related(player::Entity)
+        .select_only()
+        .column(comment::Column::Id)
+        .into_tuple::<i64>()
         .all(database)
         .await
         .map_err(ApiError::database)?;
@@ -257,8 +272,8 @@ async fn collection(
     }))
 }
 #[utoipa::path(get, path = "/api/v1/hotlaps/{hotlap}/comments", operation_id = "list_hotlap_comments", tag = "comments",
-    params(("hotlap" = i64, Path), PaginationQuery, CommentLocationQuery), responses((status = 200, body = PaginatedResponse<HotlapCommentResponse>, description = "Paginated root conversations: open reports first, then other roots chronologically, with nested chronological replies"),
-    (status = 400, body = ErrorResponse, description = "Invalid pagination"), (status = 404, body = ErrorResponse, description = "Published lap not found")))]
+    params(("hotlap" = i64, Path), PaginationQuery, CommentLocationQuery), responses((status = 200, body = PaginatedResponse<HotlapCommentResponse>, description = "Paginated public or archived conversations: open reports first, then other roots chronologically, with nested chronological replies"),
+    (status = 400, body = ErrorResponse, description = "Invalid pagination"), (status = 404, body = ErrorResponse, description = "Published hotlap or archived conversation not found")))]
 pub(crate) async fn list(
     State(state): State<ApiState>,
     Path(id): Path<i64>,
@@ -266,12 +281,63 @@ pub(crate) async fn list(
     Query(location): Query<CommentLocationQuery>,
 ) -> Result<Json<PaginatedResponse<HotlapCommentResponse>>, ApiError> {
     page.offset()?;
-    hotlap::Entity::find_by_id(id)
-        .filter(hotlap::Column::State.eq(hotlap::HotlapState::Valid))
-        .one(&state.database)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Published hotlap"))?;
+    let mut query = ordered_roots(id);
+    if let Some(parent_id) = location.parent_id {
+        if location.around.is_some() {
+            return Err(ApiError::new(
+                StatusCode::BAD_REQUEST,
+                "invalid_comment_filters",
+                "around cannot be combined with parent_id.",
+            ));
+        }
+        comment::Entity::find_by_id(parent_id)
+            .filter(comment::Column::OriginalHotlapId.eq(id))
+            .one(&state.database)
+            .await
+            .map_err(ApiError::database)?
+            .ok_or_else(|| ApiError::not_found("comment_not_found", "Parent on this hotlap"))?;
+        query = comment::Entity::find()
+            .filter(comment::Column::OriginalHotlapId.eq(id))
+            .filter(comment::Column::ParentId.eq(parent_id))
+            .order_by_asc(comment::Column::Id);
+    } else {
+        let published = hotlap::Entity::find_by_id(id)
+            .filter(hotlap::Column::State.eq(hotlap::HotlapState::Valid))
+            .count(&state.database)
+            .await
+            .map_err(ApiError::database)?
+            > 0;
+        // A removed lap's stable identity keeps its conversation accessible.
+        // Only detached comments qualify, so unpublished live laps stay private.
+        let archived = !published
+            && comment::Entity::find()
+                .filter(comment::Column::OriginalHotlapId.eq(id))
+                .filter(comment::Column::HotlapId.is_null())
+                .count(&state.database)
+                .await
+                .map_err(ApiError::database)?
+                > 0;
+        if !published && !archived {
+            return Err(ApiError::not_found(
+                "hotlap_not_found",
+                "Published hotlap or archived conversation",
+            ));
+        }
+    }
+    if let Some(author_id) = location.author_id {
+        query = query.filter(comment::Column::AuthorId.eq(author_id));
+    }
+    if let Some(reported) = location.reported {
+        query = query.filter(if reported {
+            Condition::all()
+                .add(comment::Column::Reason.is_not_null())
+                .add(comment::Column::DeletedAt.is_null())
+        } else {
+            Condition::any()
+                .add(comment::Column::Reason.is_null())
+                .add(comment::Column::DeletedAt.is_not_null())
+        });
+    }
     if let Some(comment_id) = location.around {
         let target_root = comment::Entity::find()
             .select_only()
@@ -279,11 +345,11 @@ pub(crate) async fn list(
                 sea_orm::sea_query::Expr::cust("COALESCE(root_id, id)"),
                 "root",
             )
-            .filter(comment::Column::HotlapId.eq(id))
+            .filter(comment::Column::OriginalHotlapId.eq(id))
             .filter(comment::Column::Id.eq(comment_id))
             .into_query();
-        let target = comment::Entity::find()
-            .filter(comment::Column::HotlapId.eq(id))
+        let target = query
+            .clone()
             .filter(comment::Column::Id.in_subquery(target_root))
             .one(&state.database)
             .await
@@ -299,57 +365,19 @@ pub(crate) async fn list(
         if !target_is_open_report {
             precedes = precedes.add(open_report_priority());
         }
-        let before = comment::Entity::find()
-            .filter(comment::Column::HotlapId.eq(id))
-            .filter(comment::Column::ParentId.is_null())
+        let before = query
+            .clone()
             .filter(precedes)
             .count(&state.database)
             .await
             .map_err(ApiError::database)?;
         page.page = before / page.per_page + 1;
     }
-    collection(&state.database, ordered_roots(id), page).await
-}
-#[utoipa::path(get, path = "/api/v1/hotlaps/{hotlap}/comments/{comment}", operation_id = "get_hotlap_comment", tag = "comments",
-    params(("hotlap" = i64, Path), ("comment" = i64, Path)), responses((status = 200, body = HotlapCommentResponse, description = "An entry, including archived/deleted parents"), (status = 404, body = ErrorResponse, description = "Comment not found")))]
-pub(crate) async fn detail(
-    State(state): State<ApiState>,
-    Path((hotlap_id, id)): Path<(i64, i64)>,
-) -> Result<Json<HotlapCommentResponse>, ApiError> {
-    let row = comment::Entity::find_by_id(id)
-        .filter(comment::Column::OriginalHotlapId.eq(hotlap_id))
-        .find_also_related(player::Entity)
-        .one(&state.database)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(|| ApiError::not_found("comment_not_found", "Comment on this hotlap"))?;
-    Ok(Json(responses(&state.database, vec![row]).await?.remove(0)))
-}
-#[utoipa::path(get, path = "/api/v1/hotlaps/{hotlap}/comments/{comment}/replies", operation_id = "list_hotlap_replies", tag = "comments",
-    params(("hotlap" = i64, Path), ("comment" = i64, Path), PaginationQuery), responses((status = 200, body = PaginatedResponse<HotlapCommentResponse>, description = "Paginated direct replies, oldest first, including their nested descendants"),
-    (status = 400, body = ErrorResponse, description = "Invalid pagination"), (status = 404, body = ErrorResponse, description = "Comment not found")))]
-pub(crate) async fn replies(
-    State(state): State<ApiState>,
-    Path((hotlap_id, id)): Path<(i64, i64)>,
-    Query(page): Query<PaginationQuery>,
-) -> Result<Json<PaginatedResponse<HotlapCommentResponse>>, ApiError> {
-    page.offset()?;
-    comment::Entity::find_by_id(id)
-        .filter(comment::Column::OriginalHotlapId.eq(hotlap_id))
-        .one(&state.database)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(|| ApiError::not_found("comment_not_found", "Comment on this hotlap"))?;
-    collection(
-        &state.database,
-        comment::Entity::find().filter(comment::Column::ParentId.eq(id)),
-        page,
-    )
-    .await
+    collection(&state.database, query, page).await
 }
 #[utoipa::path(post, path = "/api/v1/hotlaps/{hotlap}/comments", operation_id = "create_hotlap_comment", tag = "comments",
     security(("cookie_session" = []), ("personal_access_token" = [])), params(("hotlap" = i64, Path), ("X-CSRF-Token" = String, Header, description = "Required for cookie authentication")), request_body = CreateHotlapComment,
-    responses((status = 201, body = HotlapCommentResponse, description = "Comment or reply published"), (status = 400, body = ErrorResponse, description = "Invalid text or reply depth above 8"),
+    responses((status = 201, body = HotlapCommentResponse, description = "Comment, reply, or report published"), (status = 409, body = ErrorResponse, description = "You already have a report on this hotlap"), (status = 400, body = ErrorResponse, description = "Invalid text or reply depth above 8"),
     (status = 401, body = ErrorResponse, description = "Authentication required"), (status = 403, body = ErrorResponse, description = "Invalid CSRF token"), (status = 404, body = ErrorResponse, description = "Published lap or matching parent not found")))]
 pub(crate) async fn create(
     State(state): State<ApiState>,
@@ -361,11 +389,21 @@ pub(crate) async fn create(
     let txn = state.database.begin().await.map_err(ApiError::database)?;
     hotlap::Entity::find_by_id(id)
         .filter(hotlap::Column::State.eq(hotlap::HotlapState::Valid))
-        .lock_shared()
+        .lock_exclusive()
         .one(&txn)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Published hotlap"))?;
+    if request.reason.is_some() {
+        if request.parent_id.is_some() {
+            return Err(ApiError::new(
+                StatusCode::BAD_REQUEST,
+                "invalid_report_parent",
+                "Reports must be top-level comments.",
+            ));
+        }
+        ensure_report_available(&txn, id, player.id, None).await?;
+    }
     let parent = if let Some(parent_id) = request.parent_id {
         let parent = comment::Entity::find_by_id(parent_id)
             .filter(comment::Column::HotlapId.eq(id))
@@ -393,6 +431,7 @@ pub(crate) async fn create(
         depth: Set(parent.as_ref().map_or(0, |row| row.depth + 1)),
         author_id: Set(player.id),
         body: Set(Some(body)),
+        reason: Set(request.reason),
         ..Default::default()
     }
     .insert(&txn)
@@ -402,6 +441,141 @@ pub(crate) async fn create(
     txn.commit().await.map_err(ApiError::database)?;
     Ok((StatusCode::CREATED, Json(response)))
 }
+async fn ensure_report_available(
+    database: &impl ConnectionTrait,
+    hotlap_id: i64,
+    author_id: i64,
+    excluding: Option<i64>,
+) -> Result<(), ApiError> {
+    let mut query = comment::Entity::find()
+        .filter(comment::Column::HotlapId.eq(hotlap_id))
+        .filter(comment::Column::AuthorId.eq(author_id))
+        .filter(comment::Column::Reason.is_not_null())
+        .filter(comment::Column::DeletedAt.is_null());
+    if let Some(id) = excluding {
+        query = query.filter(comment::Column::Id.ne(id));
+    }
+    if query
+        .one(database)
+        .await
+        .map_err(ApiError::database)?
+        .is_some()
+    {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "report_exists",
+            "You already have a report on this hotlap. Edit or withdraw it first.",
+        ));
+    }
+    Ok(())
+}
+
+#[utoipa::path(patch, path = "/api/v1/hotlaps/{hotlap}/comments/{comment}", operation_id = "update_hotlap_comment", tag = "comments",
+    security(("cookie_session" = []), ("personal_access_token" = [])),
+    params(("hotlap" = i64, Path), ("comment" = i64, Path), ("X-CSRF-Token" = String, Header, description = "Required for cookie authentication")), request_body = UpdateHotlapComment,
+    responses((status = 200, body = HotlapCommentResponse, description = "Updated comment; changed report text or reason reopens it"),
+    (status = 400, body = ErrorResponse, description = "Invalid update"), (status = 401, body = ErrorResponse, description = "Authentication required"),
+    (status = 403, body = ErrorResponse, description = "Author or moderator permission required"), (status = 404, body = ErrorResponse, description = "Comment not found"),
+    (status = 409, body = ErrorResponse, description = "You already have a report on this hotlap")))]
+pub(crate) async fn update(
+    State(state): State<ApiState>,
+    AuthenticatedPlayer(player): AuthenticatedPlayer,
+    Path((hotlap_id, id)): Path<(i64, i64)>,
+    Json(request): Json<UpdateHotlapComment>,
+) -> Result<Json<HotlapCommentResponse>, ApiError> {
+    let body = request.body.as_deref().map(text).transpose()?;
+    let content = body.is_some() || request.reason.is_some();
+    if !content && request.resolved.is_none() {
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "empty_comment_update",
+            "Supply body, reason, or resolved.",
+        ));
+    }
+    let moderator_id = if request.resolved.is_some() {
+        Some(
+            crate::api::extractors::Moderator::from_player(player.clone())?
+                .0
+                .id,
+        )
+    } else {
+        None
+    };
+    let txn = state.database.begin().await.map_err(ApiError::database)?;
+    // Match creation's lock order so promoting comments and report submissions serialize.
+    let lap = hotlap::Entity::find_by_id(hotlap_id)
+        .lock_exclusive()
+        .one(&txn)
+        .await
+        .map_err(ApiError::database)?;
+    let row = comment::Entity::find_by_id(id)
+        .filter(comment::Column::OriginalHotlapId.eq(hotlap_id))
+        .filter(comment::Column::DeletedAt.is_null())
+        .lock_exclusive()
+        .one(&txn)
+        .await
+        .map_err(ApiError::database)?
+        .ok_or_else(|| ApiError::not_found("comment_not_found", "Comment on this hotlap"))?;
+    if content && row.author_id != player.id {
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "comment_author_required",
+            "Only the author can edit this comment.",
+        ));
+    }
+    let reason = request.reason.unwrap_or(row.reason);
+    let changed = body
+        .as_ref()
+        .is_some_and(|body| row.body.as_ref() != Some(body))
+        || reason != row.reason;
+    if content
+        && (body.is_some() || reason.is_some())
+        && !lap.is_some_and(|lap| lap.state == hotlap::HotlapState::Valid)
+    {
+        return Err(ApiError::not_found("hotlap_not_found", "Published hotlap"));
+    }
+    if reason.is_some() && row.parent_id.is_some() {
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_report_parent",
+            "Reports must be top-level comments.",
+        ));
+    }
+    if reason.is_some() && row.reason.is_none() {
+        ensure_report_available(&txn, hotlap_id, row.author_id, Some(id)).await?;
+    }
+    if request.resolved.is_some() && (reason.is_none() || changed) {
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_report_resolution",
+            "Resolve an existing report separately from changing its content.",
+        ));
+    }
+    let mut active = row.into_active_model();
+    if let Some(body) = body {
+        active.body = Set(Some(body));
+    }
+    if let Some(reason) = request.reason {
+        active.reason = Set(reason);
+    }
+    if changed {
+        active.updated_at = Set(OffsetDateTime::now_utc());
+        active.resolved_at = Set(None);
+        active.resolved_by = Set(None);
+    }
+    if let Some(resolved) = request.resolved {
+        // Preserve the original resolver and time on repeated resolution requests.
+        if active.resolved_at.as_ref().is_some() != resolved {
+            active.resolved_at = Set(resolved.then(OffsetDateTime::now_utc));
+            active.resolved_by = Set(if resolved { moderator_id } else { None });
+        }
+    }
+    active.update(&txn).await.map_err(ApiError::database)?;
+    let response = find(&txn, id).await?;
+    txn.commit().await.map_err(ApiError::database)?;
+    Ok(Json(response))
+}
+
 #[utoipa::path(delete, path = "/api/v1/hotlaps/{hotlap}/comments/{comment}", operation_id = "remove_hotlap_comment", tag = "comments",
     security(("cookie_session" = []), ("personal_access_token" = [])), params(("hotlap" = i64, Path), ("comment" = i64, Path), ("X-CSRF-Token" = String, Header, description = "Required for cookie authentication")),
     responses((status = 204, description = "Your content removed; a placeholder preserves replies"), (status = 401, body = ErrorResponse, description = "Authentication required"), (status = 403, body = ErrorResponse, description = "Invalid CSRF token")))]
@@ -550,8 +724,8 @@ mod tests {
         .await?;
         assert_eq!(
             counted.count(),
-            4,
-            "count, joined roots, joined descendants, grouped reply counts"
+            3,
+            "count, selected comments, recursive thread with authors and reply counts"
         );
         assert_eq!(first.pagination.total_items, 20);
         assert_eq!(first.items.len(), 1);
@@ -569,7 +743,7 @@ mod tests {
             },
         )
         .await?;
-        assert_eq!(counted.count(), 4);
+        assert_eq!(counted.count(), 3);
         assert_ne!(first.items[0].id, second.items[0].id);
         assert!(
             second.items[0]
@@ -588,7 +762,7 @@ mod tests {
         .await?;
         assert_eq!(
             counted.count(),
-            4,
+            3,
             "query count must not grow with roots or depth"
         );
         assert_eq!(all.items.len(), 20);
@@ -608,7 +782,7 @@ mod tests {
             },
         )
         .await?;
-        assert_eq!(counted.count(), 4);
+        assert_eq!(counted.count(), 3);
         assert_eq!(large.items[0].reply_count, 1003);
         assert!(large.items[0].replies.len() < large.items[0].reply_count as usize);
         let Json(last) = collection(
@@ -620,9 +794,47 @@ mod tests {
             },
         )
         .await?;
-        assert_eq!(counted.count(), 4);
+        assert_eq!(counted.count(), 3);
         assert_eq!(last.pagination.total_items, 1003);
         assert_eq!(last.items.len(), 3);
+
+        // A busy sibling branch must not consume a selected comment's budget.
+        // Create its descendants after the siblings so a root-wide ID prefix
+        // would miss them entirely.
+        let selected = sqlx::query_scalar::<_, i64>("INSERT INTO hotlap_comment (original_hotlap_id,hotlap_id,author_id,body,parent_id,root_id,depth)
+            SELECT original_hotlap_id,hotlap_id,author_id,'selected',id,id,1 FROM hotlap_comment WHERE id=$1 RETURNING id")
+            .bind(root).fetch_one(&pool).await?;
+        sqlx::query("INSERT INTO hotlap_comment (original_hotlap_id,hotlap_id,author_id,body,parent_id,root_id,depth)
+            SELECT original_hotlap_id,hotlap_id,author_id,'unrelated sibling',id,id,1 FROM hotlap_comment CROSS JOIN generate_series(1,1001) WHERE id=$1")
+            .bind(root).execute(&pool).await?;
+        let descendant = sqlx::query_scalar::<_, i64>("INSERT INTO hotlap_comment (original_hotlap_id,hotlap_id,author_id,body,parent_id,root_id,depth)
+            SELECT original_hotlap_id,hotlap_id,author_id,'selected descendant',id,root_id,2 FROM hotlap_comment WHERE id=$1 RETURNING id")
+            .bind(selected).fetch_one(&pool).await?;
+        let nested = sqlx::query_scalar::<_, i64>("INSERT INTO hotlap_comment (original_hotlap_id,hotlap_id,author_id,body,parent_id,root_id,depth)
+            SELECT original_hotlap_id,hotlap_id,author_id,'nested descendant',id,root_id,3 FROM hotlap_comment WHERE id=$1 RETURNING id")
+            .bind(descendant).fetch_one(&pool).await?;
+        let entry = find(&counted, selected).await?;
+        assert_eq!(counted.count(), 2, "selected comment and recursive thread");
+        assert_eq!(entry.reply_count, 1);
+        assert_eq!(entry.replies.len(), 1);
+        assert_eq!(entry.replies[0].id, descendant);
+        assert_eq!(entry.replies[0].reply_count, 1);
+        assert_eq!(entry.replies[0].replies[0].id, nested);
+        let Json(branch) = collection(
+            &counted,
+            comment::Entity::find().filter(comment::Column::ParentId.eq(selected)),
+            PaginationQuery {
+                page: 1,
+                per_page: 50,
+            },
+        )
+        .await?;
+        assert_eq!(counted.count(), 3);
+        assert_eq!(branch.pagination.total_items, 1);
+        assert_eq!(branch.items[0].replies[0].id, nested);
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod report_tests;

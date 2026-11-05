@@ -62,8 +62,8 @@
 		loading = true;
 		error = '';
 		try {
-			const response = await api.comments.listHotlapReplies({
-				comment: entry.id,
+			const response = await api.comments.listHotlapComments({
+				parent_id: entry.id,
 				hotlap: entry.original_hotlap_id,
 				page: Math.floor(children.length / 50) + 1,
 			});
@@ -85,7 +85,8 @@
 		try {
 			const auth = { 'X-CSRF-Token': session.me.csrf_token };
 			if (confirmation === 'withdraw')
-				await api.reports.withdrawMyReport({
+				await api.comments.updateHotlapComment({
+					reason: null,
 					hotlap: entry.original_hotlap_id,
 					comment: entry.id,
 					...auth,
@@ -109,7 +110,7 @@
 		busy = true;
 		error = '';
 		try {
-			await api.reports.resolveReport({
+			await api.comments.updateHotlapComment({
 				hotlap: entry.original_hotlap_id,
 				comment: entry.id,
 				resolved: !entry.resolved_at,
@@ -199,20 +200,23 @@
 		{#if showHotlap}
 			{#if entry.hotlap_id !== null}<a
 					class="text-sm font-medium text-primary hover:underline"
-					href={`/hotlap/${entry.hotlap_id}?tab=conversation&around=${entry.id}#comment-${entry.id}`}
+					href={`/hotlap/${entry.hotlap_id}?around=${entry.id}#comment-${entry.id}`}
 					>Hotlap #{entry.hotlap_id}</a
 				>{:else}<p class="text-xs text-muted-foreground">Removed hotlap</p>{/if}
 		{/if}
 		{#if entry.reason}
 			<div class="flex flex-wrap items-center gap-2 text-sm">
-				<FlagIcon class="size-5 text-foreground" /><span class="font-semibold"
-					>{reportReasons[entry.reason]}</span
-				>
+				<FlagIcon
+					class={entry.resolved_at
+						? 'size-5 text-destructive/50'
+						: 'size-5 text-destructive'}
+					fill="currentColor"
+				/><span class="font-semibold">{reportReasons[entry.reason]}</span>
 				<Badge
 					variant="outline"
 					class={entry.resolved_at
-						? 'border-brand-yellow/40'
-						: 'border-transparent bg-brand-yellow text-black'}
+						? 'border-destructive/20 text-muted-foreground'
+						: 'border-destructive/50 text-destructive'}
 					>{entry.resolved_at ? 'Resolved report' : 'Awaiting review'}</Badge
 				>
 			</div>
@@ -253,16 +257,16 @@
 		</div>
 		{#if replyOpen}
 			<form
-				class="space-y-3 border-t pt-3"
+				class="space-y-3 pt-3"
 				onsubmit={(event) => {
 					event.preventDefault();
 					reply();
 				}}
 			>
-				<label class="grid gap-2 text-sm"
+				<label class="grid gap-2 text-sm font-medium"
 					>Reply to {entry.author.display_name ||
 						entry.author.lfs_username}<textarea
-						class="min-h-24 w-full border-y bg-background p-3"
+						class="block min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
 						bind:value={body}
 						required
 						maxlength={4000}
@@ -288,7 +292,7 @@
 	{#if expanded}
 		<div
 			class={indent < 3
-				? 'ml-3 min-w-0 space-y-4 border-l pl-3 sm:ml-5 sm:pl-4'
+				? 'ml-3 min-w-0 space-y-4 sm:ml-6'
 				: 'min-w-0 space-y-4'}
 			aria-label="Replies"
 		>

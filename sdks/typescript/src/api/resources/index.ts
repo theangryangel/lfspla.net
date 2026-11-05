@@ -24,8 +24,6 @@ export * as players from "./players/index.js";
 export * from "./players/client/requests/index.js";
 export * as ranking from "./ranking/index.js";
 export * from "./ranking/client/requests/index.js";
-export * as reports from "./reports/index.js";
-export * from "./reports/client/requests/index.js";
 export * as stats from "./stats/index.js";
 export * as trackLocations from "./trackLocations/index.js";
 export * from "./trackLocations/client/requests/index.js";

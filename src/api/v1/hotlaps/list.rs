@@ -204,12 +204,14 @@ pub(crate) async fn list(
         }),
     )
     .await?;
-    Ok(Json(list_response(
+    let mut response = list_response(
         page,
         &pagination,
         query.mine.then_some(viewer_id).flatten(),
         &attachments,
-    )))
+    );
+    super::response::load_report_counts(&state.database, &mut response.items).await?;
+    Ok(Json(response))
 }
 
 #[cfg(test)]

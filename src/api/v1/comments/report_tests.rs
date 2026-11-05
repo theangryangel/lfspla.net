@@ -1,5 +1,6 @@
 use super::*;
 use crate::models::player;
+use axum::http::header;
 use axum::{
     Router,
     body::{Body, to_bytes},
@@ -10,7 +11,7 @@ use tower::ServiceExt;
 #[test]
 fn reports_require_a_known_reason_and_an_explanation() {
     assert!(
-        serde_json::from_value::<SaveReport>(
+        serde_json::from_value::<CreateHotlapComment>(
             json!({"reason":"suspected_cheating", "body":"Evidence"})
         )
         .is_ok()
@@ -18,10 +19,29 @@ fn reports_require_a_known_reason_and_an_explanation() {
     for value in [
         json!({"reason":"invalid", "body":"text"}),
         json!({"reason":"other_problem"}),
-        json!({"body":"text"}),
         json!({"reason":"invalid_lap","body":"text","author_id":1}),
     ] {
-        assert!(serde_json::from_value::<SaveReport>(value).is_err());
+        assert!(serde_json::from_value::<CreateHotlapComment>(value).is_err());
+    }
+}
+#[test]
+fn patch_distinguishes_an_omitted_reason_from_withdrawal() {
+    let omitted: UpdateHotlapComment = serde_json::from_value(json!({"body":"Edited"})).unwrap();
+    let withdrawn: UpdateHotlapComment = serde_json::from_value(json!({"reason":null})).unwrap();
+    let flagged: UpdateHotlapComment =
+        serde_json::from_value(json!({"reason":"invalid_lap"})).unwrap();
+    assert_eq!(omitted.reason, None);
+    assert_eq!(withdrawn.reason, Some(None));
+    assert_eq!(
+        flagged.reason,
+        Some(Some(crate::models::report_reason::ReportReason::InvalidLap))
+    );
+    for body in [
+        json!({"parent_id":42}),
+        json!({"author_id":42}),
+        json!({"reason":"unknown"}),
+    ] {
+        assert!(serde_json::from_value::<UpdateHotlapComment>(body).is_err());
     }
 }
 #[test]
@@ -31,13 +51,23 @@ fn comments_and_reports_are_scoped_to_hotlaps() {
     assert!(!paths.keys().any(|path| path.starts_with("/api/v1/comments") || path.starts_with("/api/v1/reports")));
     for path in [
         "/api/v1/hotlaps/{hotlap}/comments/{comment}",
-        "/api/v1/hotlaps/{hotlap}/comments/{comment}/replies",
-        "/api/v1/hotlaps/{hotlap}/report",
-        "/api/v1/hotlaps/{hotlap}/comments/{comment}/report",
-        "/api/v1/hotlaps/reports/summaries",
+        "/api/v1/hotlaps/{hotlap}/comments",
     ] {
         assert!(paths.contains_key(path));
     }
+    assert!(!paths.keys().any(|path| path.ends_with("/report")
+        || path.ends_with("/replies")
+        || path.contains("/reports/")));
+    assert!(
+        paths["/api/v1/hotlaps/{hotlap}/comments/{comment}"]
+            .get("patch")
+            .is_some()
+    );
+    assert!(
+        paths["/api/v1/hotlaps/{hotlap}/comments/{comment}"]
+            .get("get")
+            .is_none()
+    );
     assert!(
         paths["/api/v1/hotlaps"]["get"]["parameters"]
             .as_array()
@@ -46,6 +76,30 @@ fn comments_and_reports_are_scoped_to_hotlaps() {
             .any(|parameter| parameter["name"] == "reported")
     );
 }
+// Read through the public collection, preserving the permalink's context.
+async fn read_comment(app: &Router, hotlap: i64, id: i64) -> Value {
+    fn find(entries: &[Value], id: i64) -> Option<Value> {
+        entries.iter().find_map(|entry| {
+            if entry["id"] == id {
+                return Some(entry.clone());
+            }
+            entry["replies"]
+                .as_array()
+                .and_then(|replies| find(replies, id))
+        })
+    }
+    let (status, response) = request(
+        app,
+        "GET",
+        &format!("/api/v1/hotlaps/{hotlap}/comments?around={id}"),
+        None,
+        Value::Null,
+    )
+    .await;
+    assert_eq!(status, 200);
+    find(response["items"].as_array().unwrap(), id).expect("comment in its conversation page")
+}
+
 async fn request(
     app: &Router,
     method: &str,
@@ -65,7 +119,7 @@ async fn request(
         .oneshot(req.body(Body::from(body.to_string())).unwrap())
         .await
         .unwrap();
-    if !path.starts_with("/api/v1/hotlaps?") {
+    if path.contains("/comments") {
         assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
     }
     let status = response.status();
@@ -123,7 +177,6 @@ async fn database_tests_unified_reports_and_nested_replies(
         object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
     };
     let app = router()
-        .merge(crate::api::v1::comments::router())
         .merge(crate::api::v1::hotlaps::router())
         .split_for_parts()
         .0
@@ -132,11 +185,10 @@ async fn database_tests_unified_reports_and_nested_replies(
             tower_sessions::MemoryStore::default(),
         ));
     let lap = hotlap::Entity::find().one(&database).await?.unwrap();
-    let mine = format!("/api/v1/hotlaps/{}/report", lap.id);
     let comments = format!("/api/v1/hotlaps/{}/comments", lap.id);
     let evidence = json!({"reason":"suspected_cheating","body":"Please inspect this replay."});
     assert_eq!(
-        request(&app, "PUT", &mine, Some(&tokens[0]), evidence.clone())
+        request(&app, "POST", &comments, Some(&tokens[0]), evidence.clone())
             .await
             .0,
         404
@@ -149,7 +201,9 @@ async fn database_tests_unified_reports_and_nested_replies(
         200
     );
     assert_eq!(
-        request(&app, "PUT", &mine, None, evidence.clone()).await.0,
+        request(&app, "POST", &comments, None, evidence.clone())
+            .await
+            .0,
         401
     );
     assert_eq!(
@@ -161,8 +215,8 @@ async fn database_tests_unified_reports_and_nested_replies(
     assert_eq!(
         request(
             &app,
-            "PUT",
-            &mine,
+            "POST",
+            &comments,
             Some(&tokens[0]),
             json!({"reason":"invalid_lap","body":" "})
         )
@@ -171,19 +225,102 @@ async fn database_tests_unified_reports_and_nested_replies(
         400
     );
     let (first, duplicate) = tokio::join!(
-        request(&app, "PUT", &mine, Some(&tokens[0]), evidence.clone()),
-        request(&app, "PUT", &mine, Some(&tokens[0]), evidence.clone())
+        request(&app, "POST", &comments, Some(&tokens[0]), evidence.clone()),
+        request(&app, "POST", &comments, Some(&tokens[0]), evidence.clone())
     );
-    assert_eq!(first.0, 200);
-    assert_eq!(duplicate.0, 200);
-    assert_eq!(first.1["id"], duplicate.1["id"]);
+    let (first, duplicate) = if first.0 == 201 {
+        (first, duplicate)
+    } else {
+        (duplicate, first)
+    };
+    assert_eq!(first.0, 201);
+    assert_eq!(duplicate.0, 409);
     let report_id = first.1["id"].as_i64().unwrap();
-    let report_path = format!("/api/v1/hotlaps/{}/comments/{report_id}/report", lap.id);
+    let report_path = format!("/api/v1/hotlaps/{}/comments/{report_id}", lap.id);
     let detail = format!("/api/v1/hotlaps/{}/comments/{report_id}", lap.id);
-    let replies = format!("{detail}/replies");
+    let replies = format!("{comments}?parent_id={report_id}");
+    assert_eq!(
+        request(&app, "GET", &detail, None, Value::Null).await.0,
+        405
+    );
+    assert_eq!(
+        request(
+            &app,
+            "GET",
+            "/api/v1/hotlaps/999999/comments",
+            None,
+            Value::Null
+        )
+        .await
+        .0,
+        404
+    );
     let roots = request(&app, "GET", &comments, None, Value::Null).await.1;
     assert_eq!(roots["pagination"]["total_items"], 1);
     assert_eq!(roots["items"][0]["reason"], "suspected_cheating");
+    let filtered = request(
+        &app,
+        "GET",
+        &format!("{comments}?author_id={}&reported=true", author.id),
+        None,
+        Value::Null,
+    )
+    .await
+    .1;
+    assert_eq!(filtered["items"][0]["id"], report_id);
+    assert_eq!(filtered["pagination"]["total_items"], 1);
+    assert_eq!(
+        request(
+            &app,
+            "GET",
+            &format!("{comments}?author_id={}&reported=true", visitor.id),
+            None,
+            Value::Null
+        )
+        .await
+        .1["pagination"]["total_items"],
+        0
+    );
+    let counts = request(
+        &app,
+        "GET",
+        &format!("/api/v1/hotlaps/{}", lap.id),
+        None,
+        Value::Null,
+    )
+    .await
+    .1;
+    assert_eq!(counts["reports"], json!({"total":1,"unresolved":1}));
+    assert_eq!(
+        request(
+            &app,
+            "POST",
+            &comments,
+            Some(&tokens[1]),
+            json!({"body":"reply report", "reason":"invalid_lap", "parent_id":report_id})
+        )
+        .await
+        .0,
+        400
+    );
+    assert_eq!(
+        request(
+            &app,
+            "PATCH",
+            &detail,
+            Some(&tokens[1]),
+            json!({"body":"someone else's text"})
+        )
+        .await
+        .0,
+        403
+    );
+    assert_eq!(
+        request(&app, "PATCH", &detail, Some(&tokens[0]), json!({}))
+            .await
+            .0,
+        400
+    );
     let reply = request(
         &app,
         "POST",
@@ -212,7 +349,7 @@ async fn database_tests_unified_reports_and_nested_replies(
         1
     );
     assert_eq!(
-        request(&app, "GET", &detail, None, Value::Null).await.1["reply_count"],
+        read_comment(&app, lap.id, report_id).await["reply_count"],
         1
     );
     assert_eq!(
@@ -258,16 +395,25 @@ async fn database_tests_unified_reports_and_nested_replies(
     );
     let wrong_scope = format!("/api/v1/hotlaps/{}/comments/{report_id}", other.id);
     assert_eq!(
-        request(&app, "GET", &wrong_scope, None, Value::Null)
-            .await
-            .0,
+        request(
+            &app,
+            "GET",
+            &format!("/api/v1/hotlaps/{}/comments?around={report_id}", other.id),
+            None,
+            Value::Null
+        )
+        .await
+        .0,
         404
     );
     assert_eq!(
         request(
             &app,
             "GET",
-            &format!("{wrong_scope}/replies"),
+            &format!(
+                "/api/v1/hotlaps/{}/comments?parent_id={report_id}",
+                other.id
+            ),
             None,
             Value::Null
         )
@@ -277,7 +423,7 @@ async fn database_tests_unified_reports_and_nested_replies(
     );
     request(&app, "DELETE", &wrong_scope, Some(&tokens[0]), Value::Null).await;
     assert_eq!(
-        request(&app, "GET", &detail, None, Value::Null).await.1["deleted"],
+        read_comment(&app, lap.id, report_id).await["deleted"],
         false
     );
     assert_eq!(
@@ -306,24 +452,35 @@ async fn database_tests_unified_reports_and_nested_replies(
         )
         .await
         .0,
-        204
+        200
     );
-    request(&app, "PUT", &mine, Some(&tokens[0]), evidence).await;
-    assert!(request(&app, "GET", &detail, None, Value::Null).await.1["resolved_at"].is_string());
+    request(&app, "PATCH", &detail, Some(&tokens[0]), evidence).await;
+    assert!(read_comment(&app, lap.id, report_id).await["resolved_at"].is_string());
     request(
         &app,
-        "PUT",
-        &mine,
+        "PATCH",
+        &detail,
         Some(&tokens[0]),
         json!({"reason":"suspected_cheating","body":"New evidence."}),
     )
     .await;
     assert_eq!(
-        request(&app, "GET", &detail, None, Value::Null).await.1["resolved_at"],
+        read_comment(&app, lap.id, report_id).await["resolved_at"],
         Value::Null
     );
     // Withdraw only the flag. The text and the complete conversation remain.
-    request(&app, "DELETE", &report_path, Some(&tokens[1]), Value::Null).await;
+    assert_eq!(
+        request(
+            &app,
+            "PATCH",
+            &report_path,
+            Some(&tokens[1]),
+            json!({"reason":null})
+        )
+        .await
+        .0,
+        403
+    );
     assert_eq!(
         request(
             &app,
@@ -336,7 +493,18 @@ async fn database_tests_unified_reports_and_nested_replies(
         .1["pagination"]["total_items"],
         1
     );
-    request(&app, "DELETE", &report_path, Some(&tokens[0]), Value::Null).await;
+    assert_eq!(
+        request(
+            &app,
+            "PATCH",
+            &report_path,
+            Some(&tokens[0]),
+            json!({"reason":null})
+        )
+        .await
+        .0,
+        200
+    );
     assert_eq!(
         request(
             &app,
@@ -349,18 +517,18 @@ async fn database_tests_unified_reports_and_nested_replies(
         .1["pagination"]["total_items"],
         0
     );
-    let withdrawn = request(&app, "GET", &detail, None, Value::Null).await.1;
+    let withdrawn = read_comment(&app, lap.id, report_id).await;
     assert_eq!(withdrawn["reason"], Value::Null);
     assert_eq!(withdrawn["body"], "New evidence.");
     assert_eq!(withdrawn["reply_count"], 1);
     // Deletion leaves a tombstone instead of orphaning or deleting descendants.
     request(&app, "DELETE", &detail, Some(&tokens[1]), Value::Null).await;
     assert_eq!(
-        request(&app, "GET", &detail, None, Value::Null).await.1["deleted"],
+        read_comment(&app, lap.id, report_id).await["deleted"],
         false
     );
     request(&app, "DELETE", &detail, Some(&tokens[0]), Value::Null).await;
-    let deleted = request(&app, "GET", &detail, None, Value::Null).await.1;
+    let deleted = read_comment(&app, lap.id, report_id).await;
     assert_eq!(deleted["deleted"], true);
     assert_eq!(deleted["body"], Value::Null);
     assert_eq!(
@@ -394,7 +562,7 @@ async fn database_tests_unified_reports_and_nested_replies(
         400
     );
     assert_eq!(
-        request(&app, "GET", &format!("{replies}?page=0"), None, Value::Null)
+        request(&app, "GET", &format!("{replies}&page=0"), None, Value::Null)
             .await
             .0,
         400
@@ -402,13 +570,13 @@ async fn database_tests_unified_reports_and_nested_replies(
     // A new report is allowed after withdrawal; archive remains readable after lap removal.
     let second = request(
         &app,
-        "PUT",
-        &mine,
+        "POST",
+        &comments,
         Some(&tokens[0]),
         json!({"reason":"invalid_lap","body":"Different concern."}),
     )
     .await;
-    assert_eq!(second.0, 200);
+    assert_eq!(second.0, 201);
     assert_ne!(second.1["id"], report_id);
     let duplicate = sqlx::query("INSERT INTO hotlap_comment (original_hotlap_id, hotlap_id, author_id, reason, body) VALUES ($1,$1,$2,'invalid_lap','duplicate')").bind(lap.id).bind(author.id).execute(&pool).await.unwrap_err();
     assert_eq!(
@@ -472,13 +640,13 @@ async fn database_tests_unified_reports_and_nested_replies(
     let second_id = second.1["id"].as_i64().unwrap();
     let later_report = request(
         &app,
-        "PUT",
-        &mine,
+        "POST",
+        &comments,
         Some(&tokens[1]),
         json!({"reason":"invalid_lap","body":"A newer report."}),
     )
     .await;
-    assert_eq!(later_report.0, 200);
+    assert_eq!(later_report.0, 201);
     let later_id = later_report.1["id"].as_i64().unwrap();
     let first_page = request(
         &app,
@@ -525,13 +693,13 @@ async fn database_tests_unified_reports_and_nested_replies(
         request(
             &app,
             "PATCH",
-            &format!("/api/v1/hotlaps/{}/comments/{second_id}/report", lap.id),
+            &format!("/api/v1/hotlaps/{}/comments/{second_id}", lap.id),
             Some(&tokens[1]),
             json!({"resolved":true})
         )
         .await
         .0,
-        204
+        200
     );
     let resolved_order = request(
         &app,
@@ -560,13 +728,13 @@ async fn database_tests_unified_reports_and_nested_replies(
         request(
             &app,
             "PATCH",
-            &format!("/api/v1/hotlaps/{}/comments/{second_id}/report", lap.id),
+            &format!("/api/v1/hotlaps/{}/comments/{second_id}", lap.id),
             Some(&tokens[1]),
             json!({"resolved":false})
         )
         .await
         .0,
-        204
+        200
     );
     let queue = request(
         &app,
@@ -582,7 +750,11 @@ async fn database_tests_unified_reports_and_nested_replies(
         "multiple reports yield one hotlap"
     );
     assert_eq!(queue["items"][0]["id"], lap.id);
-    let wrong_moderation = format!("/api/v1/hotlaps/{}/comments/{second_id}/report", other.id);
+    assert_eq!(
+        queue["items"][0]["reports"],
+        json!({"total":2,"unresolved":2})
+    );
+    let wrong_moderation = format!("/api/v1/hotlaps/{}/comments/{second_id}", other.id);
     assert_eq!(
         request(
             &app,
@@ -600,13 +772,13 @@ async fn database_tests_unified_reports_and_nested_replies(
             request(
                 &app,
                 "PATCH",
-                &format!("/api/v1/hotlaps/{}/comments/{id}/report", lap.id),
+                &format!("/api/v1/hotlaps/{}/comments/{id}", lap.id),
                 Some(&tokens[1]),
                 json!({"resolved":true})
             )
             .await
             .0,
-            204
+            200
         );
     }
     assert_eq!(
@@ -637,13 +809,13 @@ async fn database_tests_unified_reports_and_nested_replies(
         request(
             &app,
             "PATCH",
-            &format!("/api/v1/hotlaps/{}/comments/{second_id}/report", lap.id),
+            &format!("/api/v1/hotlaps/{}/comments/{second_id}", lap.id),
             Some(&tokens[1]),
             json!({"resolved":false})
         )
         .await
         .0,
-        204
+        200
     );
     let reopened_order = request(
         &app,
@@ -655,9 +827,162 @@ async fn database_tests_unified_reports_and_nested_replies(
     .await
     .1;
     assert_eq!(reopened_order["items"][0]["id"], second_id);
-    hotlap::Entity::delete_by_id(lap.id).exec(&database).await?;
+    // Ordinary comments use the same update path; promotion keeps the uniqueness rule.
+    let normal = request(
+        &app,
+        "POST",
+        &comments,
+        Some(&tokens[0]),
+        json!({"body":"Ordinary comment"}),
+    )
+    .await
+    .1;
+    let normal_path = format!("{comments}/{}", normal["id"].as_i64().unwrap());
     assert_eq!(
-        request(&app, "GET", &detail, None, Value::Null).await.1["hotlap_id"],
+        request(
+            &app,
+            "PATCH",
+            &normal_path,
+            Some(&tokens[0]),
+            json!({"reason":"invalid_lap"})
+        )
+        .await
+        .0,
+        409
+    );
+    let edited = request(
+        &app,
+        "PATCH",
+        &normal_path,
+        Some(&tokens[0]),
+        json!({"body":"Edited comment"}),
+    )
+    .await;
+    assert_eq!(edited.0, 200);
+    assert_eq!(edited.1["body"], "Edited comment");
+    assert_eq!(edited.1["reason"], Value::Null);
+    assert_eq!(
+        request(
+            &app,
+            "PATCH",
+            &normal_path,
+            Some(&tokens[1]),
+            json!({"resolved":true})
+        )
+        .await
+        .0,
+        400
+    );
+    assert_eq!(
+        request(
+            &app,
+            "PATCH",
+            &normal_path,
+            Some(&tokens[1]),
+            json!({"body":"Moderator editing someone else's words"})
+        )
+        .await
+        .0,
+        403
+    );
+    assert_eq!(
+        request(
+            &app,
+            "PATCH",
+            &format!("{comments}/{reply_id}"),
+            Some(&tokens[1]),
+            json!({"reason":"invalid_lap"})
+        )
+        .await
+        .0,
+        400
+    );
+    let second_path = format!("{comments}/{second_id}");
+    let resolved = request(
+        &app,
+        "PATCH",
+        &second_path,
+        Some(&tokens[1]),
+        json!({"resolved":true}),
+    )
+    .await
+    .1;
+    let repeated = request(
+        &app,
+        "PATCH",
+        &second_path,
+        Some(&tokens[1]),
+        json!({"resolved":true}),
+    )
+    .await
+    .1;
+    assert_eq!(resolved["resolved_at"], repeated["resolved_at"]);
+    let edited_report = request(
+        &app,
+        "PATCH",
+        &second_path,
+        Some(&tokens[0]),
+        json!({"body":"Changed explanation, flag unchanged"}),
+    )
+    .await
+    .1;
+    assert_eq!(edited_report["reason"], "invalid_lap");
+    assert_eq!(edited_report["resolved_at"], Value::Null);
+    assert_eq!(
+        request(
+            &app,
+            "PATCH",
+            &second_path,
+            Some(&tokens[0]),
+            json!({"reason":null})
+        )
+        .await
+        .0,
+        200
+    );
+    assert_eq!(
+        request(
+            &app,
+            "PATCH",
+            &normal_path,
+            Some(&tokens[0]),
+            json!({"reason":"invalid_lap"})
+        )
+        .await
+        .0,
+        200
+    );
+    hotlap::Entity::delete_by_id(lap.id).exec(&database).await?;
+    let archive = request(&app, "GET", &comments, None, Value::Null).await;
+    assert_eq!(archive.0, 200);
+    assert!(archive.1["pagination"]["total_items"].as_u64().unwrap() > 0);
+    assert_eq!(
+        request(
+            &app,
+            "POST",
+            &comments,
+            Some(&tokens[0]),
+            json!({"body":"Archived write"})
+        )
+        .await
+        .0,
+        404
+    );
+    assert_eq!(
+        request(
+            &app,
+            "GET",
+            &format!("/api/v1/hotlaps/{}/comments?around={report_id}", other.id),
+            None,
+            Value::Null
+        )
+        .await
+        .0,
+        404
+    );
+
+    assert_eq!(
+        read_comment(&app, lap.id, report_id).await["hotlap_id"],
         Value::Null
     );
     assert_eq!(
@@ -678,7 +1003,7 @@ async fn database_tests_unified_reports_and_nested_replies(
     );
 
     assert_eq!(
-        request(&app, "GET", &detail, None, Value::Null).await.1["original_hotlap_id"],
+        read_comment(&app, lap.id, report_id).await["original_hotlap_id"],
         lap.id
     );
     let archived_reply = format!("/api/v1/hotlaps/{}/comments/{reply_id}", lap.id);
@@ -694,10 +1019,9 @@ async fn database_tests_unified_reports_and_nested_replies(
         .0,
         204
     );
-    let archived = request(&app, "GET", &archived_reply, None, Value::Null).await;
-    assert_eq!(archived.0, 200);
-    assert_eq!(archived.1["deleted"], true);
-    assert!(!archived.1["replies"].as_array().unwrap().is_empty());
+    let archived = read_comment(&app, lap.id, reply_id).await;
+    assert_eq!(archived["deleted"], true);
+    assert!(!archived["replies"].as_array().unwrap().is_empty());
     assert_eq!(
         request(
             &app,

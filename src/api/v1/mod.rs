@@ -10,7 +10,6 @@ pub mod hotlaps;
 pub mod me;
 pub mod player_comparison;
 pub mod players;
-pub mod reports;
 pub mod stats;
 pub mod track_locations;
 pub mod tracks;
@@ -61,7 +60,6 @@ pub(crate) fn router(max_spr_upload_bytes: usize) -> OpenApiRouter<ApiState> {
         .merge(stats::router())
         .merge(track_locations::router())
         .merge(tracks::router())
-        .merge(reports::router())
         .merge(comments::router())
         .merge(vehicles::router())
         .merge(player_comparison::router())

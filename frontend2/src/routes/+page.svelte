@@ -3,7 +3,10 @@
 	import HotlapActivity from '#lib/components/app/HotlapActivity.svelte';
 	import SpotlightCard from '#lib/components/app/SpotlightCard.svelte';
 	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
-	import RecordHighlight from '#lib/components/app/RecordHighlight.svelte';
+	import RecordHighlight, {
+		recordHighlightValueClass,
+	} from '#lib/components/app/RecordHighlight.svelte';
+	import RecordHighlights from '#lib/components/app/RecordHighlights.svelte';
 	import PanelCarousel from '#lib/components/app/PanelCarousel.svelte';
 	import CommunityCard from '#lib/components/app/CommunityCard.svelte';
 	import RacingThisWeek from '#lib/components/app/RacingThisWeek.svelte';
@@ -56,21 +59,19 @@
 		</p>
 	</div>
 	{#snippet highlight()}
-		<div
-			class="home-highlights grid min-w-0 grid-cols-2 gap-2 lg:w-[34rem] lg:gap-x-0 xl:w-[48rem] xl:grid-cols-4"
-		>
+		<RecordHighlights class="lg:w-[34rem] xl:w-[48rem] xl:grid-cols-4">
 			{#each stats as stat (stat.label)}
 				<RecordHighlight
 					title={stat.label}
 					variant={stat.variant}
 					class="w-auto px-8 lg:w-auto lg:px-10"
 				>
-					<p class="text-right text-2xl font-bold tabular-nums sm:text-3xl">
+					<p class={recordHighlightValueClass}>
 						{stat.value == null ? '-' : stat.value.toLocaleString()}
 					</p>
 				</RecordHighlight>
 			{/each}
-		</div>
+		</RecordHighlights>
 	{/snippet}
 </PageIdentity>
 
@@ -149,15 +150,3 @@
 		{/if}
 	</div>
 </main>
-
-<style>
-	@media (min-width: 64rem) {
-		.home-highlights {
-			/* Include the same overlap in every panel, including the first in a row. */
-			padding-left: var(--highlight-slant);
-		}
-		.home-highlights :global(.record-highlight) {
-			margin-left: calc(-1 * var(--highlight-slant));
-		}
-	}
-</style>

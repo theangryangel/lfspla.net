@@ -277,6 +277,11 @@ pub(crate) async fn detail(
         None => (std::collections::HashMap::new(), 0),
     };
 
+    crate::api::v1::hotlaps::response::load_report_counts(
+        &state.database,
+        personal_bests.values_mut(),
+    )
+    .await?;
     let chart_responses = Chart::load(&state.database, &era, &ranking.charts).await?;
 
     Ok(Json(RankingDetailResponse {

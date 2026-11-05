@@ -343,7 +343,7 @@
 										: ''}"
 									><a
 										class="hover:underline"
-										href={`/hotlap/${lap.id}${view === 'reported' ? '?tab=conversation#comments' : ''}`}
+										href={`/hotlap/${lap.id}${view === 'reported' ? '#comments' : ''}`}
 										>{lapTime(lap.lap_time_ms)}</a
 									></Table.Cell
 								>

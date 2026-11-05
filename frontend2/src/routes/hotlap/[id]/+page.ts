@@ -16,7 +16,7 @@ export const load: PageLoad = async ({
   const id = Number(params.id);
   if (!/^[1-9]\d*$/.test(params.id) || !Number.isSafeInteger(id))
     error(404, "Hotlap not found");
-  const { breadcrumbs } = await parent();
+  const { breadcrumbs, eras } = await parent();
   const api = createApi(fetch);
   const hotlap = await api.hotlaps.getHotlap({ hotlap: id }).catch((cause) => {
     if (cause instanceof NotFoundError) error(404, "Hotlap not found");
@@ -29,8 +29,7 @@ export const load: PageLoad = async ({
     (!/^[1-9]\d*$/.test(around) || !Number.isSafeInteger(Number(around)))
   )
     error(400, "Invalid comment");
-  const [summaries, comments] = await Promise.all([
-    api.reports.getReportSummaries({ hotlap_ids: String(id) }),
+  const [comments, chart] = await Promise.all([
     hotlap.state === "valid"
       ? api.comments.listHotlapComments({
           hotlap: id,
@@ -41,18 +40,36 @@ export const load: PageLoad = async ({
               : undefined,
         })
       : null,
+    // Chart identity includes the canonical catalogue names and artwork, even
+    // when the leaderboard is empty. Keep the requested lap page bounded.
+    api.charts
+      .best({
+        era: hotlap.era_id,
+        track: hotlap.track,
+        vehicle: hotlap.vehicle,
+        per_page: 1,
+      })
+      .catch((cause) => {
+        if (cause instanceof NotFoundError) return null;
+        throw cause;
+      }),
   ]);
-  const report = summaries.items[0] ?? null;
+  const era = eras.find((candidate) => candidate.id === hotlap.era_id);
   return {
     hotlap,
-    report,
+    track: chart?.chart.track ?? null,
+    vehicle: chart?.chart.vehicle ?? null,
+    report: hotlap.reports,
     comments,
     breadcrumbs: [
       ...breadcrumbs,
-      { label: hotlap.era_title, href: `/hotlaps/${hotlap.era_id}` },
+      { label: "Hotlaps" },
       {
-        label: `${hotlap.track} / ${hotlap.vehicle}`,
-        href: `/hotlaps/${hotlap.era_id}/charts/${encodeURIComponent(hotlap.track)}/${encodeURIComponent(hotlap.vehicle)}`,
+        label: hotlap.era_title,
+        href: `/hotlaps/${hotlap.era_id}`,
+        tag: era
+          ? { label: era.open ? "Open" : "Historical", accent: era.open }
+          : undefined,
       },
       { label: `Hotlap #${id}`, href: `/hotlap/${id}` },
     ],

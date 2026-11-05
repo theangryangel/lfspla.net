@@ -41,9 +41,14 @@
 		loaded = false;
 		own = null;
 		error = '';
-		api.reports
-			.getMyReport({ hotlap })
-			.then((report) => {
+		api.comments
+			.listHotlapComments({
+				hotlap,
+				author_id: session.player!.id,
+				reported: true,
+			})
+			.then((response) => {
+				const report = response.items[0] ?? null;
 				if (active) {
 					loaded = true;
 					own = report ?? null;
@@ -68,7 +73,14 @@
 		try {
 			const auth = { hotlap, 'X-CSRF-Token': session.me.csrf_token };
 			const creating = !own;
-			const result = await api.reports.saveMyReport({ ...auth, reason, body });
+			const result = own
+				? await api.comments.updateHotlapComment({
+						...auth,
+						comment: own.id,
+						reason,
+						body,
+					})
+				: await api.comments.createHotlapComment({ ...auth, reason, body });
 			open = false;
 			await Promise.all([
 				invalidate('app:reports'),
@@ -76,7 +88,7 @@
 			]);
 			if (creating)
 				await goto(
-					`/hotlap/${hotlap}?tab=conversation&around=${result.id}#comment-${result.id}`,
+					`/hotlap/${hotlap}?around=${result.id}#comment-${result.id}`,
 				);
 		} catch (cause) {
 			error = apiErrorMessage(cause);
@@ -92,7 +104,10 @@
 			{#snippet child({ props })}
 				<Button
 					{...props}
-					variant="ghost"
+					variant={label ? 'destructive-outline' : 'ghost'}
+					class={existingReport?.unresolved && !label
+						? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
+						: undefined}
 					size={label ? 'sm' : 'icon'}
 					aria-label={label ?? 'Flag this lap or edit your flag'}
 					title={existingReport?.total
@@ -100,8 +115,8 @@
 						: 'Flag this lap'}
 				>
 					<FlagIcon
-						class={existingReport?.unresolved
-							? 'size-4 text-primary'
+						class={existingReport?.unresolved && !label
+							? 'size-4 text-destructive'
 							: 'size-4'}
 						fill={existingReport?.unresolved ? 'currentColor' : 'none'}
 					/>

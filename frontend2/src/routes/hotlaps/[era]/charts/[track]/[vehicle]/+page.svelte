@@ -328,7 +328,7 @@
 												<HotlapLinks hotlap={entry} />
 												<ReportHotlap
 													hotlap={entry.id}
-													existingReport={data.reports[entry.id]}
+													existingReport={entry.reports}
 												/>
 											</div>
 										</Table.Cell>

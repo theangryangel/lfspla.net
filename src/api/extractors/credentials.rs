@@ -78,6 +78,10 @@ pub(crate) struct Moderator(pub(crate) Player);
 impl Moderator {
     async fn extract(parts: &mut Parts, state: &ApiState) -> Result<Self, ApiError> {
         let AuthenticatedPlayer(player) = AuthenticatedPlayer::extract(parts, state).await?;
+        Self::from_player(player)
+    }
+
+    pub(crate) fn from_player(player: Player) -> Result<Self, ApiError> {
         if player.role != crate::models::player::Role::Moderator {
             return Err(ApiError::new(
                 StatusCode::FORBIDDEN,

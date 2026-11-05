@@ -1,10 +1,6 @@
 import { NotFoundError } from "@lfsplanet/sdk/api";
 
-import {
-  type CombinationRejection,
-  type HotlapReportSummary,
-  createApi,
-} from "#lib/api.js";
+import { type CombinationRejection, createApi } from "#lib/api.js";
 import type { BestRequest } from "@lfsplanet/sdk/api";
 import { error } from "@sveltejs/kit";
 
@@ -63,16 +59,7 @@ export const load: PageLoad = async ({
   const track = chart?.chart.track ?? null;
   const vehicle = chart?.chart.vehicle ?? null;
 
-  const reports: Record<number, HotlapReportSummary> = {};
-  if (chart?.items.length) {
-    const response = await api.reports.getReportSummaries({
-      hotlap_ids: chart.items.map((lap) => lap.id).join(","),
-    });
-    for (const report of response.items) reports[report.hotlap_id] = report;
-  }
-
   return {
-    reports,
     filters,
     chart,
     track,
