@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ReportHotlap from '#lib/components/app/ReportHotlap.svelte';
 	import DateTime from '#lib/components/app/DateTime.svelte';
 	import ChartContributions from '#lib/components/app/ChartContributions.svelte';
 	import FloatingPanel from '#lib/components/app/FloatingPanel.svelte';
@@ -11,7 +12,7 @@
 	import PlayerBadge from '#lib/components/app/PlayerBadge.svelte';
 	import CompareButton from '#lib/components/app/CompareButton.svelte';
 	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
-	import DownloadIcon from '@lucide/svelte/icons/download';
+	import HotlapLinks from '#lib/components/app/HotlapLinks.svelte';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import TableFrame from '#lib/components/app/TableFrame.svelte';
@@ -205,7 +206,7 @@
 										{order}
 										label="Set"
 									/>
-									<Table.Head>Replay</Table.Head>
+									<Table.Head>Actions</Table.Head>
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
@@ -254,7 +255,12 @@
 												: ''}"
 										>
 											<div class="flex items-center justify-between gap-2">
-												<span>{lapTime(entry.lap_time_ms)}</span>
+												<a
+													class="hover:underline"
+													href={`/hotlap/${entry.id}`}
+													aria-label={`View hotlap ${entry.id}, ${lapTime(entry.lap_time_ms)}`}
+													>{lapTime(entry.lap_time_ms)}</a
+												>
 												<Tooltip.Root>
 													<Tooltip.Trigger>
 														{#snippet child({ props })}
@@ -318,27 +324,13 @@
 											<DateTime value={entry.created_at} /> - {entry.game_version}
 										</Table.Cell>
 										<Table.Cell>
-											{#if entry.spr?.url}
-												<Button
-													variant="ghost"
-													size="icon-sm"
-													href={entry.spr.url}
-													aria-label="Download {entry.player
-														.display_name}'s replay"
-												>
-													<DownloadIcon />
-												</Button>
-											{:else}
-												<span class="text-muted-foreground">-</span>
-											{/if}
-											{#if entry.raf}
-												<Button
-													variant="ghost"
-													size="sm"
-													href={entry.raf.url}
-													aria-label="Download RAF telemetry">RAF</Button
-												>
-											{/if}
+											<div class="flex w-max items-center gap-1">
+												<HotlapLinks hotlap={entry} />
+												<ReportHotlap
+													hotlap={entry.id}
+													existingReport={data.reports[entry.id]}
+												/>
+											</div>
 										</Table.Cell>
 									</Table.Row>
 								{/each}

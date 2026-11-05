@@ -161,6 +161,7 @@ mod tests {
             display_name: "Driver".to_owned(),
             deny_auth: false,
             deny_uploads: false,
+            role: Default::default(),
             country_code: None,
             flag_code: None,
             profile_links: Default::default(),

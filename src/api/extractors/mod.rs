@@ -7,6 +7,7 @@ pub(crate) mod pubstat;
 
 pub(crate) use credentials::AuthenticatedPlayer;
 pub(crate) use credentials::BrowserAuthenticatedPlayer;
+pub(crate) use credentials::Moderator;
 pub(crate) use credentials::browser_player;
 pub(crate) use credentials::csrf_token;
 pub(crate) use credentials::login;

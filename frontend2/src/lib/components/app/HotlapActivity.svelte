@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import DateTime from '#lib/components/app/DateTime.svelte';
+	import FlagIcon from '@lucide/svelte/icons/flag';
 	import { page } from '$app/state';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import {
@@ -15,6 +16,7 @@
 
 	import type { ListHotlapsRequest } from '@lfsplanet/sdk/api';
 	import CompareButton from '#lib/components/app/CompareButton.svelte';
+	import HotlapLinks from '#lib/components/app/HotlapLinks.svelte';
 	import Empty from '#lib/components/app/Empty.svelte';
 	import Flag from '#lib/components/app/Flag.svelte';
 	import PlayerBadge from '#lib/components/app/PlayerBadge.svelte';
@@ -36,6 +38,7 @@
 		| 'world_records'
 		| 'longest_standing'
 		| 'most_hotlapped'
+		| 'reported'
 		| 'mine'
 		| 'by_era';
 
@@ -101,6 +104,7 @@
 		lfs_username: lfsUsername,
 		state: view === 'mine' ? undefined : 'valid',
 		mine: view === 'mine' ? true : undefined,
+		reported: view === 'reported' ? true : undefined,
 		rank: worldRecords ? 1 : undefined,
 		page: Number((page.url.searchParams.get('page') ?? '') || 1),
 		per_page: perPage,
@@ -196,6 +200,11 @@
 				<Tabs.Trigger value="most_hotlapped">Most hotlapped combos</Tabs.Trigger
 				>
 			{/if}
+			{#if views.includes('reported')}
+				<Tabs.Trigger value="reported"
+					><FlagIcon class="size-4" />Reported</Tabs.Trigger
+				>
+			{/if}
 			{#if views.includes('mine') && session.signedIn}
 				<Tabs.Trigger value="mine">Mine</Tabs.Trigger>
 			{/if}
@@ -220,9 +229,11 @@
 					? 'No hotlaps on this page'
 					: view === 'mine'
 						? 'No uploads yet'
-						: worldRecords
-							? 'No world records yet'
-							: 'No hotlaps yet'}
+						: view === 'reported'
+							? 'No reported hotlaps'
+							: worldRecords
+								? 'No world records yet'
+								: 'No hotlaps yet'}
 			>
 				{#if pagination && pagination.total_items > 0}
 					<p>Choose another page below.</p>
@@ -272,6 +283,7 @@
 							{#if showContributions}<Table.Head>Contributes to</Table.Head
 								>{/if}
 							{#if view === 'mine'}<Table.Head>State</Table.Head>{/if}
+							<Table.Head>Actions</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
@@ -328,7 +340,12 @@
 								<Table.Cell
 									class="font-mono tabular-nums {isRecord
 										? 'font-semibold text-time-best'
-										: ''}">{lapTime(lap.lap_time_ms)}</Table.Cell
+										: ''}"
+									><a
+										class="hover:underline"
+										href={`/hotlap/${lap.id}${view === 'reported' ? '?tab=conversation#comments' : ''}`}
+										>{lapTime(lap.lap_time_ms)}</a
+									></Table.Cell
 								>
 								{#if showContributions}
 									<Table.Cell>
@@ -346,6 +363,7 @@
 								{#if view === 'mine'}<Table.Cell class="capitalize"
 										>{lap.state.replace('_', ' ')}</Table.Cell
 									>{/if}
+								<Table.Cell><HotlapLinks hotlap={lap} /></Table.Cell>
 							</Table.Row>
 						{/each}
 					</Table.Body>

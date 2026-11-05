@@ -200,6 +200,7 @@ export class HotlapsClient {
   ): Promise<core.WithRawResponse<LfsplanetApi.PaginatedResponseHotlap>> {
     const {
       state,
+      reported,
       era_id: eraId,
       lfs_username: lfsUsername,
       track,
@@ -216,6 +217,7 @@ export class HotlapsClient {
     } = request;
     const _queryParams: Record<string, unknown> = {
       state: state != null ? state : undefined,
+      reported,
       era_id: eraId,
       lfs_username: lfsUsername,
       track,

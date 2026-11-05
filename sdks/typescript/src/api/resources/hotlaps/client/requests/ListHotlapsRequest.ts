@@ -9,6 +9,8 @@ import * as LfsplanetApi from "../../../../index.js";
 export interface ListHotlapsRequest {
   /** Defaults to valid publicly, all with mine=true. Non-valid selections are caller-only. */
   state?: LfsplanetApi.ListHotlapsRequestState;
+  /** Filter by whether the lap has at least one open report. */
+  reported?: boolean;
   /** Public era slug. */
   era_id?: string;
   /** Stable LFS account name (case-insensitive exact match). */

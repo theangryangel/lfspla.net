@@ -11,7 +11,7 @@ use crate::{
         v1::PlayerSummary,
     },
     country::CountryCode,
-    models::player::ProfileLinks,
+    models::player::{ProfileLinks, Role},
 };
 use axum::{
     Json,
@@ -34,6 +34,9 @@ pub(crate) struct MeResponse {
     /// Current player, or null when logged out.
     #[schema(required)]
     player: Option<PlayerSummary>,
+    /// Current account role; null when logged out.
+    #[schema(required)]
+    role: Option<Role>,
     /// Owner-managed public links; null when logged out.
     #[schema(required)]
     profile_links: Option<ProfileLinks>,
@@ -106,6 +109,7 @@ pub(crate) async fn get(
     let allow_uploads =
         state.hotlaps.allow_uploads && player.as_ref().is_some_and(|player| !player.deny_uploads);
     let profile_links = player.as_ref().map(|player| player.profile_links.clone());
+    let role = player.as_ref().map(|player| player.role);
     let player = player.map(PlayerSummary::from);
     // Every route that verifies a CSRF token also requires an authenticated
     // player, so a token issued to an anonymous caller could never authorise
@@ -119,6 +123,7 @@ pub(crate) async fn get(
 
     Ok(Json(MeResponse {
         profile_links,
+        role,
         authenticated: player.is_some(),
         player,
         csrf_token,
@@ -262,10 +267,76 @@ mod tests {
                 assert_eq!(response.site_notice.as_deref(), expected);
                 assert!(!response.allow_uploads);
                 assert!(!response.authenticated);
+                assert_eq!(response.role, None);
+                assert_eq!(
+                    serde_json::to_value(&response).unwrap()["role"],
+                    json!(null)
+                );
                 assert!(response.csrf_token.is_empty());
                 assert!(session.is_empty().await);
             }
         }
+    }
+
+    #[tokio::test]
+    async fn authenticated_frontend_state_exposes_the_current_role() {
+        for role in [Role::Player, Role::Moderator] {
+            let player = crate::models::Player {
+                id: 7,
+                lfs_username: "driver".into(),
+                display_name: "Driver".into(),
+                deny_auth: false,
+                deny_uploads: false,
+                role,
+                country_code: None,
+                flag_code: None,
+                profile_links: Default::default(),
+                created_at: time::OffsetDateTime::UNIX_EPOCH,
+                last_authenticated_at: None,
+                lfsworld_id: None,
+            };
+            let state = ApiState {
+                database: Default::default(),
+                oauth: None,
+                object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
+                hotlaps: Default::default(),
+                site_notice: None,
+            };
+            let session = Session::new(
+                None,
+                std::sync::Arc::new(tower_sessions::MemoryStore::default()),
+                None,
+            );
+            let Json(response) = get(
+                State(state),
+                HeaderMap::new(),
+                Some(AuthenticatedPlayer(player)),
+                session,
+            )
+            .await
+            .unwrap();
+            assert!(response.authenticated);
+            assert_eq!(response.role, Some(role));
+            let value = serde_json::to_value(response).unwrap();
+            assert_eq!(value["role"], role.to_string());
+            assert_eq!(value["player"]["lfs_username"], "driver");
+        }
+    }
+
+    #[test]
+    fn frontend_role_schema_is_required_and_nullable() {
+        let document = serde_json::to_value(crate::api::openapi()).unwrap();
+        let schemas = &document["components"]["schemas"];
+        assert_eq!(schemas["Role"]["enum"], json!(["player", "moderator"]));
+        assert!(
+            schemas["MeResponse"]["required"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("role"))
+        );
+        let role = &schemas["MeResponse"]["properties"]["role"]["oneOf"];
+        assert_eq!(role[0]["$ref"], "#/components/schemas/Role");
+        assert_eq!(role[1]["type"], "null");
     }
 
     #[test]

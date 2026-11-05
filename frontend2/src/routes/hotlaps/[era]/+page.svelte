@@ -21,6 +21,7 @@
 			'world_records',
 			'longest_standing',
 			'most_hotlapped',
+			'reported',
 			'mine',
 		]}
 		perPage={25}

@@ -16,7 +16,9 @@ mod activity;
 mod comparison;
 mod links;
 mod profile;
+mod role;
 pub use links::ProfileLinks;
+pub use role::Role;
 
 pub(crate) use activity::PlayerChartResult;
 pub(crate) use comparison::PlayerComparison;
@@ -39,6 +41,8 @@ pub struct Model {
     pub deny_auth: bool,
     /// Whether the hotlap upload route should reject this player.
     pub deny_uploads: bool,
+    /// Current staff role, loaded afresh during authentication.
+    pub role: Role,
     /// Nation selected for rankings, when present.
     ///
     /// Validated on read by [`CountryCode`], so no row loaded through this
@@ -69,6 +73,18 @@ pub struct Model {
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Model {
+    /// Change a role without overwriting profile or restriction fields.
+    pub(crate) async fn set_role(
+        self,
+        database: &impl ConnectionTrait,
+        role: Role,
+    ) -> Result<Self, DbErr> {
+        use sea_orm::{ActiveValue::Set, IntoActiveModel};
+        let mut active = self.into_active_model();
+        active.role = Set(role);
+        active.update(database).await
+    }
+
     /// Change authentication restrictions without overwriting other fields.
     pub(crate) async fn set_auth_denied(
         self,
@@ -115,6 +131,7 @@ impl Model {
             display_name: Set(account.display_name.clone()),
             deny_auth: NotSet,
             deny_uploads: NotSet,
+            role: NotSet,
             country_code: NotSet,
             flag_code: NotSet,
             profile_links: NotSet,

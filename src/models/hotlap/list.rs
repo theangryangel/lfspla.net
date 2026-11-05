@@ -254,6 +254,7 @@ pub(crate) struct HotlapListFilters<'a> {
     pub(crate) track: Option<insim_core::track::Track>,
     pub(crate) vehicle: Option<insim_core::vehicle::Vehicle>,
     pub(crate) ranked_only: bool,
+    pub(crate) reported: Option<bool>,
     pub(crate) rank: Option<i64>,
 }
 impl<'a> HotlapListFilters<'a> {
@@ -316,6 +317,22 @@ impl<'a> HotlapListFilters<'a> {
         }
         if let Some(vehicle) = self.vehicle {
             hotlaps = hotlaps.filter(HotlapColumn::Vehicle.eq(vehicle.to_string()));
+        }
+        if let Some(reported) = self.reported {
+            use crate::models::hotlap_comment::{Column, Entity};
+            let open_reports = Entity::find()
+                .select_only()
+                .column(Column::HotlapId)
+                .filter(Column::HotlapId.is_not_null())
+                .filter(Column::Reason.is_not_null())
+                .filter(Column::DeletedAt.is_null())
+                .filter(Column::ResolvedAt.is_null())
+                .into_query();
+            hotlaps = hotlaps.filter(if reported {
+                HotlapColumn::Id.in_subquery(open_reports)
+            } else {
+                HotlapColumn::Id.not_in_subquery(open_reports)
+            });
         }
         if self.ranked_only {
             hotlaps = hotlaps.filter(sea_orm::sea_query::Expr::cust(

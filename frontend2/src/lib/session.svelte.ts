@@ -62,6 +62,11 @@ export class Session {
     return this.me.authenticated;
   }
 
+  /** Controls visibility only; the API enforces moderator access. */
+  get isModerator(): boolean {
+    return this.me.role === "moderator";
+  }
+
   get player(): PlayerSummary | null {
     return this.me.player;
   }

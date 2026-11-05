@@ -12,6 +12,8 @@ use size::Size;
 pub struct HotlapSettings {
     /// Whether the API accepts new hotlap uploads globally.
     pub allow_uploads: bool,
+    /// Era-scoped rankings whose combinations cannot accept uploads.
+    pub blocked_rankings: Vec<BlockedRanking>,
     /// Whether uploaded replay usernames must match the authenticated player.
     pub enforce_replay_username: bool,
     /// Maximum number of unfinished hotlaps allowed per player.
@@ -23,10 +25,19 @@ pub struct HotlapSettings {
     pub allow_test_validation: bool,
 }
 
+/// An upload block applies to every chart belonging to this ranking.
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlockedRanking {
+    pub(crate) era: crate::era_slug::EraSlug,
+    pub(crate) ranking: crate::ranking_slug::RankingSlug,
+}
+
 impl Default for HotlapSettings {
     fn default() -> Self {
         Self {
             allow_uploads: true,
+            blocked_rankings: Vec::new(),
             enforce_replay_username: true,
             max_queued_per_player: NonZeroU64::new(10).expect("10 is non-zero"),
             max_spr_upload_bytes: default_max_spr_upload_bytes(),

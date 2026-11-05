@@ -133,7 +133,7 @@
 				title="Activity"
 				appearance="data"
 				refreshKey={data.stats}
-				views={['all', 'world_records', 'longest_standing', 'mine']}
+				views={['all', 'world_records', 'longest_standing', 'reported', 'mine']}
 				perPage={25}
 				showContributions={false}
 				eras={data.eras}

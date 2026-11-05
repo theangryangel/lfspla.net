@@ -1,8 +1,7 @@
 <script lang="ts">
 	import DateTime from '#lib/components/app/DateTime.svelte';
 	import { page } from '$app/state';
-	import DownloadIcon from '@lucide/svelte/icons/download';
-	import { Button } from '#lib/components/ui/button/index.js';
+	import HotlapLinks from '#lib/components/app/HotlapLinks.svelte';
 	import TableFrame from '#lib/components/app/TableFrame.svelte';
 	import Panel from '#lib/components/app/Panel.svelte';
 	import { Input } from '#lib/components/ui/input/index.js';
@@ -50,7 +49,6 @@
 				: [],
 			createdAt: chart.my_hotlap?.created_at ?? null,
 			gameVersion: chart.my_hotlap?.game_version ?? null,
-			sprUrl: chart.my_hotlap?.spr?.url ?? null,
 		})),
 	);
 	const completed = $derived(
@@ -137,7 +135,7 @@
 										>S3</Table.Head
 									>
 									<Table.Head>Set</Table.Head>
-									<Table.Head>Replay</Table.Head>
+									<Table.Head>Actions</Table.Head>
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
@@ -187,18 +185,9 @@
 											{:else}-{/if}
 										</Table.Cell>
 										<Table.Cell>
-											{#if row.sprUrl}
-												<Button
-													variant="ghost"
-													size="icon"
-													href={row.sprUrl}
-													aria-label="Download replay for {row.track} / {row.vehicle}"
-												>
-													<DownloadIcon />
-												</Button>
-											{:else}
-												<span class="text-muted-foreground">-</span>
-											{/if}
+											{#if row.my_hotlap}
+												<HotlapLinks hotlap={row.my_hotlap} />
+											{:else}<span class="text-muted-foreground">-</span>{/if}
 										</Table.Cell>
 									</Table.Row>
 								{/each}
