@@ -1,5 +1,6 @@
 //! SPR hotlap ingestion and the public hotlap resource.
 
+mod comments;
 mod detail;
 mod list;
 pub(super) mod query;
@@ -15,6 +16,7 @@ use crate::api::ApiState;
 /// Uploads use `/eras/{era}/hotlaps`.
 pub(super) fn router() -> OpenApiRouter<ApiState> {
     OpenApiRouter::new()
+        .merge(comments::router())
         .routes(routes!(list::list))
         .routes(routes!(detail::detail))
         .routes(routes!(remove::remove))

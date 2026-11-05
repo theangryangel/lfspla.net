@@ -174,6 +174,33 @@ lfsplanet --config /etc/lfsplanet/config.yaml player allow uploads LFS_USERNAME
 lfsplanet --config /etc/lfsplanet/config.yaml player allow auth LFS_USERNAME
 ```
 
+## Player roles
+
+Accounts have one fixed role: `player` (the default) or `moderator`. Set or
+remove moderator access using an existing LFS account:
+
+```sh
+lfsplanet --config /etc/lfsplanet/config.yaml player set-role LFS_USERNAME moderator
+lfsplanet --config /etc/lfsplanet/config.yaml player set-role LFS_USERNAME player
+lfsplanet --config /etc/lfsplanet/config.yaml player show LFS_USERNAME
+```
+
+Role changes apply on the next authenticated request, including existing browser
+sessions and personal access tokens. Signing in again preserves the assigned
+role. Authentication bans and CSRF protection still apply to moderators.
+`GET /api/v1/me` exposes `role` as `"player"` or `"moderator"`, or `null`
+when signed out. The frontend session exposes `session.me.role` and
+`session.isModerator`; existing background refreshes update these values.
+These values control UI visibility; the backend extractor enforces access.
+Role assignment is CLI-only; there is no web endpoint to change a role.
+
+The Rust `Role` enum maps to `player` and `moderator` in a `VARCHAR(16)` column.
+There is no database enum or check constraint; unknown values fail decoding.
+Moderation handlers can require the `Moderator` extractor alongside the existing
+`AuthenticatedPlayer` extractor for ordinary authenticated operations. It returns
+401 for unauthenticated callers and 403 (`moderator_required`) for players.
+Moderators can resolve and reopen reports from the hotlap’s Conversation section.
+
 ## Recovery commands
 
 After changing an era's replay-version rules, run `lfsplanet hotlap fix-eras`.
@@ -187,3 +214,156 @@ lfsplanet hotlap rebadge --all
 
 See [eras and rankings](eras.md) for policy changes and
 [replay validation](validator.md) for host requirements.
+
+### Pausing uploads for individual rankings
+
+Set `hotlaps.blocked_rankings` in the server configuration and restart the API:
+
+```yaml
+hotlaps:
+  blocked_rankings:
+    - era: "2026-08-26"
+      ranking: drag
+```
+
+This pauses uploads for every track/vehicle combination in the current 0.8 drag
+ranking. Add more entries to block additional rankings. Any blocked membership
+rejects an upload, including combinations shared with an unblocked ranking.
+The global `allow_uploads`, player `deny_uploads`, and closed-era restrictions
+still apply independently. The replay header determines the combination; clients
+cannot bypass the check by selecting another ranking. Rejection happens before
+replay storage or queue admission. Existing laps and validation jobs are unaffected.
+Remove an entry and restart the API to reopen that ranking.
+
+### Public hotlap conversations and reports
+
+A hotlap has one public conversation. Ordinary comments and report comments use
+one `hotlap_comment` table and one API response schema. A non-null reason marks
+an entry as a report, with its own open/resolved status. Reports require a reason
+and a 1–4000 character plain-text explanation. Both kinds of entry can receive
+replies. Reading is public; posting and managing your own content require login.
+
+Reasons are the Rust `ReportReason` enum: `suspected_cheating`, `invalid_lap`,
+`incorrect_classification`, and `other_problem`. OpenAPI generates the matching
+SDK type; the frontend supplies display labels. Reasons are stored as text with
+no database enum or check constraint. A partial unique index on hotlap/author
+allows one active report per player per lap, alongside any number of comments.
+Changing a report's explanation or reason reopens it; saving unchanged content
+preserves its review. Moderators resolve/reopen individual reports. Resolution
+does not close replies, invalidate laps, or change rankings.
+
+Parents are immutable and must belong to the same lap. Replies are limited to
+eight levels. Open report roots sort first; ordinary comments, withdrawn reports
+and resolved reports follow in chronological order. Replies stay chronological
+under their parent. Ordering applies before pagination, and `around` uses the
+same priority when finding a comment’s page, including a reply’s root.
+Pagination selects root conversations, and the server returns
+nested `replies` for their descendants. Three queries load a non-empty
+page: count selected entries, fetch the selected page, and recursively fetch its
+threads with authors and indexed direct-reply counts. The recursive CTE follows
+parent links from the selected entries, so unrelated sibling branches cannot
+consume the descendant limit when fetching an individual comment or paging replies. The hotlap endpoint adds one published-lap lookup. The optional `around` comment parameter adds two fixed queries to locate the
+normal root page containing a comment or reply, preserving surrounding context. Query
+count does not grow with root count or nesting depth. The `(parent_id, id)` index
+supports recursive child lookups and direct-reply counts.
+
+Responses include at most 1,000 additional descendants in ID order. The limit
+bounds the response size; sorting can still traverse the entire selected subtree. Each entry's `reply_count`
+identifies incomplete branches; those offer an explicit Load more replies action.
+The client expands included replies by default and performs no per-entry fetch
+while rendering. The comments list with `parent_id` pages additional children with their
+nested descendants using the same batching. Deleting your comment removes its text
+and any report flag, retaining a deleted placeholder and its replies. Withdrawing
+a report only clears its flag and review state: its explanation and replies
+remain as an ordinary conversation. Both actions use AlertDialog confirmations.
+A stable original hotlap ID preserves scoped access after the nullable lap
+reference is cleared. Lap removal preserves conversations as read-only archives; archived entries
+remain readable and manageable through their original hotlap-scoped API paths.
+
+Reported hotlaps are available in the public Activity views on the home page
+(`/?view=reported`) and each era overview (`/hotlaps/{era}?view=reported`). Both
+use `GET /api/v1/hotlaps?reported=true`; era views also supply `era_id`. Each lap
+appears once and leaves the view when its last open report is resolved. Activity
+rows retain the hotlap info button without a report flag action. Chart flag
+actions turn red while reports are unresolved.
+`reported=false` selects laps with no open reports, including those with only
+resolved reports. Lap-time links open the conversation directly. There is no
+standalone frontend `/reports` page or Reports navigation item. Past reports
+remain visible in the individual lap conversation.
+
+All comment and report operations use two hotlap-scoped paths:
+
+- GET `/api/v1/hotlaps/{hotlap}/comments` lists root conversations. Optional
+  `parent_id` lists direct replies instead, `author_id` filters by root author,
+  and `reported=true` selects reports, including resolved reports. These filters
+  select entries to return with their descendants; descendants retain all authors.
+  `around` locates a root page and cannot be combined with `parent_id`.
+  Removed hotlaps remain readable through the same collection using their original
+  hotlap ID, including `around` and `parent_id`. There is no single-comment GET.
+- POST on the same path creates a comment. Supply `parent_id` for a reply or
+  `reason` for a report; reports must be top-level. Creating a second active
+  report returns 409; edit the existing comment using its ID.
+- PATCH `/api/v1/hotlaps/{hotlap}/comments/{comment}` edits your `body` or `reason`. Omitting `reason` preserves
+  the flag; `reason: null` withdraws it without deleting the explanation.
+  Moderators may send `resolved: true` or `false` to resolve/reopen a report.
+  Content changes and resolution must be submitted separately when content changes.
+- DELETE on that path removes your text while retaining the entry and replies.
+
+Every hotlap response includes `reports: {total, unresolved}`. Counts are loaded
+in one grouped query for each response collection, including chart entries and
+the world record together. New uploads start with zero counts. There is no
+separate report-summary request or reports client in the SDK.
+All lists use the usual page parameters. Cookie-authenticated writes require
+CSRF tokens; conversation endpoints use `Cache-Control: no-store`.
+
+The WIP report migration is edited in place to create the unified table; the
+separate report and thread tables are gone. Recreate development databases that
+ran an earlier version before migrating. No production database was changed.
+
+### Individual hotlap pages
+
+`/hotlap/{id}` is the permanent frontend address for an individual lap. Chart,
+activity, submission, comparison, and ranking-combination tables expose an info button linking
+to it, alongside available SPR and RAF downloads. Report entries also link back
+to the lap. Published
+laps are public; unpublished or rejected uploads are visible only to their owner,
+as enforced by the existing hotlap detail API.
+
+The page shows the lap time, splits and sectors, driver, era, game version,
+controller and driving aids, plus available replay and telemetry downloads.
+The layout follows driver profiles, with an identity header and paired lap-time
+and chart-position highlights. The position links to the chart and shows Unranked
+for uploads and laps that are no longer a current personal best. Positions come
+from the maintained leaderboard; lap-time numbers use the same font as the other
+record highlights. Both pages share the same highlight grouping and value
+typography, including the overlap between angled panels.
+Available SPR/RAF downloads, a labelled outlined danger report button, and owner-only
+removal in the right-hand breadcrumb action area. Actions wrap below the trail
+on smaller screens; removal requires confirmation. The breadcrumb follows Hotlaps → Era → Hotlap #ID,
+including the era’s Open/Historical badge. The title links the driver beside the
+same large flag used on driver profiles. Compact track and vehicle thumbnails
+and codes sit on the player line without separators, wrapping on narrow screens.
+They link back to the chart, with full names in hover and accessible labels. Track artwork falls back to its outline, and missing catalogue
+artwork uses the shared thumbnail placeholder. The date appears
+beneath the title alongside compact tags for publication status, LFS version,
+controller, and control settings. Split times and Conversation stack below the
+header, with owner-only submission diagnostics kept separately. Conversation
+contains ordinary comments and reports without tabs.
+Entries use rounded, fully bordered cards with plain author headers; comment and
+reply fields follow the enclosed account-form styling. Report entries use a red outline, a filled red flag, and an outlined review
+status badge on the normal card background. Resolved reports mute the red outline
+and flag while retaining their resolved label. Replies use spacing and modest
+indentation without connector lines, with smaller offsets on mobile and nesting
+offsets capped after three levels. New posts navigate to their normal page and scroll into position,
+with surrounding conversations still visible. A link
+`/hotlap/{id}?around={id}#comment-{id}` opens that context.
+
+The shared Empty component handles an empty conversation and empty report lists.
+
+Comment deletion, report withdrawal, hotlap/submission removal, token revocation
+and webhook deletion use the shared Bits UI AlertDialog confirmation. It stays
+open during requests and displays errors without dismissing the confirmation.
+
+Owners also see their private submission information and can remove their own
+upload through a confirmation dialog. Existing test validation is available only
+when enabled by server configuration. Removing a lap preserves its reports.

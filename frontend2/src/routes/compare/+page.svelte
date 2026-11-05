@@ -4,6 +4,7 @@
 	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
 	import CornerRibbon from '#lib/components/app/CornerRibbon.svelte';
 	import TableFrame from '#lib/components/app/TableFrame.svelte';
+	import HotlapLinks from '#lib/components/app/HotlapLinks.svelte';
 	import * as Table from '#lib/components/ui/table/index.js';
 	import Empty from '#lib/components/app/Empty.svelte';
 	import Flag from '#lib/components/app/Flag.svelte';
@@ -191,6 +192,11 @@
 																? 'Tie'
 																: delta(difference)}</span
 													>{/if}
+												{#if result}<div
+														class="mt-1 flex justify-end font-sans"
+													>
+														<HotlapLinks hotlap={result} />
+													</div>{/if}
 											</Table.Cell>
 										{/each}
 									</Table.Row>

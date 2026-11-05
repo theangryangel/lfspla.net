@@ -65,9 +65,10 @@ pub(crate) async fn validate_for_testing(
             .flatten(),
     )
     .await?;
-    Ok(Json(
-        Hotlap::new(&hotlap, &era, player.into(), &attachments).with_submission(&hotlap),
-    ))
+    let mut response =
+        Hotlap::new(&hotlap, &era, player.into(), &attachments).with_submission(&hotlap);
+    super::response::load_report_counts(&state.database, [&mut response]).await?;
+    Ok(Json(response))
 }
 
 #[cfg(test)]

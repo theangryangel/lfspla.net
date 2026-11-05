@@ -50,6 +50,8 @@ pub(crate) struct HotlapQuery {
     /// Defaults to valid publicly, all with mine=true. Non-valid selections are caller-only.
     #[param(inline)]
     state: Option<HotlapListState>,
+    /// Filter by whether the lap has at least one open report.
+    reported: Option<bool>,
     /// Public era slug.
     era_id: Option<String>,
     /// Stable LFS account name (case-insensitive exact match).
@@ -115,6 +117,7 @@ impl HotlapQuery {
             track: self.track,
             vehicle: self.vehicle,
             ranked_only: self.ranked_only,
+            reported: self.reported,
             rank: self.rank,
             country: country_filter(self.country.as_deref())?,
             controller: controller_filter(self.controller.as_deref())?,
@@ -201,12 +204,14 @@ pub(crate) async fn list(
         }),
     )
     .await?;
-    Ok(Json(list_response(
+    let mut response = list_response(
         page,
         &pagination,
         query.mine.then_some(viewer_id).flatten(),
         &attachments,
-    )))
+    );
+    super::response::load_report_counts(&state.database, &mut response.items).await?;
+    Ok(Json(response))
 }
 
 #[cfg(test)]

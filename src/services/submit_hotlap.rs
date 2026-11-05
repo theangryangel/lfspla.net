@@ -29,6 +29,8 @@ pub(crate) enum SubmitError {
     UnsupportedTrack,
     #[error("the combination is not supported")]
     UnsupportedCombination,
+    #[error("uploads for this ranking are temporarily paused")]
+    RankingUploadsPaused,
     #[error("the replay belongs to another account")]
     ReplayUsernameMismatch,
     #[error("the replay has no lap time")]
@@ -102,6 +104,31 @@ pub(crate) async fn submit(
     .ok_or(SubmitError::UnsupportedCombination)?;
     if !chart.is_available(database).await? {
         return Err(SubmitError::UnsupportedCombination);
+    }
+
+    // A chart can appear in several rankings: any matching block wins.
+    for blocked in settings
+        .blocked_rankings
+        .iter()
+        .filter(|block| block.era == era.slug)
+    {
+        if database
+            .query_one_raw(Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                "SELECT 1 FROM ranking_chart_membership membership
+             JOIN ranking ON ranking.id = membership.ranking_id
+             WHERE membership.chart_id = $1 AND ranking.era_id = $2 AND ranking.slug = $3",
+                [
+                    chart.id.into(),
+                    era.id.into(),
+                    blocked.ranking.as_str().into(),
+                ],
+            ))
+            .await?
+            .is_some()
+        {
+            return Err(SubmitError::RankingUploadsPaused);
+        }
     }
 
     // Only a confirmed PB can reject a submission. Pending laps may fail validation.
@@ -266,12 +293,46 @@ mod tests {
         use futures::TryStreamExt;
         assert!(store.list(None).try_collect::<Vec<_>>().await?.is_empty());
 
+        // An unblocked membership cannot override a blocked one. Multiple
+        // blocks can coexist, and blocks from another era do not apply.
+        sqlx::raw_sql(
+            "INSERT INTO ranking (era_id, slug, position, title, description, benchmark_percent, nation_max_points, nation_driver_limit)
+             SELECT id, 'unblocked', 1, 'Unblocked', 'Shares a blocked chart', 103, 10, 3 FROM era;
+             INSERT INTO ranking_chart_membership (era_id, ranking_id, position, chart_id)
+             SELECT ranking.era_id, ranking.id, 0, chart.id FROM ranking
+             JOIN chart ON chart.era_id = ranking.era_id WHERE ranking.slug = 'unblocked';"
+        ).execute(&pool).await?;
+        let blocked: HotlapSettings = serde_saphyr::from_str(
+            "blocked_rankings:\n  - era: another-era\n    ranking: all\n  - era: 2026-09-23\n    ranking: missing\n  - era: 2026-09-23\n    ranking: all\n",
+        )?;
+        assert!(matches!(
+            submit(
+                &database,
+                &store,
+                &blocked,
+                &era,
+                &player,
+                "lap.spr",
+                replay(28, "worker-test")
+            )
+            .await,
+            Err(SubmitError::RankingUploadsPaused)
+        ));
+        assert!(store.list(None).try_collect::<Vec<_>>().await?.is_empty());
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM hotlap")
+                .fetch_one(&pool)
+                .await?,
+            1
+        );
+        let other_era: HotlapSettings =
+            serde_saphyr::from_str("blocked_rankings:\n  - era: another-era\n    ranking: all\n")?;
         // Pending improvements do not become the admission threshold.
         for seconds in [28, 29] {
             let lap = submit(
                 &database,
                 &store,
-                &settings,
+                &other_era,
                 &era,
                 &player,
                 "lap.spr",

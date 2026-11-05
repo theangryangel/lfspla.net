@@ -164,7 +164,7 @@ pub(crate) async fn best(
             }),
     )
     .await?;
-    Ok(Json(HotlapChartResponse {
+    let mut response = HotlapChartResponse {
         chart: chart_response,
         world_record: list_response(
             record_page,
@@ -179,7 +179,17 @@ pub(crate) async fn best(
         .pop(),
         contributes_to,
         page: list_response(page, &pagination, None, &attachments),
-    }))
+    };
+    crate::api::v1::hotlaps::response::load_report_counts(
+        &state.database,
+        response
+            .page
+            .items
+            .iter_mut()
+            .chain(response.world_record.iter_mut()),
+    )
+    .await?;
+    Ok(Json(response))
 }
 
 fn chart_not_found() -> ApiError {

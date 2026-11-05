@@ -205,6 +205,11 @@ fn wrong_era(era: &Era, version: &GameVersion, accepting: Option<Box<Era>>) -> A
 fn submission_error(error: crate::services::submit_hotlap::SubmitError, era: &Era) -> ApiError {
     use crate::services::submit_hotlap::SubmitError;
     match error {
+        SubmitError::RankingUploadsPaused => ApiError::new(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "ranking_uploads_paused",
+            "Uploads for this replay’s ranking are temporarily paused.",
+        ),
         SubmitError::InvalidSpr => ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
             "invalid_spr",

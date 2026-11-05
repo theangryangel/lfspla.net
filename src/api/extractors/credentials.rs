@@ -70,6 +70,18 @@ impl AuthenticatedPlayer {
 
 extractor!(AuthenticatedPlayer);
 
+/// Require the moderator role after authentication and CSRF checks.
+pub(crate) fn require_moderator(player: &Player) -> Result<(), ApiError> {
+    if player.role != crate::models::player::Role::Moderator {
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "moderator_required",
+            "Moderator access is required",
+        ));
+    }
+    Ok(())
+}
+
 impl OptionalFromRequestParts<ApiState> for AuthenticatedPlayer {
     type Rejection = Response;
 
@@ -389,5 +401,114 @@ mod tests {
             headers.insert(header::AUTHORIZATION, value.parse().unwrap());
             assert!(bearer_token(&headers).is_err());
         }
+    }
+    #[sqlx::test]
+    #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+    async fn moderator_role_changes_apply_to_existing_sessions_and_tokens(
+        pool: sqlx::PgPool,
+    ) -> anyhow::Result<()> {
+        use crate::models::{personal_access_token::CreatePersonalAccessToken, player::Role};
+        let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+        let account = lfsplanet_lfs_api::LfsAccount {
+            username: "role-test".into(),
+            display_name: "Role Test".into(),
+            lfsworld_id: 42,
+        };
+        let player = Player::record_authentication(&database, &account).await?;
+        assert_eq!(player.role, Role::Player);
+        let token = crate::models::PersonalAccessToken::issue(
+            &database,
+            player.id,
+            CreatePersonalAccessToken {
+                name: "moderation test".into(),
+                expires_in_days: Some(1),
+            },
+        )
+        .await?;
+        let state = ApiState {
+            site_notice: None,
+            database,
+            oauth: None,
+            object_store: Arc::new(object_store::memory::InMemory::new()),
+            hotlaps: Default::default(),
+        };
+        let session = Session::new(None, Arc::new(MemoryStore::default()), None);
+        async fn moderator(parts: &mut Parts, state: &ApiState) -> Result<Player, ApiError> {
+            let AuthenticatedPlayer(player) = AuthenticatedPlayer::extract(parts, state).await?;
+            require_moderator(&player)?;
+            Ok(player)
+        }
+        let parts = |bearer: bool, method, csrf: bool| {
+            let mut request = axum::http::Request::builder().method(method);
+            if bearer {
+                request = request.header(header::AUTHORIZATION, format!("Bearer {}", token.token));
+            }
+            if csrf {
+                request = request.header("X-CSRF-Token", "test-csrf");
+            }
+            let mut parts = request.body(()).unwrap().into_parts().0;
+            parts.extensions.insert(session.clone());
+            parts
+        };
+        assert_eq!(
+            moderator(&mut parts(false, "GET", false), &state)
+                .await
+                .unwrap_err()
+                .status,
+            StatusCode::UNAUTHORIZED
+        );
+        login(&session, player.id).await?;
+        session.insert(CSRF_TOKEN_KEY, "test-csrf").await?;
+        for bearer in [false, true] {
+            assert_eq!(
+                moderator(&mut parts(bearer, "GET", false), &state)
+                    .await
+                    .unwrap_err()
+                    .status,
+                StatusCode::FORBIDDEN
+            );
+        }
+        player.set_role(&state.database, Role::Moderator).await?;
+        // Logging in again updates the profile without resetting a staff role.
+        let player = Player::record_authentication(&state.database, &account).await?;
+        assert_eq!(player.role, Role::Moderator);
+        for bearer in [false, true] {
+            let current = moderator(&mut parts(bearer, "GET", false), &state).await?;
+            assert_eq!(current.role, Role::Moderator);
+            assert!(
+                moderator(&mut parts(bearer, "POST", true), &state)
+                    .await
+                    .is_ok()
+            );
+        }
+        assert_eq!(
+            moderator(&mut parts(false, "POST", false), &state)
+                .await
+                .unwrap_err()
+                .status,
+            StatusCode::FORBIDDEN
+        );
+        let player = player.set_role(&state.database, Role::Player).await?;
+        for bearer in [false, true] {
+            assert_eq!(
+                moderator(&mut parts(bearer, "GET", false), &state)
+                    .await
+                    .unwrap_err()
+                    .status,
+                StatusCode::FORBIDDEN
+            );
+        }
+        let player = player.set_role(&state.database, Role::Moderator).await?;
+        player.set_auth_denied(&state.database, true).await?;
+        for bearer in [false, true] {
+            assert_eq!(
+                moderator(&mut parts(bearer, "GET", false), &state)
+                    .await
+                    .unwrap_err()
+                    .status,
+                StatusCode::UNAUTHORIZED
+            );
+        }
+        Ok(())
     }
 }

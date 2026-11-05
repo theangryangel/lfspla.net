@@ -14,7 +14,7 @@
 	import TableFrame from '#lib/components/app/TableFrame.svelte';
 
 	import * as Table from '#lib/components/ui/table/index.js';
-	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import ConfirmDialog from '#lib/components/app/ConfirmDialog.svelte';
 	import type { PageProps } from './$types';
 
 	const api = useApi();
@@ -267,29 +267,13 @@
 		</TableFrame>
 	{/if}
 </Panel>
-<Dialog.Root bind:open={confirmOpen}>
-	<Dialog.Content>
-		<Dialog.Header>
-			<Dialog.Title>Revoke token?</Dialog.Title>
-			<Dialog.Description
-				>Tools using “{target?.name}” will lose access immediately. This cannot
-				be undone.</Dialog.Description
-			>
-		</Dialog.Header>
-		{#if revokeError}<p role="alert" class="text-sm text-destructive">
-				{revokeError}
-			</p>{/if}
-		<Dialog.Footer>
-			<Button
-				variant="outline"
-				disabled={pending}
-				onclick={() => {
-					confirmOpen = false;
-				}}>Cancel</Button
-			>
-			<Button variant="destructive" disabled={pending} onclick={revoke}
-				>{pending ? 'Revoking...' : 'Revoke token'}</Button
-			>
-		</Dialog.Footer>
-	</Dialog.Content>
-</Dialog.Root>
+<ConfirmDialog
+	bind:open={confirmOpen}
+	title="Revoke token?"
+	description={`Tools using “${target?.name}” will lose access immediately. This cannot be undone.`}
+	confirmLabel="Revoke token"
+	pendingLabel="Revoking…"
+	busy={pending}
+	error={revokeError}
+	onConfirm={revoke}
+/>

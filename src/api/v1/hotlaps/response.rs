@@ -43,10 +43,50 @@ pub(crate) struct HotlapSubmission {
     pub(crate) error_detail: Option<String>,
 }
 
+/// Public report counts, included with every hotlap response.
+#[derive(Debug, Clone, Default, Serialize, ToSchema)]
+pub(crate) struct HotlapReportSummary {
+    pub(crate) total: u64,
+    pub(crate) unresolved: u64,
+}
+
+/// Load counts for a complete response in one grouped query.
+pub(crate) async fn load_report_counts<'a>(
+    database: &impl sea_orm::ConnectionTrait,
+    hotlaps: impl IntoIterator<Item = &'a mut Hotlap>,
+) -> Result<(), crate::api::ApiError> {
+    let hotlaps = hotlaps.into_iter().collect::<Vec<_>>();
+    if hotlaps.is_empty() {
+        return Ok(());
+    }
+    let counts = crate::models::hotlap_comment::Model::report_counts(
+        database,
+        hotlaps.iter().map(|lap| lap.id).collect(),
+    )
+    .await
+    .map_err(crate::api::ApiError::database)?
+    .into_iter()
+    .map(|row| {
+        (
+            row.hotlap_id,
+            HotlapReportSummary {
+                total: row.total as u64,
+                unresolved: row.unresolved as u64,
+            },
+        )
+    })
+    .collect::<HashMap<_, _>>();
+    for lap in hotlaps {
+        lap.reports = counts.get(&lap.id).cloned().unwrap_or_default();
+    }
+    Ok(())
+}
+
 /// One hotlap, shared by collections, charts, profiles, comparisons and owner endpoints.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct Hotlap {
     pub(crate) id: i64,
+    pub(crate) reports: HotlapReportSummary,
     /// Public era slug, used in URLs.
     pub(crate) era_id: EraSlug,
     pub(crate) track: String,
@@ -118,6 +158,7 @@ impl Hotlap {
             driver_side: controls.driver_side,
             abs_enabled: hotlap.abs_enabled,
             id: hotlap.id,
+            reports: HotlapReportSummary::default(),
             era_id: era.slug.clone(),
             era_title: era.title.clone(),
             player: HotlapPlayer {
@@ -179,6 +220,7 @@ impl Hotlap {
         );
         Self {
             id: result.hotlap_id,
+            reports: HotlapReportSummary::default(),
             era_id: result.era_slug,
             era_title: result.era_title,
             player: HotlapPlayer {

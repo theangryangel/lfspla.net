@@ -3,6 +3,7 @@
 import { AttachmentsClient } from "./api/resources/attachments/client/Client.js";
 import { AuthenticationClient } from "./api/resources/authentication/client/Client.js";
 import { ChartsClient } from "./api/resources/charts/client/Client.js";
+import { CommentsClient } from "./api/resources/comments/client/Client.js";
 import { CommunityCardsClient } from "./api/resources/communityCards/client/Client.js";
 import { CountriesClient } from "./api/resources/countries/client/Client.js";
 import { ErasClient } from "./api/resources/eras/client/Client.js";
@@ -42,6 +43,7 @@ export class LfsplanetApiClient {
   protected _tracks: TracksClient | undefined;
   protected _vehicles: VehiclesClient | undefined;
   protected _events: EventsClient | undefined;
+  protected _comments: CommentsClient | undefined;
   protected _authentication: AuthenticationClient | undefined;
   protected _personalAccessTokens: PersonalAccessTokensClient | undefined;
   protected _webhooks: WebhooksClient | undefined;
@@ -94,6 +96,10 @@ export class LfsplanetApiClient {
 
   public get events(): EventsClient {
     return (this._events ??= new EventsClient(this._options));
+  }
+
+  public get comments(): CommentsClient {
+    return (this._comments ??= new CommentsClient(this._options));
   }
 
   public get authentication(): AuthenticationClient {

@@ -15,7 +15,7 @@
 	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
 
 	import * as Select from '#lib/components/ui/select/index.js';
-	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import ConfirmDialog from '#lib/components/app/ConfirmDialog.svelte';
 	import type { PageProps } from './$types';
 
 	const api = useApi();
@@ -325,26 +325,13 @@
 		</Panel>
 	</div>
 {/if}
-<Dialog.Root bind:open={confirmOpen}>
-	<Dialog.Content>
-		<Dialog.Header
-			><Dialog.Title>Delete webhook?</Dialog.Title><Dialog.Description
-				>Delete “{target?.name}” and its queued notifications? You can add the
-				destination again later.</Dialog.Description
-			></Dialog.Header
-		>
-		{#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
-		<Dialog.Footer>
-			<Button
-				variant="outline"
-				disabled={pending}
-				onclick={() => {
-					confirmOpen = false;
-				}}>Cancel</Button
-			>
-			<Button variant="destructive" disabled={pending} onclick={remove}
-				>Delete webhook</Button
-			>
-		</Dialog.Footer>
-	</Dialog.Content>
-</Dialog.Root>
+<ConfirmDialog
+	bind:open={confirmOpen}
+	title="Delete webhook?"
+	description={`Delete “${target?.name}” and its queued notifications? You can add the destination again later.`}
+	confirmLabel="Delete webhook"
+	pendingLabel="Deleting…"
+	busy={pending}
+	{error}
+	onConfirm={remove}
+/>

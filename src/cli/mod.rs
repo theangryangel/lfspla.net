@@ -170,4 +170,20 @@ mod tests {
             .is_err()
         );
     }
+    #[test]
+    fn player_roles_accept_only_the_fixed_role_names() {
+        for role in ["player", "moderator"] {
+            let args =
+                Args::try_parse_from(["lfsplanet", "player", "set-role", "driver", role]).unwrap();
+            assert!(matches!(
+                args.command,
+                Command::Player {
+                    action: player::PlayerCommand::SetRole { .. }
+                }
+            ));
+        }
+        assert!(
+            Args::try_parse_from(["lfsplanet", "player", "set-role", "driver", "admin"]).is_err()
+        );
+    }
 }

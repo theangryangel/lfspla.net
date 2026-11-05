@@ -15,6 +15,7 @@ export const load: PageLoad = async ({
 }) => {
   const api = createApi(fetch);
   depends("app:hotlaps");
+  depends("app:reports");
   const { breadcrumbs } = await parent();
   const filters = {
     country: url.searchParams.get("country")?.toUpperCase() ?? "",

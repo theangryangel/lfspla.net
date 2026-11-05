@@ -38,7 +38,9 @@
 						<Button
 							{...props}
 							variant="ghost"
-							data-active={isActive('/hotlaps') ? '' : undefined}
+							data-active={isActive('/hotlaps') || isActive('/hotlap')
+								? ''
+								: undefined}
 							class={`${navigationTextClass} ${hoverClass} !cursor-pointer`}
 						>
 							Hotlaps

@@ -5,6 +5,14 @@ use clap::{Subcommand, ValueEnum};
 /// Player account restriction operation.
 #[derive(Clone, Debug, Eq, PartialEq, Subcommand)]
 pub(crate) enum PlayerCommand {
+    /// Set a player's role. Takes effect on their next authenticated request.
+    SetRole {
+        /// Exact LFS account name.
+        #[arg(value_name = "LFS_USERNAME")]
+        lfs_username: String,
+        #[arg(value_enum, value_name = "ROLE")]
+        role: crate::models::player::Role,
+    },
     /// Deny one operation to a player.
     Deny {
         /// Operation to deny.
@@ -50,17 +58,26 @@ pub(crate) async fn run(args: &Args, action: &PlayerCommand) -> anyhow::Result<(
     let lfs_username = match action {
         PlayerCommand::Deny { lfs_username, .. }
         | PlayerCommand::Allow { lfs_username, .. }
-        | PlayerCommand::Show { lfs_username } => lfs_username,
+        | PlayerCommand::Show { lfs_username }
+        | PlayerCommand::SetRole { lfs_username, .. } => lfs_username,
     };
     let player = crate::models::Player::find_by_username(&database, lfs_username)
         .await?
         .with_context(|| format!("player {lfs_username:?} was not found"))?;
 
     match action {
+        PlayerCommand::SetRole { role, .. } => {
+            let previous = player.role;
+            let player = player.set_role(&database, *role).await?;
+            println!(
+                "Player {:?}: role {} -> {}.",
+                player.lfs_username, previous, player.role
+            );
+        }
         PlayerCommand::Show { .. } => {
             println!(
-                "{}\tdeny_auth={}\tdeny_uploads={}",
-                player.lfs_username, player.deny_auth, player.deny_uploads
+                "{}\trole={}\tdeny_auth={}\tdeny_uploads={}",
+                player.lfs_username, player.role, player.deny_auth, player.deny_uploads
             );
         }
         PlayerCommand::Deny { restriction, .. } | PlayerCommand::Allow { restriction, .. } => {

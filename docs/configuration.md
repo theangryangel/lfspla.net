@@ -95,6 +95,9 @@ web:
   site_notice: "This is a test site; data may be deleted."
 hotlaps:
   allow_uploads: true
+  blocked_rankings:
+    - era: "2026-08-26"
+      ranking: drag
 ```
 
 `web.site_notice` is optional; omit it, set it to null, or use an empty string
@@ -102,6 +105,11 @@ to hide the banner. The notice is rendered as plain text.
 `hotlaps.allow_uploads` defaults to true. Set it to false to reject new API
 uploads with HTTP 503 (`uploads_paused`) while keeping browsing and existing
 validation jobs available. Per-account and per-era restrictions still apply.
+`hotlaps.blocked_rankings` defaults to an empty list. Each entry blocks uploads
+for every combination belonging to that era/ranking, even when a combination
+also belongs to another ranking. All upload restrictions combine: any denial
+rejects the upload. Ranking blocks return HTTP 503 (`ranking_uploads_paused`)
+after parsing the SPR header and before storing the replay.
 
 Restart the web process after changing configuration. Open frontend tabs refresh
 `/api/v1/me` every five minutes while visible, and when the tab becomes visible.

@@ -40,6 +40,7 @@ export namespace PaginatedResponseHotlap {
       /** Current chart position; null when unranked or chart data has not been loaded. */
       position: number | null;
       raf: LfsplanetApi.Attachment | null;
+      reports: LfsplanetApi.HotlapReportSummary;
       split_1_ms: LfsplanetApi.Milliseconds;
       split_2_ms: LfsplanetApi.Milliseconds;
       split_3_ms: LfsplanetApi.Milliseconds;
