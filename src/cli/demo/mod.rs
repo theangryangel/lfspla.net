@@ -1,3 +1,4 @@
+mod games;
 mod generate;
 mod persist;
 #[cfg(test)]
@@ -27,7 +28,8 @@ pub(crate) async fn run(args: &Args, options: &DemoArgs) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
     eprintln!("Connecting to the database for demo generation...");
     let database = db::connect(&settings.database, 2).await?;
-    let count = persist::populate(&database, options).await?;
+    let store = crate::storage::build(&settings.storage)?;
+    let count = persist::populate(&database, options, &*store).await?;
     println!(
         "Generated {} demo player profiles and inserted {count} new demo hotlaps.",
         options.players

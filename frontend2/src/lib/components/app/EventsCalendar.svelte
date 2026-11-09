@@ -83,7 +83,7 @@
 			lazyFetching: false,
 			editable: false,
 			selectable: false,
-			displayEventEnd: false,
+			displayEventEnd: true,
 			eventOrder: 'start,calendarOrder',
 			eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
 			listDayFormat: { day: 'numeric', month: 'short', year: 'numeric' },
@@ -124,8 +124,9 @@
 							.filter(Boolean)
 							.join(' / '),
 						start: event.starts_at,
+						end: event.ends_at ?? undefined,
 						allDay: false,
-						url: event.details_url ?? undefined,
+						url: `/events/${event.id}`,
 						extendedProps: {
 							calendarOrder: index,
 							lastInDay:
@@ -200,15 +201,15 @@
 			},
 			eventDidMount(info) {
 				info.el.title = info.event.start
-					? `${info.event.title}\n${dateTime(info.event.start.toISOString())}`
+					? `${info.event.title}\n${dateTime(info.event.start.toISOString())}${info.event.end ? ` – ${dateTime(info.event.end.toISOString())}` : ''}`
 					: info.event.title;
 				const links =
 					info.el instanceof HTMLAnchorElement
 						? [info.el]
 						: info.el.querySelectorAll<HTMLAnchorElement>('a[href]');
 				for (const link of links) {
-					link.target = '_blank';
-					link.rel = 'noopener noreferrer';
+					link.removeAttribute('target');
+					link.removeAttribute('rel');
 				}
 			},
 		});
