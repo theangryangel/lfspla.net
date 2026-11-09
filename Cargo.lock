@@ -2079,6 +2079,23 @@ dependencies = [
 [[package]]
 name = "insim"
 version = "4.1.0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+dependencies = [
+ "bitflags",
+ "bytes",
+ "digest 0.11.3",
+ "from_variants",
+ "indexmap",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0)",
+ "serde",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "insim"
+version = "4.1.0"
 source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
 dependencies = [
  "bitflags",
@@ -2086,10 +2103,28 @@ dependencies = [
  "digest 0.11.3",
  "from_variants",
  "indexmap",
- "insim_core",
- "serde",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "thiserror 2.0.21",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "insim_core"
+version = "3.0.0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+dependencies = [
+ "arrayvec",
+ "bitflags",
+ "bytes",
+ "encoding_rs",
+ "glam",
+ "insim_macros 0.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0)",
+ "itertools 0.15.0",
+ "num-traits",
+ "serde",
+ "smallvec",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -2103,7 +2138,7 @@ dependencies = [
  "bytes",
  "encoding_rs",
  "glam",
- "insim_macros",
+ "insim_macros 0.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "itertools 0.15.0",
  "num-traits",
  "serde",
@@ -2118,7 +2153,7 @@ version = "0.1.0"
 source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
 dependencies = [
  "fixedbitset",
- "insim",
+ "insim 4.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "multi_index_map",
  "parking_lot",
  "taffy",
@@ -2133,8 +2168,19 @@ version = "0.1.0"
 source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
 dependencies = [
  "bytes",
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "insim_macros"
+version = "0.1.0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+dependencies = [
+ "darling 0.24.1",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -2156,7 +2202,7 @@ dependencies = [
  "bitflags",
  "bytes",
  "glam",
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "thiserror 2.0.21",
 ]
 
@@ -2272,7 +2318,7 @@ version = "0.1.0+unreleased"
 source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
 dependencies = [
  "futures",
- "insim",
+ "insim 4.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "insim_extra",
  "thiserror 2.0.21",
  "tokio",
@@ -2359,8 +2405,8 @@ dependencies = [
  "futures",
  "hex",
  "http-body-util",
- "insim",
- "insim_core",
+ "insim 4.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0)",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "insim_lyt",
  "itertools 0.15.0",
  "lfsplanet_bomb",
@@ -2414,7 +2460,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "insim",
+ "insim 4.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0)",
  "kitcar",
  "lfsplanet_game",
  "parking_lot",
@@ -2439,7 +2485,7 @@ name = "lfsplanet_game"
 version = "0.1.0"
 dependencies = [
  "clap",
- "insim",
+ "insim 4.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0)",
  "insim_lyt",
  "kitcar",
  "object_store",
@@ -2455,7 +2501,7 @@ dependencies = [
 name = "lfsplanet_game_version_req"
 version = "0.1.0"
 dependencies = [
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "sea-orm",
  "serde",
  "serde_json",
@@ -2519,7 +2565,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "insim",
+ "insim 4.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0)",
  "kitcar",
  "lfsplanet_game",
  "parking_lot",
@@ -2533,7 +2579,7 @@ dependencies = [
 name = "lfsplanet_pubstat"
 version = "0.1.0"
 dependencies = [
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "serde",
  "serde-xml-rs",
  "serde_json",
@@ -2547,7 +2593,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "insim",
+ "insim 4.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0)",
  "kitcar",
  "lfsplanet_game",
  "parking_lot",
@@ -2562,8 +2608,8 @@ name = "lfsplanet_spr"
 version = "0.1.0"
 dependencies = [
  "bytes",
- "insim",
- "insim_core",
+ "insim 4.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0)",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710)",
  "regex",
  "thiserror 2.0.21",
 ]

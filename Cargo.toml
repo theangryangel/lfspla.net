@@ -34,7 +34,7 @@ struct_excessive_bools = "allow"
 anyhow = "1"
 bytes = "1"
 clap = "4"
-insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710", features = ["serde"] }
+insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0", features = ["serde"] }
 insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710", features = ["serde"] }
 insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710" }
 insim_lyt = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710" }
