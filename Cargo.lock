@@ -835,6 +835,15 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "convert_case"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
@@ -1210,7 +1219,7 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
 dependencies = [
- "convert_case",
+ "convert_case 0.10.0",
  "proc-macro2",
  "quote",
  "rustc_version",
@@ -1394,6 +1403,12 @@ name = "find-msvc-tools"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e0f1c7c3a72c66fd80abe965175f7523475c0489a87d3ff9d6e8c87d87a9d2d"
+
+[[package]]
+name = "fixedbitset"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5905ec755cc8386d7928353e4d356d2be3e89e81e5ca01fe630a1ca4d08dc175"
 
 [[package]]
 name = "flate2"
@@ -1650,6 +1665,12 @@ dependencies = [
  "arraydeque",
  "smallvec",
 ]
+
+[[package]]
+name = "grid"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b40ca9252762c466af32d0b1002e91e4e1bc5398f77455e55474deb466355ff5"
 
 [[package]]
 name = "h2"
@@ -2058,7 +2079,7 @@ dependencies = [
 [[package]]
 name = "insim"
 version = "4.1.0"
-source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
 dependencies = [
  "bitflags",
  "bytes",
@@ -2075,7 +2096,7 @@ dependencies = [
 [[package]]
 name = "insim_core"
 version = "3.0.0"
-source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
 dependencies = [
  "arrayvec",
  "bitflags",
@@ -2092,9 +2113,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "insim_extra"
+version = "0.1.0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
+dependencies = [
+ "fixedbitset",
+ "insim",
+ "multi_index_map",
+ "parking_lot",
+ "taffy",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "insim_lyt"
+version = "0.1.0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
+dependencies = [
+ "bytes",
+ "insim_core",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "insim_macros"
 version = "0.1.0"
-source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
 dependencies = [
  "darling 0.24.1",
  "proc-macro2",
@@ -2105,7 +2151,7 @@ dependencies = [
 [[package]]
 name = "insim_pth"
 version = "3.1.0"
-source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
 dependencies = [
  "bitflags",
  "bytes",
@@ -2221,6 +2267,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "kitcar"
+version = "0.1.0+unreleased"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9b2d6a2aff409c89814d50521a36df08dc220710#9b2d6a2aff409c89814d50521a36df08dc220710"
+dependencies = [
+ "futures",
+ "insim",
+ "insim_extra",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2301,18 +2361,24 @@ dependencies = [
  "http-body-util",
  "insim",
  "insim_core",
+ "insim_lyt",
  "itertools 0.15.0",
+ "lfsplanet_bomb",
  "lfsplanet_flags",
+ "lfsplanet_game",
  "lfsplanet_game_version_req",
  "lfsplanet_jobs",
  "lfsplanet_lfs",
  "lfsplanet_lfs_api",
  "lfsplanet_lfs_leagues",
+ "lfsplanet_metronome",
  "lfsplanet_pubstat",
+ "lfsplanet_shortcut",
  "lfsplanet_spr",
  "oauth2",
  "object_store",
  "rand 0.10.3",
+ "regex",
  "reqwest 0.13.5",
  "sea-orm",
  "serde",
@@ -2328,6 +2394,7 @@ dependencies = [
  "thiserror 2.0.21",
  "time",
  "tokio",
+ "tokio-util",
  "tower",
  "tower-http 0.7.1",
  "tower-sessions",
@@ -2342,6 +2409,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "lfsplanet_bomb"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "insim",
+ "kitcar",
+ "lfsplanet_game",
+ "parking_lot",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "lfsplanet_flags"
 version = "0.1.0"
 dependencies = [
@@ -2349,6 +2432,23 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "lfsplanet_game"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "insim",
+ "insim_lyt",
+ "kitcar",
+ "object_store",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "url",
 ]
 
 [[package]]
@@ -2414,6 +2514,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "lfsplanet_metronome"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "insim",
+ "kitcar",
+ "lfsplanet_game",
+ "parking_lot",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "lfsplanet_pubstat"
 version = "0.1.0"
 dependencies = [
@@ -2423,6 +2539,22 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "xml",
+]
+
+[[package]]
+name = "lfsplanet_shortcut"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "insim",
+ "kitcar",
+ "lfsplanet_game",
+ "parking_lot",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2614,6 +2746,30 @@ dependencies = [
  "mime",
  "spin 0.9.9",
  "version_check",
+]
+
+[[package]]
+name = "multi_index_map"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a6c1f22ca32737a420c91da81efce8e17678eadbe3878d860bee879c0d2c593"
+dependencies = [
+ "multi_index_map_derive",
+ "rustc-hash",
+ "slab",
+]
+
+[[package]]
+name = "multi_index_map_derive"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12a678f8fa5da39f72d16380791208f8924d3b9f6c5cc5e2a85a62a927402851"
+dependencies = [
+ "convert_case 0.8.0",
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -3029,6 +3185,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro-error-attr2"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96de42df36bb9bba5542fe9f1a054b8cc87e172759a1868aa05c1f3acc89dfc5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
 name = "proc-macro-error-attr3"
 version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3036,6 +3202,18 @@ checksum = "9e564d14133360e1ae169ffde5da25881b5fa47261665b8e5713c212c27799da"
 dependencies = [
  "proc-macro2",
  "quote",
+]
+
+[[package]]
+name = "proc-macro-error2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11ec05c52be0a07b08061f7dd003e7d7092e0472bc731b4af7bb1ef876109802"
+dependencies = [
+ "proc-macro-error-attr2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -3959,6 +4137,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
+name = "slotmap"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdd58c3c93c3d278ca835519292445cb4b0d4dc59ccfdf7ceadaab3f8aeb4038"
+dependencies = [
+ "version_check",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4317,6 +4504,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.5",
+]
+
+[[package]]
+name = "taffy"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "340a09581f29809fc0df82a3955501dc7f2a21f887e5d1c13dbe288fe1c0bef4"
+dependencies = [
+ "arrayvec",
+ "grid",
+ "serde",
+ "slotmap",
 ]
 
 [[package]]

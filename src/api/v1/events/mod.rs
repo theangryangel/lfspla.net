@@ -1,5 +1,7 @@
 //! Public event advertisements, ordered by meeting start time.
 
+mod detail;
+
 use crate::{
     api::{ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery},
     models::event::{EventListFilters, Model as Event},
@@ -22,9 +24,9 @@ pub(crate) struct EventQuery {
     league_id: Option<i64>,
     /// Local season ID.
     season_id: Option<i64>,
-    /// Inclusive RFC 3339 start; defaults to the current time.
+    /// Inclusive RFC 3339 window start; includes ongoing events. Defaults to now.
     starts_from: Option<String>,
-    /// Exclusive RFC 3339 end.
+    /// Exclusive RFC 3339 window end.
     starts_before: Option<String>,
 }
 
@@ -53,6 +55,9 @@ pub(crate) struct EventSummary {
     description: Option<String>,
     #[schema(format = DateTime)]
     starts_at: String,
+    /// Exclusive end time; null when the duration is unknown.
+    #[schema(required, format = DateTime)]
+    ends_at: Option<String>,
     #[schema(required)]
     details_url: Option<String>,
     #[schema(required)]
@@ -101,7 +106,10 @@ impl EventQuery {
 }
 
 pub(crate) fn router() -> OpenApiRouter<ApiState> {
-    OpenApiRouter::new().routes(routes!(list_events))
+    OpenApiRouter::new()
+        .routes(routes!(list_events))
+        .routes(routes!(detail::get_event))
+        .routes(routes!(detail::event_results))
 }
 
 #[utoipa::path(get, path = "/api/v1/events", operation_id = "list_events", tag = "events",
@@ -157,6 +165,11 @@ pub(crate) async fn list_events(
                     .starts_at
                     .format(&Rfc3339)
                     .map_err(|error| ApiError::internal(&error, "event date"))?,
+                ends_at: row
+                    .ends_at
+                    .map(|end| end.format(&Rfc3339))
+                    .transpose()
+                    .map_err(|error| ApiError::internal(&error, "event end date"))?,
                 details_url: row.details_url,
                 signup_url: row.signup_url,
                 track_label: row.track_label,

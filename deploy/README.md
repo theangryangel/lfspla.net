@@ -56,8 +56,8 @@ and standard vehicle artwork, badge definitions/artwork, and apply changed era f
 host or backup configuration changes.
 
 Deploy catalogue changes alone with `just deploy-catalogue`. To replace an
-existing era, review the change and set `replace_existing_eras = True` in `inventory.py`;
-reset it afterwards. If era seeding fails after syncing, retry `seed`
+existing era, review the change before deploying; catalogue deployment passes
+`--yes` automatically. If era seeding fails after syncing, retry `seed --yes`
 manually on the host. See [catalogue seeding](../docs/catalogue.md) for input
 formats and artwork handling. Catalogue deployment also removes the previous
 per-track YAML files corresponding to bundled SVGs; the new location documents

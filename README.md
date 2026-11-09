@@ -11,6 +11,7 @@ service, replay validator, and maintenance jobs run as separate processes.
 ## Documentation
 
 - [Developer setup](docs/development.md)
+- [Scheduled mini-games](docs/game-server.md)
 - [Docs](docs/)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)

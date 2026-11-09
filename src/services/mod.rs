@@ -8,3 +8,5 @@ pub(crate) mod storage_gc;
 pub(crate) mod submit_hotlap;
 pub(crate) mod sync_events;
 pub(crate) mod validate_hotlap;
+
+pub(crate) mod game_server;

@@ -6,6 +6,8 @@ export interface EventSummary {
   cars_label: string | null;
   description: string | null;
   details_url: string | null;
+  /** Exclusive end time; null when the duration is unknown. */
+  ends_at: string | null;
   id: number;
   league: LfsplanetApi.EventLeague;
   season: LfsplanetApi.EventSeason | null;

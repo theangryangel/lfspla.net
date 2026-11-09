@@ -34,9 +34,20 @@ struct_excessive_bools = "allow"
 anyhow = "1"
 bytes = "1"
 clap = "4"
-insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0", features = ["serde"] }
-insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0", features = ["serde"] }
-insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0" }
+insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710", features = ["serde"] }
+insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710", features = ["serde"] }
+insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710" }
+insim_lyt = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710" }
+kitcar = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9b2d6a2aff409c89814d50521a36df08dc220710" }
+lfsplanet_game = { path = "crates/lfsplanet_game" }
+lfsplanet_bomb = { path = "crates/lfsplanet_bomb" }
+lfsplanet_metronome = { path = "crates/lfsplanet_metronome" }
+lfsplanet_shortcut = { path = "crates/lfsplanet_shortcut" }
+object_store = "0.14"
+parking_lot = "0.12"
+tokio-util = "0.7"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 lfsplanet_game_version_req = { path = "crates/lfsplanet_game_version_req" }
 oauth2 = "5"
 regex = "1"
@@ -50,6 +61,13 @@ tokio = "1"
 url = "2"
 
 [dependencies]
+regex = { workspace = true }
+lfsplanet_game = { workspace = true }
+lfsplanet_bomb = { workspace = true }
+lfsplanet_metronome = { workspace = true }
+lfsplanet_shortcut = { workspace = true }
+insim_lyt = { workspace = true }
+tokio-util = { workspace = true }
 anyhow = { workspace = true }
 axum = { version = "0.8", features = ["multipart"] }
 axum-response-cache = "0.5"
@@ -73,7 +91,7 @@ lfsplanet_lfs_leagues = { path = "crates/lfsplanet_lfs_leagues" }
 lfsplanet_spr = { path = "crates/lfsplanet_spr" }
 lfsplanet_pubstat = { path = "crates/lfsplanet_pubstat" }
 oauth2 = { workspace = true }
-object_store = "0.14"
+object_store = { workspace = true }
 rand = "0.10"
 reqwest = { workspace = true, features = ["json", "rustls", "stream"] }
 sea-orm = { workspace = true, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-json", "with-time", "with-uuid"] }
@@ -93,8 +111,8 @@ tokio = { workspace = true, features = ["fs", "io-util", "macros", "process", "r
 tower-http = { version = "0.7", features = ["compression-br", "compression-gzip", "fs", "set-header", "timeout", "trace"] }
 tower-sessions = { version = "0.15", features = ["private"] }
 tower-sessions-sqlx-store = { git = "https://github.com/maxcountryman/tower-sessions-stores.git", rev = "d18c9bf76f1d4fb73130dbe5aa643197f14b5d2d", features = ["postgres"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 url = { workspace = true }
 utoipa = { version = "6", features = ["axum_extras"] }
 utoipa-axum = "0.3"

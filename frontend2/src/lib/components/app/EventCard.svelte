@@ -35,6 +35,12 @@
 						<DateTime value={event.starts_at} />
 					</dd>
 				</div>
+				{#if event.ends_at}
+					<div>
+						<dt class="inline text-muted-foreground">End:</dt>
+						<dd class="inline"><DateTime value={event.ends_at} /></dd>
+					</div>
+				{/if}
 				{#if event.track_label}<div>
 						<dt class="inline text-muted-foreground">Track:</dt>
 						<dd class="inline">{event.track_label}</dd>
@@ -53,23 +59,13 @@
 	</div>
 {/snippet}
 
-{#if event.details_url}
-	<a
-		href={event.details_url}
-		target="_blank"
-		rel="noopener noreferrer"
-		aria-label={title}
-		class={cn(
-			CARD,
-			'group flex bg-card text-card-foreground focus-visible:outline-offset-2',
-		)}
-	>
-		{@render content()}
-	</a>
-{:else}
-	<article
-		class="flex w-full overflow-hidden rounded-lg border bg-card text-left text-card-foreground"
-	>
-		{@render content()}
-	</article>
-{/if}
+<a
+	href={`/events/${event.id}`}
+	aria-label={title}
+	class={cn(
+		CARD,
+		'group flex bg-card text-card-foreground focus-visible:outline-offset-2',
+	)}
+>
+	{@render content()}
+</a>

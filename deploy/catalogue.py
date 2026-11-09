@@ -3,8 +3,7 @@
 Run separately from deploy.py because era changes alter ranking policy:
     pyinfra inventory.py catalogue.py
 
-Set replace_existing_eras in inventory only when reviewed era replacements are
-intended. New eras never require that flag.
+Era changes are confirmed with --yes as part of catalogue deployment.
 """
 
 from pathlib import Path
@@ -21,8 +20,6 @@ app_group = host.data.app_group
 app_root = host.data.app_root
 config_dir = host.data.config_dir
 _, storage_environment = storage_configuration(host.data)
-replace_existing_eras = host.data.get("replace_existing_eras", False)
-apply_confirmation = "--yes " if replace_existing_eras else ""
 
 era_sync = files.sync(
     name="Deploy version-controlled era definitions",
@@ -108,7 +105,7 @@ server.shell(
     name="Apply lfsplanet era definitions",
     commands=[
         f"{app_root}/lfsplanet --config {config_dir}/config.yaml seed "
-        f"{apply_confirmation}{config_dir}/eras/*.yaml"
+        f"--yes {config_dir}/eras/*.yaml"
     ],
     _if=era_sync.did_change,
     _sudo_user=app_user,

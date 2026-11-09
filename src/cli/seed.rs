@@ -43,12 +43,23 @@ pub(crate) async fn run(args: &super::Args, options: &SeedArgs) -> anyhow::Resul
     report_applied(
         &applied.eras,
         options.dry_run,
-        !applied.locations.is_empty()
+        !applied.events.is_empty()
+            || !applied.locations.is_empty()
             || !applied.tracks.is_empty()
             || !applied.vehicles.is_empty()
             || !applied.community_cards.is_empty()
             || !applied.badges.is_empty(),
     );
+    for id in &applied.events {
+        println!(
+            "Event {id} {}.",
+            if options.dry_run {
+                "would change"
+            } else {
+                "applied"
+            }
+        );
+    }
     for id in &applied.locations {
         println!(
             "Location {id} {}.",

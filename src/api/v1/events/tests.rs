@@ -151,3 +151,99 @@ async fn events_api_filters_paginates_and_hides_moderated_or_past_meetings(
     }
     Ok(())
 }
+
+#[sqlx::test]
+#[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+async fn event_windows_include_ongoing_events_and_exclude_touching_boundaries(
+    pool: sqlx::PgPool,
+) -> anyhow::Result<()> {
+    let league: i64 =
+        sqlx::query_scalar("INSERT INTO league (name) VALUES ('Window test') RETURNING id")
+            .fetch_one(&pool)
+            .await?;
+    sqlx::query(
+        "INSERT INTO event (league_id, title, starts_at, ends_at) VALUES
+        ($1, 'Ongoing', '2030-01-01T12:00:00Z', '2030-01-03T12:00:00Z'),
+        ($1, 'Ended at boundary', '2030-01-01T12:00:00Z', '2030-01-02T00:00:00Z'),
+        ($1, 'Starts at boundary', '2030-01-03T00:00:00Z', NULL),
+        ($1, 'Point inside', '2030-01-02T00:00:00Z', NULL),
+        ($1, 'Point before', '2030-01-01T12:00:00Z', NULL)",
+    )
+    .bind(league)
+    .execute(&pool)
+    .await?;
+    let state = ApiState {
+        database: SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone()),
+        object_store: Arc::new(object_store::memory::InMemory::new()),
+        oauth: None,
+        hotlaps: crate::settings::HotlapSettings::default(),
+        site_notice: None,
+    };
+    let response = body(
+        state,
+        "?starts_from=2030-01-02T00:00:00Z&starts_before=2030-01-03T00:00:00Z",
+    )
+    .await;
+    assert_eq!(response["pagination"]["total_items"], 2);
+    assert_eq!(response["items"][0]["title"], "Ongoing");
+    assert_eq!(response["items"][0]["ends_at"], "2030-01-03T12:00:00Z");
+    assert_eq!(response["items"][1]["title"], "Point inside");
+    assert!(response["items"][1]["ends_at"].is_null());
+    assert!(sqlx::query("INSERT INTO event (league_id, title, starts_at, ends_at) VALUES ($1, 'Invalid', '2030-01-02T00:00:00Z', '2030-01-02T00:00:00Z')")
+        .bind(league).execute(&pool).await.is_err());
+    Ok(())
+}
+
+#[sqlx::test]
+#[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+async fn event_details_and_results_respect_visibility_and_expose_source(
+    pool: sqlx::PgPool,
+) -> anyhow::Result<()> {
+    let league: i64 = sqlx::query_scalar("INSERT INTO league(name) VALUES ('Detail') RETURNING id")
+        .fetch_one(&pool)
+        .await?;
+    let attachment: i64 = sqlx::query_scalar("INSERT INTO attachment(object_key,media_type,extension) VALUES ('layout.lyt','application/octet-stream','lyt') RETURNING id").fetch_one(&pool).await?;
+    let game: i64 = sqlx::query_scalar("INSERT INTO event(league_id,title,starts_at,ends_at,source,catalogue_id,game_config,layout_attachment_id) VALUES ($1,'Bomb',now()+interval '1 day',now()+interval '2 days','bomb','bomb-detail','{\"source\":{\"type\":\"bomb\",\"checkpoint_timeout_secs\":30,\"checkpoint_penalty_ms\":250,\"collision_max_penalty_ms\":500},\"track\":\"BL1\",\"vehicles\":[]}',$2) RETURNING id").bind(league).bind(attachment).fetch_one(&pool).await?;
+    let imported: i64 = sqlx::query_scalar("INSERT INTO event(league_id,title,starts_at,source,external_id,source_url) VALUES ($1,'External',now(),'lfs_net','detail-source','https://www.lfs.net/leagues/432') RETURNING id").bind(league).fetch_one(&pool).await?;
+    let state = ApiState {
+        database: SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone()),
+        object_store: Arc::new(object_store::memory::InMemory::new()),
+        oauth: None,
+        hotlaps: crate::settings::HotlapSettings::default(),
+        site_notice: None,
+    };
+    let detail = body(state.clone(), &format!("/{game}")).await;
+    assert_eq!(detail["source"], "bomb");
+    assert_eq!(detail["game"]["source"]["type"], "bomb");
+    assert!(
+        detail["layout_url"]
+            .as_str()
+            .unwrap()
+            .starts_with("/api/v1/attachments/")
+    );
+    let results = body(state.clone(), &format!("/{game}/results")).await;
+    assert_eq!(results["pagination"]["total_items"], 0);
+    let external = body(state.clone(), &format!("/{imported}")).await;
+    assert_eq!(external["source"], "lfs_net");
+    assert_eq!(external["source_url"], "https://www.lfs.net/leagues/432");
+    assert!(external["game"].is_null());
+    assert_eq!(
+        request(state.clone(), &format!("/{game}/results?page=0"))
+            .await
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    sqlx::query("UPDATE event SET hidden=true WHERE id=$1")
+        .bind(game)
+        .execute(&pool)
+        .await?;
+    assert_eq!(
+        request(state.clone(), &format!("/{game}")).await.status(),
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        request(state, &format!("/{game}/results")).await.status(),
+        StatusCode::NOT_FOUND
+    );
+    Ok(())
+}

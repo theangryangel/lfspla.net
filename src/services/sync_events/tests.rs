@@ -395,7 +395,10 @@ async fn events_source_migration_preserves_records_and_uses_text_with_rust_enum(
     assert_eq!(imported_season.league_id, 20);
     assert_eq!(imported_season.external_id.as_deref(), Some("432/1347"));
     let imported_event = event::Entity::find_by_id(20).one(&database).await?.unwrap();
-    assert_eq!(imported_event.source, Source::LfsNet);
+    assert_eq!(
+        imported_event.source,
+        crate::models::event::game::EventKind::LfsNet
+    );
     assert_eq!(imported_event.league_id, 20);
     assert_eq!(imported_event.season_id, Some(20));
     assert!(imported_event.hidden);
@@ -408,7 +411,7 @@ async fn events_source_migration_preserves_records_and_uses_text_with_rust_enum(
             .await?
             .unwrap()
             .source,
-        Source::Local
+        crate::models::event::game::EventKind::Local
     );
     assert_eq!(
         season::Entity::find_by_id(10)
@@ -480,4 +483,36 @@ async fn events_source_migration_preserves_records_and_uses_text_with_rust_enum(
         "Local"
     );
     Ok(())
+}
+
+#[test]
+fn import_exclusions_match_only_selected_leagues_or_titles() {
+    let mut report = snapshot();
+    let exclusions = crate::settings::EventImportSettings {
+        ignore_title_regex: Some("^Thursday".into()),
+        ..Default::default()
+    };
+    exclude(&mut report, &exclusions).unwrap();
+    assert!(report.events.is_empty());
+    assert_eq!(report.leagues.len(), 1);
+    let mut report = snapshot();
+    exclude(
+        &mut report,
+        &crate::settings::EventImportSettings {
+            ignore_league_ids: vec![432],
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert!(report.events.is_empty() && report.seasons.is_empty() && report.leagues.is_empty());
+    let mut report = snapshot();
+    exclude(
+        &mut report,
+        &crate::settings::EventImportSettings {
+            ignore_title_regex: Some("^Other".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(report.events.len(), 1);
 }

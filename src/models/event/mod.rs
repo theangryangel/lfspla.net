@@ -1,11 +1,14 @@
-//! Advertised meetings, without individual practice or race session records.
+//! Imported event advertisements and catalogue-managed competitions.
 
 mod list;
 pub(crate) use list::{EventListEntry, EventListFilters};
+pub(crate) mod game;
+pub(crate) mod results;
 pub(crate) mod source;
 
+use game::EventKind as Source;
 use sea_orm::{Set, entity::prelude::*};
-use source::{Change, Source};
+use source::Change;
 
 #[sea_orm::model]
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -18,12 +21,17 @@ pub struct Model {
     pub title: String,
     pub description: Option<String>,
     pub starts_at: TimeDateTimeWithTimeZone,
+    pub ends_at: Option<TimeDateTimeWithTimeZone>,
     pub details_url: Option<String>,
     pub signup_url: Option<String>,
     pub track_label: Option<String>,
     pub cars_label: Option<String>,
     pub hidden: bool,
     pub source: Source,
+    pub catalogue_id: Option<String>,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub game_config: Option<Json>,
+    pub layout_attachment_id: Option<i64>,
     pub external_id: Option<String>,
     pub source_url: Option<String>,
     pub last_seen_at: Option<TimeDateTimeWithTimeZone>,
