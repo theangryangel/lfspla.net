@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invalidate } from '$app/navigation';
-	import { lapTime, delta } from '#lib/format.js';
+	import { lapTime, delta, speed } from '#lib/format.js';
 	import Breadcrumbs from '#lib/components/app/Breadcrumbs.svelte';
 	import PaginationControls from '#lib/components/app/PaginationControls.svelte';
 	import Flag from '#lib/components/app/Flag.svelte';
@@ -119,7 +119,9 @@
 											? 'Checkpoints'
 											: mode === 'metronome'
 												? 'Difference'
-												: 'Time'}</Table.Head
+												: mode === 'land_speed_record'
+													? 'Speed'
+													: 'Time'}</Table.Head
 									>
 									{#if mode === 'bomb'}<Table.Head class="text-right"
 											>Survival</Table.Head
@@ -155,7 +157,9 @@
 												? row.checkpoint_count
 												: mode === 'metronome'
 													? delta(row.delta_ms)
-													: lapTime(row.time_ms)}</Table.Cell
+													: mode === 'land_speed_record'
+														? speed(row.speed_kph)
+														: lapTime(row.time_ms)}</Table.Cell
 										>
 										{#if mode === 'bomb'}<Table.Cell
 												class="text-right font-mono tabular-nums"

@@ -8,7 +8,8 @@ import * as LfsplanetApi from "../index.js";
 export type GameSource =
   | LfsplanetApi.GameSource.Bomb
   | LfsplanetApi.GameSource.Metronome
-  | LfsplanetApi.GameSource.Shortcut;
+  | LfsplanetApi.GameSource.Shortcut
+  | LfsplanetApi.GameSource.LandSpeedRecord;
 
 export namespace GameSource {
   export interface Bomb {
@@ -25,5 +26,9 @@ export namespace GameSource {
 
   export interface Shortcut {
     type: "shortcut";
+  }
+
+  export interface LandSpeedRecord {
+    type: "land_speed_record";
   }
 }

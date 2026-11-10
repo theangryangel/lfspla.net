@@ -8,6 +8,7 @@ use game::{LayoutSpec, LeaderboardResult, LeaderboardStore};
 use insim::{core::vehicle::Vehicle, insim::IsiFlags};
 use lfsplanet_bomb as bomb;
 use lfsplanet_game as game;
+use lfsplanet_land_speed_record as land_speed_record;
 use lfsplanet_metronome as metronome;
 use lfsplanet_shortcut as shortcut;
 use object_store::ObjectStoreExt;
@@ -17,6 +18,10 @@ use tokio_util::sync::CancellationToken;
 const MAX_RETRY_DELAY: Duration = Duration::from_secs(30);
 
 enum Game {
+    LandSpeedRecord {
+        config: land_speed_record::LandSpeedRecordConfig,
+        leaderboard: land_speed_record::LandSpeedRecordLeaderboard,
+    },
     Bomb {
         config: bomb::BombConfig,
         leaderboard: bomb::BombLeaderboard,
@@ -41,6 +46,10 @@ impl Game {
             .isi_prefix('!')
             .isi_admin_password(connection.admin_password.clone());
         builder = match self {
+            Self::LandSpeedRecord { .. } => builder
+                .isi_iname("land speed record".to_string())
+                .isi_flags(IsiFlags::MCI)
+                .isi_interval(Duration::from_millis(100)),
             Self::Bomb { .. } => builder
                 .isi_iname("bomb".to_string())
                 .isi_flags(IsiFlags::AXM_LOAD),
@@ -55,6 +64,18 @@ impl Game {
             },
         };
         let result = match self {
+            Self::LandSpeedRecord {
+                config,
+                leaderboard,
+            } => {
+                land_speed_record::run_land_speed_record_connection(
+                    framed,
+                    config.clone(),
+                    leaderboard.clone(),
+                    cancel,
+                )
+                .await
+            }
             Self::Bomb {
                 config,
                 leaderboard,
@@ -138,6 +159,17 @@ impl EventRuntime {
             })
             .collect::<anyhow::Result<Vec<_>>>()?;
         let game = match &configuration.source {
+            EventMode::LandSpeedRecord => Game::LandSpeedRecord {
+                config: land_speed_record::LandSpeedRecordConfig {
+                    track,
+                    layout: layout.clone(),
+                    vehicle_rules: vehicle_rules.clone(),
+                },
+                leaderboard: std::sync::Arc::new(PostgresLandSpeedRecordLeaderboard {
+                    pool: pool.clone(),
+                    event_id,
+                }),
+            },
             EventMode::Bomb {
                 checkpoint_timeout_secs,
                 checkpoint_penalty_ms,
@@ -360,6 +392,61 @@ impl LeaderboardStore<metronome::MetronomeStanding, metronome::MetronomeResult>
                 &self.pool,
                 self.event_id,
                 results::Submission::Metronome(result),
+            )
+            .await?;
+            Ok(())
+        })
+    }
+}
+
+struct PostgresLandSpeedRecordLeaderboard {
+    pool: sqlx::PgPool,
+    event_id: i64,
+}
+impl
+    LeaderboardStore<
+        land_speed_record::LandSpeedRecordStanding,
+        land_speed_record::LandSpeedRecordResult,
+    > for PostgresLandSpeedRecordLeaderboard
+{
+    fn standings(
+        &self,
+    ) -> std::pin::Pin<
+        Box<
+            dyn Future<Output = LeaderboardResult<Vec<land_speed_record::LandSpeedRecordStanding>>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let rows = results::standings(
+                &self.pool,
+                self.event_id,
+                crate::models::event::game::EventKind::LandSpeedRecord,
+                100,
+                0,
+            )
+            .await?
+            .0;
+            Ok(rows
+                .into_iter()
+                .map(|row| land_speed_record::LandSpeedRecordStanding {
+                    uname: row.username,
+                    pname: row.display_name,
+                    speed_kph: row.speed_kph.unwrap_or_default(),
+                })
+                .collect())
+        })
+    }
+    fn record(
+        &self,
+        result: land_speed_record::LandSpeedRecordResult,
+    ) -> std::pin::Pin<Box<dyn Future<Output = LeaderboardResult<()>> + Send + '_>> {
+        Box::pin(async move {
+            results::record(
+                &self.pool,
+                self.event_id,
+                results::Submission::LandSpeedRecord(result),
             )
             .await?;
             Ok(())

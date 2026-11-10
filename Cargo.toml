@@ -39,15 +39,17 @@ insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb
 insim_lyt = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb018ce6e3a9995c808d7cf58609154297c22e8" }
 insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb018ce6e3a9995c808d7cf58609154297c22e8" }
 kitcar = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb018ce6e3a9995c808d7cf58609154297c22e8" }
+insim_extra = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb018ce6e3a9995c808d7cf58609154297c22e8" }
 lfsplanet_bomb = { path = "crates/lfsplanet_bomb" }
 lfsplanet_game = { path = "crates/lfsplanet_game" }
 lfsplanet_game_version_req = { path = "crates/lfsplanet_game_version_req" }
+lfsplanet_land_speed_record = { path = "crates/lfsplanet_land_speed_record" }
 lfsplanet_metronome = { path = "crates/lfsplanet_metronome" }
 lfsplanet_shortcut = { path = "crates/lfsplanet_shortcut" }
 memchr = "2"
 oauth2 = "5"
 object_store = "0.14"
-parking_lot = "0.12"
+parking_lot = "0.13"
 regex = "1"
 reqwest = { version = "0.13", default-features = false }
 sea-orm = "2"
@@ -82,6 +84,7 @@ lfsplanet_flags = { path = "crates/lfsplanet_flags", features = ["sea-orm"] }
 lfsplanet_game = { workspace = true }
 lfsplanet_game_version_req = { workspace = true, features = ["sea-orm"] }
 lfsplanet_jobs = { path = "crates/lfsplanet_jobs" }
+lfsplanet_land_speed_record = { workspace = true }
 lfsplanet_lfs = { path = "crates/lfsplanet_lfs" }
 lfsplanet_lfs_api = { path = "crates/lfsplanet_lfs_api", features = ["openapi", "sea-orm"] }
 lfsplanet_lfs_leagues = { path = "crates/lfsplanet_lfs_leagues" }

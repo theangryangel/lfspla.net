@@ -30,6 +30,8 @@ pub enum EventKind {
     Metronome,
     #[sea_orm(string_value = "shortcut")]
     Shortcut,
+    #[sea_orm(string_value = "land_speed_record")]
+    LandSpeedRecord,
 }
 
 /// The source selects both the runtime and result classification.
@@ -45,6 +47,7 @@ pub enum GameSource {
         target_ms: u64,
     },
     Shortcut,
+    LandSpeedRecord,
 }
 impl GameSource {
     pub(crate) fn kind(&self) -> EventKind {
@@ -52,6 +55,7 @@ impl GameSource {
             Self::Bomb { .. } => EventKind::Bomb,
             Self::Metronome { .. } => EventKind::Metronome,
             Self::Shortcut => EventKind::Shortcut,
+            Self::LandSpeedRecord => EventKind::LandSpeedRecord,
         }
     }
     pub(crate) fn validate(&self) -> anyhow::Result<()> {
@@ -74,7 +78,7 @@ impl GameSource {
                 *target_ms > 0 && *target_ms <= 86400000,
                 "target must be between 1ms and a day"
             ),
-            Self::Shortcut => {}
+            Self::Shortcut | Self::LandSpeedRecord => {}
         }
         Ok(())
     }

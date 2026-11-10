@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { EventDetail, Standing } from '#lib/api.js';
-	import { lapTime, delta } from '#lib/format.js';
+	import { lapTime, delta, speed } from '#lib/format.js';
 	import PageIdentity from './PageIdentity.svelte';
 	import EventRules from './EventRules.svelte';
 	import PageHeading from './PageHeading.svelte';
@@ -19,22 +19,28 @@
 	} = $props();
 	const mode = $derived(event.game?.source.type);
 	const identity = $derived(
-		mode === 'metronome'
+		mode === 'land_speed_record'
 			? {
-					description: `Match the target lap time${event.game?.source.type === 'metronome' ? ` of ${lapTime(event.game.source.target_ms)}` : ''}. The smallest absolute difference wins.`,
-					variant: 'cyan' as const,
+					description:
+						'Cross the speed trap as fast as you can. Your highest speed counts. Slipstreaming is allowed.',
+					variant: 'neutral' as const,
 				}
-			: mode === 'shortcut'
+			: mode === 'metronome'
 				? {
-						description:
-							'Find the fastest route through the layout. Your fastest completed attempt counts.',
-						variant: 'purple' as const,
+						description: `Match the target lap time${event.game?.source.type === 'metronome' ? ` of ${lapTime(event.game.source.target_ms)}` : ''}. The smallest absolute difference wins.`,
+						variant: 'cyan' as const,
 					}
-				: {
-						description:
-							'Reach checkpoints to keep the timer alive. Most checkpoints wins, then longest survival time.',
-						variant: 'yellow' as const,
-					},
+				: mode === 'shortcut'
+					? {
+							description:
+								'Find the fastest route through the layout. Your fastest completed attempt counts.',
+							variant: 'purple' as const,
+						}
+					: {
+							description:
+								'Reach checkpoints to keep the timer alive. Most checkpoints wins, then longest survival time.',
+							variant: 'yellow' as const,
+						},
 	);
 </script>
 
@@ -55,7 +61,13 @@
 					stroke-width="2"
 					aria-hidden="true"
 				>
-					{#if mode === 'metronome'}
+					{#if mode === 'land_speed_record'}
+						<path
+							d="M10 40H145M35 70H175M0 100H145M190 15V125M220 15V125"
+							stroke-width="4"
+						/>
+						<path d="M135 70H270M250 50L270 70L250 90" stroke-width="6" />
+					{:else if mode === 'metronome'}
 						<path
 							d="M0 100H280M20 85V115M50 75V125M80 85V115M110 65V135M140 85V115M170 75V125M200 85V115M230 65V135M260 85V115"
 						/>
@@ -117,6 +129,13 @@
 								.checkpoint_timeout_secs}<span
 								class="ml-2 font-sans text-sm font-medium tracking-normal"
 								>seconds</span
+							>
+						{:else if mode === 'land_speed_record' && leader}{speed(
+								leader.speed_kph,
+							)}
+						{:else if mode === 'land_speed_record'}<span
+								class="font-sans text-2xl tracking-normal"
+								>Flat out through the trap.</span
 							>
 						{:else if leader}{lapTime(leader.time_ms)}
 						{:else}<span class="font-sans text-2xl tracking-normal"

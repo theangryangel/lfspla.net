@@ -112,3 +112,8 @@ export function controlTags(hotlap: {
   tags.push(hotlap.driver_side === "left" ? "LHD" : "RHD");
   return tags;
 }
+
+/** Format speed trap results in kilometres per hour. */
+export function speed(kph: number | null | undefined): string {
+  return kph == null ? "-" : `${kph.toFixed(2)} km/h`;
+}

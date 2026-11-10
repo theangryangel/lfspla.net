@@ -17,6 +17,7 @@ pub struct Standing {
     pub survival_ms: Option<i64>,
     pub time_ms: Option<i64>,
     pub delta_ms: Option<i64>,
+    pub speed_kph: Option<f64>,
 }
 pub(crate) async fn standings(
     pool: &PgPool,
@@ -37,7 +38,7 @@ pub(crate) async fn standings(
             .bind(event_id)
             .fetch_one(&mut *tx)
             .await?;
-    let rows = sqlx::query_as::<_, Standing>("SELECT r.position, r.player_id, p.lfs_username AS username, p.display_name, p.country_code, p.flag_code, r.vehicle, r.checkpoint_count, r.survival_ms, r.time_ms, r.delta_ms FROM game_event_standing r JOIN player p ON p.id=r.player_id WHERE event_id=$1 ORDER BY r.position LIMIT $2 OFFSET $3")
+    let rows = sqlx::query_as::<_, Standing>("SELECT r.position, r.player_id, p.lfs_username AS username, p.display_name, p.country_code, p.flag_code, r.vehicle, r.checkpoint_count, r.survival_ms, r.time_ms, r.delta_ms, r.speed_kph FROM game_event_standing r JOIN player p ON p.id=r.player_id WHERE event_id=$1 ORDER BY r.position LIMIT $2 OFFSET $3")
         .bind(event_id).bind(limit).bind(offset).fetch_all(&mut *tx).await?;
     tx.commit().await?;
     Ok((rows, total))
@@ -47,6 +48,7 @@ pub(crate) enum Submission {
     Bomb(lfsplanet_bomb::BombResult),
     Shortcut(lfsplanet_shortcut::ShortcutResult),
     Metronome(lfsplanet_metronome::MetronomeResult),
+    LandSpeedRecord(lfsplanet_land_speed_record::LandSpeedRecordResult),
 }
 pub(crate) async fn record(
     pool: &PgPool,
@@ -54,6 +56,7 @@ pub(crate) async fn record(
     submission: Submission,
 ) -> anyhow::Result<()> {
     let (kind, uname, pname) = match &submission {
+        Submission::LandSpeedRecord(r) => ("land_speed_record", &r.uname, &r.pname),
         Submission::Bomb(r) => ("bomb", &r.uname, &r.pname),
         Submission::Shortcut(r) => ("shortcut", &r.uname, &r.pname),
         Submission::Metronome(r) => ("metronome", &r.uname, &r.pname),
@@ -69,6 +72,10 @@ pub(crate) async fn record(
     let player_id: i64 = sqlx::query_scalar("INSERT INTO player (lfs_username, display_name) VALUES ($1,$2) ON CONFLICT (lower(lfs_username)) DO UPDATE SET display_name=excluded.display_name RETURNING id")
         .bind(uname).bind(pname).fetch_one(&mut *tx).await?;
     match submission {
+        Submission::LandSpeedRecord(r) => {
+            sqlx::query("INSERT INTO land_speed_record_run (event_id,player_id,vehicle,speed_kph) VALUES ($1,$2,$3,$4)")
+                .bind(event_id).bind(player_id).bind(r.vehicle).bind(r.speed_kph).execute(&mut *tx).await?;
+        }
         Submission::Bomb(r) => {
             sqlx::query("INSERT INTO bomb_run (event_id,player_id,vehicle,checkpoint_count,survival_ms) VALUES ($1,$2,$3,$4,$5)").bind(event_id).bind(player_id).bind(r.vehicle.to_string()).bind(r.checkpoints).bind(r.survival_ms).execute(&mut *tx).await?;
         }
@@ -113,11 +120,38 @@ mod tests {
                 serde_json::json!({"type":"metronome","target_ms":30000}),
             ),
             ("shortcut", serde_json::json!({"type":"shortcut"})),
+            (
+                "land_speed_record",
+                serde_json::json!({"type":"land_speed_record"}),
+            ),
         ] {
             sqlx::query("UPDATE event SET ends_at=clock_timestamp() WHERE game_config IS NOT NULL AND ends_at>clock_timestamp()").execute(&pool).await?;
             let event: i64 = sqlx::query_scalar("INSERT INTO event (league_id,title,starts_at,ends_at,source,catalogue_id,game_config,layout_attachment_id) VALUES ($1,$2,clock_timestamp(),clock_timestamp()+interval '1 hour',$2,$2,$3,$4) RETURNING id")
                 .bind(league).bind(source).bind(serde_json::json!({"source":payload,"track":"BL1","vehicles":[]})).bind(attachment).fetch_one(&pool).await?;
             let kind = match source {
+                "land_speed_record" => {
+                    for (uname, speed_kph) in [
+                        ("Alpha", 200.123),
+                        ("alpha", 190.0),
+                        ("Beta", 250.456),
+                        ("Charlie", 250.456),
+                    ] {
+                        record(
+                            &pool,
+                            event,
+                            Submission::LandSpeedRecord(
+                                lfsplanet_land_speed_record::LandSpeedRecordResult {
+                                    uname: uname.into(),
+                                    pname: uname.into(),
+                                    vehicle: "XFG".into(),
+                                    speed_kph,
+                                },
+                            ),
+                        )
+                        .await?;
+                    }
+                    EventKind::LandSpeedRecord
+                }
                 "bomb" => {
                     for (uname, cp, ms) in [
                         ("Alpha", 5, 1000),
@@ -213,6 +247,28 @@ mod tests {
                     .collect::<Vec<_>>()
             );
             assert_eq!(rows[0].position, 1);
+            if source == "land_speed_record" {
+                assert_eq!(rows[0].speed_kph, Some(250.456));
+                assert_eq!(alpha.speed_kph, Some(200.123));
+                for speed_kph in [0.0, -1.0, f64::NAN, f64::INFINITY, 720.0] {
+                    assert!(
+                        record(
+                            &pool,
+                            event,
+                            Submission::LandSpeedRecord(
+                                lfsplanet_land_speed_record::LandSpeedRecordResult {
+                                    uname: "invalid".into(),
+                                    pname: "invalid".into(),
+                                    vehicle: "XFG".into(),
+                                    speed_kph,
+                                }
+                            )
+                        )
+                        .await
+                        .is_err()
+                    );
+                }
+            }
             let (second, _) = standings(&pool, event, kind, 1, 1).await?;
             assert_eq!(second[0].position, 2);
             assert!(

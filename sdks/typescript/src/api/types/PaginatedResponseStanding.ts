@@ -22,6 +22,7 @@ export namespace PaginatedResponseStanding {
       flag_code?: (string | null) | undefined;
       player_id: number;
       position: number;
+      speed_kph?: (number | null) | undefined;
       survival_ms?: (number | null) | undefined;
       time_ms?: (number | null) | undefined;
       username: string;

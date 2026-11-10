@@ -262,3 +262,51 @@ async fn event_details_and_results_respect_visibility_and_expose_source(
     );
     Ok(())
 }
+
+#[sqlx::test]
+#[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+async fn land_speed_record_exposes_speed_and_paginated_fastest_runs(
+    pool: sqlx::PgPool,
+) -> anyhow::Result<()> {
+    let league: i64 =
+        sqlx::query_scalar("INSERT INTO league(name) VALUES ('Speed records') RETURNING id")
+            .fetch_one(&pool)
+            .await?;
+    let attachment: i64 = sqlx::query_scalar("INSERT INTO attachment(object_key,media_type,extension) VALUES ('speed.lyt','application/octet-stream','lyt') RETURNING id").fetch_one(&pool).await?;
+    let event: i64 = sqlx::query_scalar("INSERT INTO event(league_id,title,starts_at,ends_at,source,catalogue_id,game_config,layout_attachment_id) VALUES ($1,'Land Speed Record',now()-interval '1 hour',now()+interval '1 hour','land_speed_record','speed-record','{\"source\":{\"type\":\"land_speed_record\"},\"track\":\"BL1\",\"vehicles\":[]}', $2) RETURNING id").bind(league).bind(attachment).fetch_one(&pool).await?;
+    for (uname, speed_kph) in [("Alpha", 200.123), ("Beta", 250.456), ("Alpha", 210.789)] {
+        crate::models::event::results::record(
+            &pool,
+            event,
+            crate::models::event::results::Submission::LandSpeedRecord(
+                lfsplanet_land_speed_record::LandSpeedRecordResult {
+                    uname: uname.into(),
+                    pname: uname.into(),
+                    vehicle: "XFG".into(),
+                    speed_kph,
+                },
+            ),
+        )
+        .await?;
+    }
+    let state = ApiState {
+        database: SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone()),
+        object_store: Arc::new(object_store::memory::InMemory::new()),
+        oauth: None,
+        hotlaps: crate::settings::HotlapSettings::default(),
+        site_notice: None,
+    };
+    let detail = body(state.clone(), &format!("/{event}")).await;
+    assert_eq!(detail["source"], "land_speed_record");
+    assert_eq!(detail["game"]["source"]["type"], "land_speed_record");
+    let first = body(state.clone(), &format!("/{event}/results?per_page=1")).await;
+    assert_eq!(first["pagination"]["total_items"], 2);
+    assert_eq!(first["items"][0]["username"], "Beta");
+    assert_eq!(first["items"][0]["speed_kph"], 250.456);
+    assert!(first["items"][0]["time_ms"].is_null());
+    let second = body(state, &format!("/{event}/results?per_page=1&page=2")).await;
+    assert_eq!(second["items"][0]["username"], "Alpha");
+    assert_eq!(second["items"][0]["speed_kph"], 210.789);
+    assert_eq!(second["items"][0]["position"], 2);
+    Ok(())
+}

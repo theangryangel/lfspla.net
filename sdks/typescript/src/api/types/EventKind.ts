@@ -6,5 +6,6 @@ export const EventKind = {
   Bomb: "bomb",
   Metronome: "metronome",
   Shortcut: "shortcut",
+  LandSpeedRecord: "land_speed_record",
 } as const;
 export type EventKind = (typeof EventKind)[keyof typeof EventKind];

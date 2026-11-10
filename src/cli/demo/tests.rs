@@ -61,9 +61,9 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     assert!(badges > 0);
 
     let events: Vec<(i64, String, time::OffsetDateTime, time::OffsetDateTime, i64)> = sqlx::query_as(
-        "SELECT id,source,starts_at,ends_at,layout_attachment_id FROM event WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut') ORDER BY id"
+        "SELECT id,source,starts_at,ends_at,layout_attachment_id FROM event WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut','demo-land-speed-record') ORDER BY id"
     ).fetch_all(&pool).await?;
-    assert_eq!(events.len(), 3);
+    assert_eq!(events.len(), 4);
     for (id, source, starts, ends, layout) in &events {
         let now = time::OffsetDateTime::now_utc();
         let monday = now.date().midnight().assume_utc()
@@ -72,6 +72,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         let kind = match source.as_str() {
             "bomb" => crate::models::event::game::EventKind::Bomb,
             "metronome" => crate::models::event::game::EventKind::Metronome,
+            "land_speed_record" => crate::models::event::game::EventKind::LandSpeedRecord,
             _ => crate::models::event::game::EventKind::Shortcut,
         };
         let (standings, total) =
@@ -79,6 +80,18 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         assert_eq!(total, 100);
         assert_eq!(standings.len(), 50);
         assert_eq!(standings[0].position, 1);
+        if source == "land_speed_record" {
+            assert!(
+                standings
+                    .windows(2)
+                    .all(|rows| rows[0].speed_kph >= rows[1].speed_kph)
+            );
+            assert!(
+                standings
+                    .iter()
+                    .all(|row| row.speed_kph.is_some_and(|speed| speed > 0.0))
+            );
+        }
         let attachment = crate::models::attachment::Model::required(&database, *layout).await?;
         let bytes = object_store::ObjectStoreExt::get(
             &store,
@@ -94,11 +107,11 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     )
     .fetch_all(&pool)
     .await?;
-    let attempts: i64 = sqlx::query_scalar("SELECT (SELECT count(*) FROM bomb_run)+(SELECT count(*) FROM metronome_result)+(SELECT count(*) FROM shortcut_time)").fetch_one(&pool).await?;
-    assert_eq!(attempts, 900);
+    let attempts: i64 = sqlx::query_scalar("SELECT (SELECT count(*) FROM bomb_run)+(SELECT count(*) FROM metronome_result)+(SELECT count(*) FROM shortcut_time)+(SELECT count(*) FROM land_speed_record_run)").fetch_one(&pool).await?;
+    assert_eq!(attempts, 1200);
     let second = persist::populate(&database, &options, &store).await?;
     assert_eq!(second, 0);
-    assert_eq!(sqlx::query_scalar::<_,i64>("SELECT (SELECT count(*) FROM bomb_run)+(SELECT count(*) FROM metronome_result)+(SELECT count(*) FROM shortcut_time)").fetch_one(&pool).await?,attempts);
+    assert_eq!(sqlx::query_scalar::<_,i64>("SELECT (SELECT count(*) FROM bomb_run)+(SELECT count(*) FROM metronome_result)+(SELECT count(*) FROM shortcut_time)+(SELECT count(*) FROM land_speed_record_run)").fetch_one(&pool).await?,attempts);
     let repeated_events: Vec<(i64, String, time::OffsetDateTime, time::OffsetDateTime, i64)> =
         sqlx::query_as(
             "SELECT id,source,starts_at,ends_at,layout_attachment_id FROM event ORDER BY id",
@@ -113,11 +126,12 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     .await?;
     assert_eq!(original_results, repeated_results);
     // Upgrade previously generated last-week fixtures without replacing scores.
-    sqlx::query("UPDATE event SET starts_at=starts_at-interval '7 days',ends_at=ends_at-interval '7 days' WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut')").execute(&pool).await?;
+    sqlx::query("UPDATE event SET starts_at=starts_at-interval '7 days',ends_at=ends_at-interval '7 days' WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut','demo-land-speed-record')").execute(&pool).await?;
     for query in [
         "UPDATE bomb_run SET recorded_at=recorded_at-interval '7 days'",
         "UPDATE metronome_result SET recorded_at=recorded_at-interval '7 days'",
         "UPDATE shortcut_time SET recorded_at=recorded_at-interval '7 days'",
+        "UPDATE land_speed_record_run SET recorded_at=recorded_at-interval '7 days'",
     ] {
         sqlx::query(query).execute(&pool).await?;
     }
@@ -129,7 +143,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         .fetch_all(&pool)
         .await?;
     assert_eq!(events, moved);
-    let outside: i64 = sqlx::query_scalar("SELECT count(*) FROM (SELECT event_id,recorded_at FROM bomb_run UNION ALL SELECT event_id,recorded_at FROM metronome_result UNION ALL SELECT event_id,recorded_at FROM shortcut_time) r JOIN event e ON e.id=r.event_id WHERE r.recorded_at<e.starts_at OR r.recorded_at>=e.ends_at").fetch_one(&pool).await?;
+    let outside: i64 = sqlx::query_scalar("SELECT count(*) FROM (SELECT event_id,recorded_at FROM bomb_run UNION ALL SELECT event_id,recorded_at FROM metronome_result UNION ALL SELECT event_id,recorded_at FROM shortcut_time UNION ALL SELECT event_id,recorded_at FROM land_speed_record_run) r JOIN event e ON e.id=r.event_id WHERE r.recorded_at<e.starts_at OR r.recorded_at>=e.ends_at").fetch_one(&pool).await?;
     assert_eq!(outside, 0);
 
     let repeated = HotlapEntity::find().all(&database).await?;
@@ -314,7 +328,7 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
             .fetch_one(&pool)
             .await?;
     assert_eq!(real_before, real_after);
-    assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM event WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut') AND starts_at >= $1").bind(real_before.1).fetch_one(&pool).await?,3);
+    assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM event WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut','demo-land-speed-record') AND starts_at >= $1").bind(real_before.1).fetch_one(&pool).await?,4);
 
     Ok(())
 }

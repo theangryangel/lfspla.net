@@ -66,6 +66,12 @@ pub(super) async fn populate(
             "shortcut",
             GameSource::Shortcut,
         ),
+        (
+            "demo-land-speed-record",
+            "Demo Land Speed Record",
+            "land_speed_record",
+            GameSource::LandSpeedRecord,
+        ),
     ]
     .into_iter()
     .enumerate()
@@ -117,7 +123,7 @@ pub(super) async fn populate(
                     }],
                 };
                 let row = database.query_one_raw(Statement::from_sql_and_values(DbBackend::Postgres,
-                    "INSERT INTO event (league_id,season_id,catalogue_id,title,description,starts_at,ends_at,source,game_config,layout_attachment_id,track_label,cars_label) VALUES ($1,$2,$3,$4,'Synthetic historical results for development. The downloadable layout is a minimal preview, not a playable event layout.',$5,$6,$7,$8,$9,'Blackwood GP','XFG') RETURNING id",
+                    "INSERT INTO event (league_id,season_id,catalogue_id,title,description,starts_at,ends_at,source,game_config,layout_attachment_id,track_label,cars_label) VALUES ($1,$2,$3,$4,'Synthetic historical results for development. The layout is a minimal preview, not a playable event layout.',$5,$6,$7,$8,$9,'Blackwood GP','XFG') RETURNING id",
                     [league_id.into(),season_id.into(),id.into(),title.into(),start.into(),end.into(),kind.into(),serde_json::to_value(config)?.into(),layout.into()])).await?.context("demo event insert returned no row")?;
                 let event_id = row.try_get::<i64>("", "id")?;
                 inserted_events += 1;
@@ -136,11 +142,18 @@ pub(super) async fn populate(
                 for attempt in 0_i32..3 {
                     let checkpoints = rng.random_range(5..25) + (1500 - profile.pace) / 50;
                     let deviation = rng.random_range(-1500..=1500);
+                    let speed_kph = if kind == "land_speed_record" {
+                        190.0
+                            + f64::from(i32::try_from(1500 - profile.pace)?) / 20.0
+                            + rng.random_range(0.0..15.0)
+                    } else {
+                        0.0
+                    };
                     rows.push(json!({
                         "player":player,"checkpoints":checkpoints,
                         "survival":checkpoints * 12000 + rng.random_range(1000..10000),
                         "time":35000 * profile.pace/1000 + rng.random_range(0..5000),
-                        "delta":deviation,
+                        "delta":deviation,"speed_kph":speed_kph,
                         "recorded":(event.starts_at + (end-event.starts_at) * (attempt * 3 + 1) / 10_i32).format(&time::format_description::well_known::Rfc3339)?,
                     }));
                 }
@@ -148,6 +161,9 @@ pub(super) async fn populate(
             let sql = match kind {
                 "bomb" => {
                     "INSERT INTO bomb_run (event_id,player_id,vehicle,checkpoint_count,survival_ms,recorded_at) SELECT $1,r.player,'XFG',r.checkpoints,r.survival,r.recorded FROM jsonb_to_recordset($2) AS r(player BIGINT,checkpoints BIGINT,survival BIGINT,recorded TIMESTAMPTZ) WHERE NOT EXISTS (SELECT 1 FROM bomb_run old WHERE old.event_id=$1 AND old.player_id=r.player)"
+                }
+                "land_speed_record" => {
+                    "INSERT INTO land_speed_record_run (event_id,player_id,vehicle,speed_kph,recorded_at) SELECT $1,r.player,'XFG',r.speed_kph,r.recorded FROM jsonb_to_recordset($2) AS r(player BIGINT,speed_kph DOUBLE PRECISION,recorded TIMESTAMPTZ) WHERE NOT EXISTS (SELECT 1 FROM land_speed_record_run old WHERE old.event_id=$1 AND old.player_id=r.player)"
                 }
                 "metronome" => {
                     "INSERT INTO metronome_result (event_id,player_id,delta_ms,recorded_at) SELECT $1,r.player,r.delta,r.recorded FROM jsonb_to_recordset($2) AS r(player BIGINT,delta BIGINT,recorded TIMESTAMPTZ) WHERE NOT EXISTS (SELECT 1 FROM metronome_result old WHERE old.event_id=$1 AND old.player_id=r.player)"
@@ -184,12 +200,12 @@ pub(super) async fn populate(
 async fn this_week_slots(
     database: &DatabaseTransaction,
     now: OffsetDateTime,
-) -> anyhow::Result<[(OffsetDateTime, OffsetDateTime); 3]> {
+) -> anyhow::Result<[(OffsetDateTime, OffsetDateTime); 4]> {
     let week_start = now.date().midnight().assume_utc()
         - Duration::days(i64::from(now.weekday().number_days_from_monday()));
     let cutoff = now.replace_nanosecond(0)? - Duration::seconds(1);
     let occupied = database.query_all_raw(Statement::from_sql_and_values(DbBackend::Postgres,
-        "SELECT starts_at,ends_at FROM event WHERE game_config IS NOT NULL AND NOT hidden AND catalogue_id NOT IN ('demo-bomb','demo-metronome','demo-shortcut') AND starts_at < $2 AND ends_at > $1 ORDER BY starts_at", [week_start.into(),cutoff.into()])).await?;
+        "SELECT starts_at,ends_at FROM event WHERE game_config IS NOT NULL AND NOT hidden AND catalogue_id NOT IN ('demo-bomb','demo-metronome','demo-shortcut','demo-land-speed-record') AND starts_at < $2 AND ends_at > $1 ORDER BY starts_at", [week_start.into(),cutoff.into()])).await?;
     let mut cursor = week_start;
     let mut best = (week_start, week_start);
     for row in occupied {
@@ -205,10 +221,10 @@ async fn this_week_slots(
         best = (cursor, cutoff);
     }
     ensure!(
-        best.1 - best.0 >= Duration::seconds(6),
+        best.1 - best.0 >= Duration::seconds(8),
         "not enough free completed time in this calendar week for demo events"
     );
-    let duration = ((best.1 - best.0) / 6_i32).min(Duration::hours(1));
+    let duration = ((best.1 - best.0) / 8_i32).min(Duration::hours(1));
     Ok(std::array::from_fn(|index| {
         let start = best.0 + duration * i32::try_from(index * 2).unwrap();
         (start, start + duration)
@@ -230,6 +246,7 @@ async fn reschedule(
         "UPDATE bomb_run SET recorded_at=$2::timestamptz+(recorded_at-$3::timestamptz)*(extract(epoch FROM ($4::timestamptz-$2::timestamptz))/extract(epoch FROM ($5::timestamptz-$3::timestamptz)))::double precision WHERE event_id=$1",
         "UPDATE metronome_result SET recorded_at=$2::timestamptz+(recorded_at-$3::timestamptz)*(extract(epoch FROM ($4::timestamptz-$2::timestamptz))/extract(epoch FROM ($5::timestamptz-$3::timestamptz)))::double precision WHERE event_id=$1",
         "UPDATE shortcut_time SET recorded_at=$2::timestamptz+(recorded_at-$3::timestamptz)*(extract(epoch FROM ($4::timestamptz-$2::timestamptz))/extract(epoch FROM ($5::timestamptz-$3::timestamptz)))::double precision WHERE event_id=$1",
+        "UPDATE land_speed_record_run SET recorded_at=$2::timestamptz+(recorded_at-$3::timestamptz)*(extract(epoch FROM ($4::timestamptz-$2::timestamptz))/extract(epoch FROM ($5::timestamptz-$3::timestamptz)))::double precision WHERE event_id=$1",
     ] {
         database
             .execute_raw(Statement::from_sql_and_values(

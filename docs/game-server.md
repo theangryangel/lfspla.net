@@ -1,6 +1,6 @@
 # Scheduled mini-games
 
-LFS Planet can run Bomb, Metronome and Shortcut events on one LFS server.
+LFS Planet can run Bomb, Metronome, Shortcut and Land Speed Record events on one LFS server.
 The LFS dedicated server must already be running with InSim enabled. The
 application connects to it; it does not launch or install the dedicated server.
 
@@ -53,7 +53,7 @@ Supply your actual layout file, schedule and join URL. Paths resolve relative to
 the YAML. Layouts must be nonempty LFS 0.8+ LYT files, up to 2 MiB. The layout is
 uploaded as an immutable attachment and loaded through InSim; it need not be
 installed manually on the LFS host. An empty/omitted vehicles list is unrestricted.
-Vehicle ballast is 0–200kg and intake restriction is 0–50%.
+Vehicle ballast is 0-200kg and intake restriction is 0-50%.
 
 Other source settings:
 
@@ -62,6 +62,10 @@ Other source settings:
 source:
   type: metronome
   target_ms: 30000
+
+# Land Speed Record: highest speed through InSim checkpoint 1 wins.
+source:
+  type: land_speed_record
 
 # Bomb: most checkpoints wins, then longest survival time.
 source:
@@ -100,14 +104,14 @@ attempts may be lost, while recorded results remain.
 
 Players are identified by case-insensitive LFS usernames and do not need to have
 signed into the website. Results are accepted only during the event window.
-Bomb, Metronome and Shortcut retain separate result storage and classification;
+Bomb, Metronome, Shortcut and Land Speed Record retain separate result storage and classification;
 ties use the earliest result, then its ID. These results do not enter validated
 hotlap charts.
 
 ## Public pages and imports
 
 The calendar and homepage link to `/events/{id}`. Imported LFS.net events redirect
-to the upstream page; our competitions show rules, the layout download, join
+to the upstream page; our competitions show rules, a join
 link while live, and paginated standings. Standings refresh every ten seconds
 until the event completes. The public page's Live status describes the scheduled
 window, not a server health check.
@@ -123,3 +127,26 @@ player identity, visibility and runtime ownership/cancellation. A real LFS host
 is needed to check layout placement, game mechanics, reconnects and event
 switching end to end. The standalone `lfsplanet_*` game runners remain available
 for developing a mode independently of the application.
+
+## Land Speed Record
+
+Use `game.source.type: land_speed_record` with a layout containing InSim
+checkpoint 1 as the speed trap. Forward crossings arm a measurement for that
+player; the first subsequent MCI update for their car supplies the speed.
+Telemetry is requested every 100ms. This measures just beyond the gate rather
+than interpolating an exact crossing speed. Crossings expire after two seconds
+and are cleared on leaving the track, pitting, disconnecting, driver swaps and
+session changes.
+
+Players can run simultaneously and slipstreaming is allowed. A crossing scores
+once, without spectating the player, so the layout should provide a safe return
+route for repeated attempts. Existing vehicle, ballast and intake restrictions
+apply. Each player's highest speed is classified; equal speeds favour the
+earliest recorded result. Speed is stored before display rounding and shown in
+km/h to two decimal places on the in-game HUD and event page.
+
+The mode also has a standalone runner:
+
+```sh
+cargo run --locked -p lfsplanet_land_speed_record -- --help
+```

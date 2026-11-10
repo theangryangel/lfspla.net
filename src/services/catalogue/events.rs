@@ -45,6 +45,23 @@ impl EventDefinition {
             !layout.objects.is_empty(),
             "game layout must contain objects"
         );
+        if matches!(
+            self.game.source,
+            crate::models::event::game::GameSource::LandSpeedRecord
+        ) {
+            ensure!(
+                layout.objects.iter().any(|object| matches!(
+                    object,
+                    insim::core::object::ObjectInfo::InsimCheckpoint(
+                        insim::core::object::insim::InsimCheckpoint {
+                            kind: insim::core::object::insim::InsimCheckpointKind::Checkpoint1,
+                            ..
+                        }
+                    )
+                )),
+                "Land Speed Record layout must include InSim checkpoint 1 as the speed trap"
+            );
+        }
         Ok(bytes)
     }
     pub(crate) fn validate(&self, source: &Path) -> anyhow::Result<()> {
@@ -300,6 +317,20 @@ mod tests {
         let mut event = definition();
         assert!(event.validate(&source).is_err());
         layout(&dir.path().join("test.lyt"));
+        event.validate(&source).unwrap();
+        event.game.source = crate::models::event::game::GameSource::LandSpeedRecord;
+        assert!(
+            event
+                .validate(&source)
+                .unwrap_err()
+                .to_string()
+                .contains("checkpoint 1")
+        );
+        // Object index 252 is an InSim checkpoint; flags 1 selects checkpoint 1.
+        let mut bytes = std::fs::read(dir.path().join("test.lyt")).unwrap();
+        bytes[18] = 252;
+        bytes[17] = 1;
+        std::fs::write(dir.path().join("test.lyt"), bytes).unwrap();
         event.validate(&source).unwrap();
         event.game.source = crate::models::event::game::GameSource::Metronome { target_ms: 0 };
         assert!(event.validate(&source).is_err());
