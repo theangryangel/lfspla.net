@@ -2,8 +2,10 @@
 
 export interface Standing {
   checkpoint_count?: (number | null) | undefined;
+  country_code?: (string | null) | undefined;
   delta_ms?: (number | null) | undefined;
   display_name: string;
+  flag_code?: (string | null) | undefined;
   player_id: number;
   position: number;
   survival_ms?: (number | null) | undefined;

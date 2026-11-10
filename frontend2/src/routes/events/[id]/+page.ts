@@ -41,10 +41,21 @@ export const load: PageLoad = async ({
     page,
     per_page: 50,
   });
+  const leader =
+    page === 1
+      ? results.items[0]
+      : (
+          await api.events.eventResults({
+            event_id: event.id,
+            page: 1,
+            per_page: 1,
+          })
+        ).items[0];
   const { breadcrumbs } = await parent();
   return {
     event,
     results,
+    leader,
     breadcrumbs: [
       ...breadcrumbs,
       { label: event.title, href: `/events/${event.id}` },

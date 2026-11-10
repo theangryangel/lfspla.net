@@ -32,8 +32,6 @@ pub(crate) struct EventDetail {
     pub join_url: Option<String>,
     #[schema(required)]
     pub game: Option<GameConfig>,
-    #[schema(required)]
-    pub layout_url: Option<String>,
 }
 async fn visible(state: &ApiState, id: i64) -> Result<event::Model, ApiError> {
     event::Entity::find_by_id(id)
@@ -54,14 +52,6 @@ pub(crate) async fn get_event(
     let game = row
         .game()
         .map_err(|e| ApiError::internal(&e, "game configuration"))?;
-    let layout_url = if let Some(id) = row.layout_attachment_id {
-        let attachment = crate::models::attachment::Model::required(&state.database, id)
-            .await
-            .map_err(ApiError::database)?;
-        Some(format!("/api/v1/attachments/{}", attachment.public_id))
-    } else {
-        None
-    };
     let format = |value: time::OffsetDateTime| {
         value
             .format(&Rfc3339)
@@ -77,7 +67,6 @@ pub(crate) async fn get_event(
         ends_at: row.ends_at.map(format).transpose()?,
         join_url: row.signup_url,
         game,
-        layout_url,
     }))
 }
 #[utoipa::path(get, path = "/api/v1/events/{event_id}/results", operation_id = "event_results", tag = "events",

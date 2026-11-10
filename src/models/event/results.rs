@@ -10,6 +10,8 @@ pub struct Standing {
     pub player_id: i64,
     pub username: String,
     pub display_name: String,
+    pub country_code: Option<String>,
+    pub flag_code: Option<String>,
     pub vehicle: Option<String>,
     pub checkpoint_count: Option<i64>,
     pub survival_ms: Option<i64>,
@@ -35,7 +37,7 @@ pub(crate) async fn standings(
             .bind(event_id)
             .fetch_one(&mut *tx)
             .await?;
-    let rows = sqlx::query_as::<_, Standing>("SELECT r.position, r.player_id, p.lfs_username AS username, p.display_name, r.vehicle, r.checkpoint_count, r.survival_ms, r.time_ms, r.delta_ms FROM game_event_standing r JOIN player p ON p.id=r.player_id WHERE event_id=$1 ORDER BY r.position LIMIT $2 OFFSET $3")
+    let rows = sqlx::query_as::<_, Standing>("SELECT r.position, r.player_id, p.lfs_username AS username, p.display_name, p.country_code, p.flag_code, r.vehicle, r.checkpoint_count, r.survival_ms, r.time_ms, r.delta_ms FROM game_event_standing r JOIN player p ON p.id=r.player_id WHERE event_id=$1 ORDER BY r.position LIMIT $2 OFFSET $3")
         .bind(event_id).bind(limit).bind(offset).fetch_all(&mut *tx).await?;
     tx.commit().await?;
     Ok((rows, total))
@@ -180,8 +182,22 @@ mod tests {
                     EventKind::Shortcut
                 }
             };
+            sqlx::query("UPDATE player SET country_code='GB', flag_code='GB-ENG' WHERE lower(lfs_username)='alpha'")
+                .execute(&pool)
+                .await?;
             let (rows, total) = standings(&pool, event, kind, 10, 0).await?;
             assert_eq!(total, 3);
+            let alpha = rows
+                .iter()
+                .find(|row| row.username.eq_ignore_ascii_case("alpha"))
+                .unwrap();
+            assert_eq!(alpha.country_code.as_deref(), Some("GB"));
+            assert_eq!(alpha.flag_code.as_deref(), Some("GB-ENG"));
+            assert!(
+                rows.iter()
+                    .filter(|row| row.username != alpha.username)
+                    .all(|row| row.country_code.is_none() && row.flag_code.is_none())
+            );
             let expected = if source == "metronome" {
                 ["alpha", "Beta", "Charlie"]
             } else {

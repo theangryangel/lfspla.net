@@ -204,7 +204,7 @@ async fn event_details_and_results_respect_visibility_and_expose_source(
         .await?;
     let attachment: i64 = sqlx::query_scalar("INSERT INTO attachment(object_key,media_type,extension) VALUES ('layout.lyt','application/octet-stream','lyt') RETURNING id").fetch_one(&pool).await?;
     let game: i64 = sqlx::query_scalar("INSERT INTO event(league_id,title,starts_at,ends_at,source,catalogue_id,game_config,layout_attachment_id) VALUES ($1,'Bomb',now()+interval '1 day',now()+interval '2 days','bomb','bomb-detail','{\"source\":{\"type\":\"bomb\",\"checkpoint_timeout_secs\":30,\"checkpoint_penalty_ms\":250,\"collision_max_penalty_ms\":500},\"track\":\"BL1\",\"vehicles\":[]}',$2) RETURNING id").bind(league).bind(attachment).fetch_one(&pool).await?;
-    let imported: i64 = sqlx::query_scalar("INSERT INTO event(league_id,title,starts_at,source,external_id,source_url) VALUES ($1,'External',now(),'lfs_net','detail-source','https://www.lfs.net/leagues/432') RETURNING id").bind(league).fetch_one(&pool).await?;
+    let imported: i64 = sqlx::query_scalar("INSERT INTO event(league_id,title,starts_at,source,external_id,source_url) VALUES ($1,'External',now()+interval '1 day','lfs_net','detail-source','https://www.lfs.net/leagues/432') RETURNING id").bind(league).fetch_one(&pool).await?;
     let state = ApiState {
         database: SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone()),
         object_store: Arc::new(object_store::memory::InMemory::new()),
@@ -212,15 +212,30 @@ async fn event_details_and_results_respect_visibility_and_expose_source(
         hotlaps: crate::settings::HotlapSettings::default(),
         site_notice: None,
     };
+    let listing = body(state.clone(), "").await;
+    let listed_external = listing["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["id"] == imported)
+        .unwrap();
+    assert_eq!(listed_external["source"], "lfs_net");
+    assert_eq!(
+        listed_external["source_url"],
+        "https://www.lfs.net/leagues/432"
+    );
+    let listed_game = listing["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["id"] == game)
+        .unwrap();
+    assert_eq!(listed_game["source"], "bomb");
+    assert!(listed_game["source_url"].is_null());
     let detail = body(state.clone(), &format!("/{game}")).await;
     assert_eq!(detail["source"], "bomb");
     assert_eq!(detail["game"]["source"]["type"], "bomb");
-    assert!(
-        detail["layout_url"]
-            .as_str()
-            .unwrap()
-            .starts_with("/api/v1/attachments/")
-    );
+    assert!(detail.get("layout_url").is_none());
     let results = body(state.clone(), &format!("/{game}/results")).await;
     assert_eq!(results["pagination"]["total_items"], 0);
     let external = body(state.clone(), &format!("/{imported}")).await;

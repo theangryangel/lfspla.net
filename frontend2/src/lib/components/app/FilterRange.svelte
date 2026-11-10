@@ -123,7 +123,7 @@
 			placeholder="Min"
 			class="min-w-0"
 		/>
-		<span class="text-sm text-muted-foreground" aria-hidden="true">–</span>
+		<span class="text-sm text-muted-foreground" aria-hidden="true">-</span>
 		<Input
 			type="number"
 			min="0"

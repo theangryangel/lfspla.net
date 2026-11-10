@@ -47,6 +47,9 @@ pub(crate) struct EventSeason {
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct EventSummary {
     id: i64,
+    source: crate::models::event::game::EventKind,
+    #[schema(required)]
+    source_url: Option<String>,
     league: EventLeague,
     #[schema(required)]
     season: Option<EventSeason>,
@@ -148,6 +151,8 @@ pub(crate) async fn list_events(
         .map(|row| {
             Ok(EventSummary {
                 id: row.id,
+                source: row.source,
+                source_url: row.source_url,
                 league: EventLeague {
                     id: row.league_id,
                     name: row.league_name,

@@ -11,6 +11,8 @@ use time::OffsetDateTime;
 #[derive(Debug, FromQueryResult)]
 pub(crate) struct EventListEntry {
     pub id: i64,
+    pub source: Source,
+    pub source_url: Option<String>,
     pub league_id: i64,
     pub league_name: String,
     pub league_image_attachment_id: Option<i64>,

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { eventHref } from '#lib/events.js';
 	import DateTime from '#lib/components/app/DateTime.svelte';
 	import type { EventSummary } from '#lib/api.js';
 	import Thumbnail from './Thumbnail.svelte';
@@ -60,7 +61,7 @@
 {/snippet}
 
 <a
-	href={`/events/${event.id}`}
+	href={eventHref(event)}
 	aria-label={title}
 	class={cn(
 		CARD,

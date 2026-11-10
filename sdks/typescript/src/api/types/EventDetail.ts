@@ -8,7 +8,6 @@ export interface EventDetail {
   game: LfsplanetApi.GameConfig | null;
   id: number;
   join_url: string | null;
-  layout_url: string | null;
   source: LfsplanetApi.EventKind;
   source_url: string | null;
   starts_at: string;
