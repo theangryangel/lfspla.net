@@ -32,6 +32,19 @@ pub(crate) enum HotlapCommand {
         #[arg(long, value_name = "DIRECTORY")]
         spr_dir: Option<PathBuf>,
     },
+    /// Check stored SPRs in an explicitly selected scope.
+    VerifySprs {
+        /// Delete hotlaps whose SPRs fail parsing; storage read failures are retained.
+        #[arg(long, global = true)]
+        delete_invalid: bool,
+        #[command(subcommand)]
+        scope: verify_sprs::Scope,
+    },
+    /// Delete a stored hotlap and restore affected personal bests and rankings.
+    Delete {
+        #[arg(value_name = "HOTLAP_ID", value_parser = clap::value_parser!(i64).range(1..))]
+        id: i64,
+    },
     /// Reclassify hotlaps and rebuild personal bests and chart positions.
     FixEras,
     /// Rebuild player badges for selected eras.
@@ -58,17 +71,24 @@ pub(crate) struct RebadgeScope {
     pub(crate) eras: Vec<crate::era_slug::EraSlug>,
 }
 
+mod delete;
 mod fix_eras;
 mod import_lfsworld;
 mod inspect;
 mod rebadge;
 mod validate;
+mod verify_sprs;
 
 use crate::cli::Args;
 
 /// Runs one hotlap command.
 pub(crate) async fn run(args: &Args, action: &HotlapCommand) -> anyhow::Result<()> {
     match action {
+        HotlapCommand::VerifySprs {
+            scope,
+            delete_invalid,
+        } => verify_sprs::run(args, scope, *delete_invalid).await,
+        HotlapCommand::Delete { id } => delete::run(args, *id).await,
         HotlapCommand::Inspect { replay } => inspect::run(replay),
         HotlapCommand::ImportLfsworld {
             hotlaps_csv,

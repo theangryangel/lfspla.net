@@ -2432,6 +2432,7 @@ dependencies = [
  "bytes",
  "insim",
  "insim_core",
+ "memchr",
  "regex",
  "thiserror 2.0.21",
 ]

@@ -1,7 +1,9 @@
 //! Parser for the documented 192-byte header of Live for Speed single-player
 //! replay (`.spr`) files.
 //!
-//! The undocumented replay stream following the header is not read.
+//! After parsing the header, `SprHeader::read` scans the undocumented replay
+//! stream and rejects files containing both `Test Drive\0` and `TEST DRV`.
+//! `SprHeader::decode` remains header-only parsing.
 
 mod error;
 mod filename;

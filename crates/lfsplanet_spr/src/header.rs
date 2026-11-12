@@ -13,6 +13,10 @@ pub const HEADER_LEN: usize = 192;
 
 const MAGIC: &[u8; 6] = b"LFSSPR";
 const ENCODED_HEADER_LEN: usize = HEADER_LEN - MAGIC.len();
+const TEST_DRIVE_MARKER: &[u8] = b"Test Drive\0";
+const TEST_DRIVE_PLATE: &[u8] = b"TEST DRV";
+// Parser safety limit, separate from the configurable HTTP upload limit.
+const MAX_SPR_LEN: u64 = 64 * 1024 * 1024;
 
 /// The two file-version bytes stored at offsets 6 and 7.
 ///
@@ -111,7 +115,12 @@ pub struct SprHeader {
 }
 
 impl SprHeader {
-    /// Reads and parses the fixed SPR header without reading the replay stream.
+    /// Parses the fixed SPR header, then reads and checks up to 64 MiB of replay data.
+    /// Larger replay streams are rejected.
+    ///
+    /// Rejects replay data containing both `Test Drive\0` and `TEST DRV`.
+    /// This is a heuristic: the replay stream is undocumented, and another
+    /// string field could contain the same marker.
     pub fn read<R: Read>(mut reader: R) -> Result<Self, Error> {
         let mut magic = [0_u8; 6];
         reader.read_exact(&mut magic)?;
@@ -124,10 +133,27 @@ impl SprHeader {
         let mut encoded_header = [0_u8; ENCODED_HEADER_LEN];
         reader.read_exact(&mut encoded_header)?;
         let mut bytes = Bytes::copy_from_slice(&encoded_header);
-        Ok(Self::decode(&mut DecodeContext::new(&mut bytes))?)
+        let header = Self::decode(&mut DecodeContext::new(&mut bytes))?;
+
+        let mut rest = Vec::new();
+        reader.take(MAX_SPR_LEN + 1).read_to_end(&mut rest)?;
+        if rest.len() as u64 > MAX_SPR_LEN {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::FileTooLarge,
+                "SPR replay data exceeds 64 MiB",
+            )
+            .into());
+        }
+        if memchr::memmem::find(&rest, TEST_DRIVE_MARKER).is_some()
+            && memchr::memmem::find(&rest, TEST_DRIVE_PLATE).is_some()
+        {
+            return Err(Error::TestDrive);
+        }
+
+        Ok(header)
     }
 
-    /// Opens an SPR file and parses only its fixed header.
+    /// Opens an SPR file, parses its header and checks the remaining stream.
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         Self::read(fs::File::open(path)?)
     }
@@ -341,7 +367,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_typed_header_without_reading_replay_data() {
+    fn parses_typed_header_and_consumes_replay_data() {
         let mut input = valid_spr();
         input.extend_from_slice(&[0xde, 0xad, 0xbe, 0xef]);
         let mut input = Cursor::new(input);
@@ -371,7 +397,24 @@ mod tests {
         assert_eq!(header.flags, -7);
         assert_eq!(header.replay_length, Some(Duration::from_millis(123_450)));
         assert_eq!(header.local_driver_name, "^1Racer");
-        assert_eq!(input.position(), HEADER_LEN as u64);
+        assert_eq!(input.position(), (HEADER_LEN + 4) as u64);
+    }
+
+    #[test]
+    fn accepts_either_test_drive_marker_on_its_own() {
+        for marker in [TEST_DRIVE_MARKER, TEST_DRIVE_PLATE] {
+            let mut input = valid_spr();
+            input.extend_from_slice(marker);
+            SprHeader::read(Cursor::new(input)).expect("both markers are required");
+        }
+    }
+
+    #[test]
+    fn requires_exact_nul_terminated_marker_in_replay_data() {
+        let mut input = valid_spr();
+        put_text(&mut input[160..192], b"Test Drive");
+        input.extend_from_slice(b"TEST DRV Test Driver\0test drive\0Test Drive");
+        SprHeader::read(Cursor::new(input)).expect("only exact trailing markers are rejected");
     }
 
     #[test]
