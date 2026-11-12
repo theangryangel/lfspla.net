@@ -307,15 +307,29 @@ LIMIT 1
         hotlap_id: i64,
         player_id: i64,
     ) -> Result<Option<(i64, bool)>, sea_orm::DbErr> {
+        Self::delete_matching(database, hotlap_id, Some(player_id)).await
+    }
+
+    /// Operator deletion, including imported hotlaps.
+    pub(crate) async fn delete_by_id(
+        database: &DatabaseConnection,
+        hotlap_id: i64,
+    ) -> Result<Option<(i64, bool)>, sea_orm::DbErr> {
+        Self::delete_matching(database, hotlap_id, None).await
+    }
+
+    async fn delete_matching(
+        database: &DatabaseConnection,
+        hotlap_id: i64,
+        owner: Option<i64>,
+    ) -> Result<Option<(i64, bool)>, sea_orm::DbErr> {
         let transaction = database.begin().await?;
         crate::db::lock_catalogue_read(&transaction).await?;
-        let Some(hotlap) = HotlapEntity::find_by_id(hotlap_id)
-            .uploads()
-            .owned_by(player_id)
-            .lock_exclusive()
-            .one(&transaction)
-            .await?
-        else {
+        let mut query = HotlapEntity::find_by_id(hotlap_id);
+        if let Some(player_id) = owner {
+            query = query.uploads().owned_by(player_id);
+        }
+        let Some(hotlap) = query.lock_exclusive().one(&transaction).await? else {
             transaction.rollback().await?;
             return Ok(None);
         };

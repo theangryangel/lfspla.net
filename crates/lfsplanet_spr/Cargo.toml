@@ -13,6 +13,7 @@ doctest = false
 bytes = { workspace = true }
 insim = { workspace = true }
 insim_core = { workspace = true }
+memchr = { workspace = true }
 regex = { workspace = true }
 thiserror = { workspace = true }
 

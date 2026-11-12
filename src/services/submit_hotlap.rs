@@ -18,6 +18,8 @@ use sha2::{Digest, Sha256};
 use std::{io::Cursor, time::Duration};
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SubmitError {
+    #[error("test-drive replays are not accepted")]
+    TestDrive,
     #[error("the SPR header could not be parsed")]
     InvalidSpr,
     #[error("the replay belongs to another era")]
@@ -43,6 +45,15 @@ pub(crate) enum SubmitError {
     Admission(#[from] InsertError),
 }
 
+impl From<lfsplanet_spr::Error> for SubmitError {
+    fn from(error: lfsplanet_spr::Error) -> Self {
+        match error {
+            lfsplanet_spr::Error::TestDrive => Self::TestDrive,
+            _ => Self::InvalidSpr,
+        }
+    }
+}
+
 /// The adapter has checked filename and body size before calling this workflow.
 pub(crate) async fn submit(
     database: &DatabaseConnection,
@@ -54,8 +65,8 @@ pub(crate) async fn submit(
     bytes: Bytes,
 ) -> Result<Hotlap, SubmitError> {
     let header = lfsplanet_spr::SprHeader::read(Cursor::new(bytes.as_ref())).map_err(|error| {
-        tracing::debug!(?error, "uploaded SPR header could not be parsed");
-        SubmitError::InvalidSpr
+        tracing::debug!(?error, "uploaded SPR was rejected");
+        SubmitError::from(error)
     })?;
 
     if !era.accepts_replay_version(&header.lfs_version) {
@@ -296,6 +307,18 @@ mod tests {
         )
         .await?;
         Ok(())
+    }
+
+    #[test]
+    fn test_drive_rejection_preserves_the_reason() {
+        let mut bytes = replay(30, "worker-test").to_vec();
+        bytes.extend_from_slice(b"Test Drive\0TEST DRV");
+        let error = lfsplanet_spr::SprHeader::read(Cursor::new(bytes)).unwrap_err();
+        assert!(matches!(SubmitError::from(error), SubmitError::TestDrive));
+        assert!(matches!(
+            SubmitError::from(lfsplanet_spr::Error::InvalidMagic { found: *b"LFSMPR" }),
+            SubmitError::InvalidSpr
+        ));
     }
 
     #[test]

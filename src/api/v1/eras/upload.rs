@@ -205,6 +205,11 @@ fn wrong_era(era: &Era, version: &GameVersion, accepting: Option<Box<Era>>) -> A
 fn submission_error(error: crate::services::submit_hotlap::SubmitError, era: &Era) -> ApiError {
     use crate::services::submit_hotlap::SubmitError;
     match error {
+        SubmitError::TestDrive => ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "test_drive_replay",
+            "Replays recorded using Test Drive cannot be submitted as hotlaps.",
+        ),
         SubmitError::InvalidSpr => ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
             "invalid_spr",

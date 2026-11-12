@@ -187,3 +187,44 @@ lfsplanet hotlap rebadge --all
 
 See [eras and rankings](eras.md) for policy changes and
 [replay validation](validator.md) for host requirements.
+
+To audit stored SPRs without modifying hotlaps, select an `era`, `player` or single `hotlap` scope.
+For an era, optional `--player` narrows the selection before replay downloads:
+
+```sh
+lfsplanet hotlap verify-sprs era 0.8
+lfsplanet hotlap verify-sprs era 0.8 --player mgxpower
+lfsplanet hotlap verify-sprs player mgxpower
+lfsplanet hotlap verify-sprs hotlap 123
+```
+
+Structured tracing events report hotlap/player/era IDs, track, vehicle, state
+and rejection reason, followed by a verification summary. Test-drive detection requires both `Test Drive\0` and `TEST DRV` in replay
+data. Other parser failures are reported too. Rows without SPR attachments are
+counted separately; storage read failures are reported and make the command exit
+unsuccessfully after finishing the selected scope. No HLVC process is run.
+
+Add `--delete-invalid` to delete parser-rejected hotlaps in the selected scope:
+
+```sh
+lfsplanet hotlap verify-sprs era 0.8 --delete-invalid
+lfsplanet hotlap verify-sprs player mgxpower --delete-invalid
+lfsplanet hotlap verify-sprs hotlap 123 --delete-invalid
+```
+
+Without the flag, verification is read-only. Storage read failures and hotlaps
+without SPR attachments are never deleted. Deletions restore personal bests and
+chart positions; badges are rebuilt once per affected era. Deletion or badge
+rebuild failures are logged and cause an unsuccessful exit. Attachments remain
+for storage GC.
+
+After reviewing a result, remove a hotlap by ID:
+
+```sh
+lfsplanet hotlap delete 123
+```
+
+This immediately deletes the row, including imported laps. For published laps it
+restores the player's next valid personal best, reranks the chart and rebuilds
+badges for the affected era. Unreferenced SPR/RAF attachments remain for storage
+GC.
