@@ -56,7 +56,7 @@
     {
       "description": "insim, insim_core are pulled from the insim.rs main branch as git dependencies; renovate must not manage them.",
       "matchManagers": ["cargo"],
-      "matchPackageNames": ["insim", "insim_core"],
+      "matchPackageNames": ["insim", "insim_core", "insim_pth"],
       "enabled": false
     },
     {

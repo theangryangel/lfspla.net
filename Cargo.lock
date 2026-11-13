@@ -1634,9 +1634,9 @@ dependencies = [
 
 [[package]]
 name = "glam"
-version = "0.33.7"
+version = "0.34.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e762b9b188634fc508d4ec54b62ea3d352c43fd431d18d05d46f559f217f4725"
+checksum = "627003914c6057c9c8f0832ee4f870b5a4f599d0cfa83f4072675114860cd0ff"
 dependencies = [
  "serde_core",
 ]
@@ -2058,7 +2058,7 @@ dependencies = [
 [[package]]
 name = "insim"
 version = "4.1.0"
-source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9eb018ce6e3a9995c808d7cf58609154297c22e8#9eb018ce6e3a9995c808d7cf58609154297c22e8"
 dependencies = [
  "bitflags",
  "bytes",
@@ -2075,7 +2075,7 @@ dependencies = [
 [[package]]
 name = "insim_core"
 version = "3.0.0"
-source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9eb018ce6e3a9995c808d7cf58609154297c22e8#9eb018ce6e3a9995c808d7cf58609154297c22e8"
 dependencies = [
  "arrayvec",
  "bitflags",
@@ -2094,7 +2094,7 @@ dependencies = [
 [[package]]
 name = "insim_macros"
 version = "0.1.0"
-source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9eb018ce6e3a9995c808d7cf58609154297c22e8#9eb018ce6e3a9995c808d7cf58609154297c22e8"
 dependencies = [
  "darling 0.24.1",
  "proc-macro2",
@@ -2105,7 +2105,7 @@ dependencies = [
 [[package]]
 name = "insim_pth"
 version = "3.1.0"
-source = "git+https://github.com/theangryangel/insim.rs.git?rev=6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0#6b1ecc961b23227df1ac9d0f96a7ecf03ba309f0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=9eb018ce6e3a9995c808d7cf58609154297c22e8#9eb018ce6e3a9995c808d7cf58609154297c22e8"
 dependencies = [
  "bitflags",
  "bytes",
