@@ -35,8 +35,9 @@ pub fn build(settings: &StorageSettings) -> anyhow::Result<Arc<dyn ObjectStore>>
 pub(crate) fn download_disposition(attachment: &crate::models::attachment::Model) -> String {
     let fallback = format!("{}.{}", attachment.public_id, attachment.extension);
     let filename = attachment
-        .original_filename
+        .filename
         .as_deref()
+        .or(attachment.original_filename.as_deref())
         .and_then(|name| name.rsplit(['/', '\\']).next())
         .map(str::trim)
         .filter(|name| !name.is_empty() && !matches!(*name, "." | ".."))
@@ -81,45 +82,48 @@ mod filename_tests {
     use super::*;
 
     #[test]
-    fn download_names_preserve_originals_and_use_the_actual_extension_as_fallback() {
+    fn download_names_use_stored_names_and_the_actual_extension_as_fallback() {
         let mut file = crate::models::attachment::Model {
             id: 1,
             public_id: sea_orm::prelude::Uuid::from_u128(1),
             object_key: "file.zip".to_owned(),
             original_filename: None,
+            filename: None,
             sha256: None,
             size_bytes: None,
             media_type: "application/zip".to_owned(),
             extension: "zip".to_owned(),
             created_at: time::OffsetDateTime::UNIX_EPOCH,
         };
-        file.original_filename = Some("folder/driver lap.zip".to_owned());
+        file.original_filename = Some("uploaded.zip".to_owned());
+        file.filename = Some("folder/driver lap.zip".to_owned());
         assert_eq!(
             download_disposition(&file),
             "attachment; filename=\"driver lap.zip\"; filename*=UTF-8''driver%20lap.zip"
         );
+        file.original_filename = None;
         for absent in [None, Some(""), Some("  "), Some(".."), Some("folder/")] {
-            file.original_filename = absent.map(str::to_owned);
+            file.filename = absent.map(str::to_owned);
             assert!(
                 download_disposition(&file).contains("00000000-0000-0000-0000-000000000001.zip")
             );
         }
-        file.original_filename = Some("C:\\laps\\andré.zip".to_owned());
+        file.filename = Some("C:\\laps\\andré.zip".to_owned());
         assert_eq!(
             download_disposition(&file),
             "attachment; filename=\"andr_.zip\"; filename*=UTF-8''andr%C3%A9.zip"
         );
-        file.original_filename = Some("../driver\"\r\n.zip".to_owned());
+        file.filename = Some("../driver\"\r\n.zip".to_owned());
         let unsafe_name = download_disposition(&file);
         assert!(!unsafe_name.contains(['\r', '\n']));
         assert!(unsafe_name.contains("driver___.zip"));
         file.extension = "raf".to_owned();
         file.media_type = "application/octet-stream".to_owned();
-        file.original_filename = Some("actual telemetry.raf".to_owned());
+        file.filename = Some("actual telemetry.raf".to_owned());
         assert!(download_disposition(&file).contains("actual telemetry.raf"));
         file.extension = "png".to_owned();
         file.media_type = "image/png".to_owned();
-        file.original_filename = None;
+        file.filename = None;
         let header = download_disposition(&file);
         assert!(header.starts_with("inline;"));
         assert!(header.contains("00000000-0000-0000-0000-000000000001.png"));

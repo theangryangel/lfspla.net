@@ -102,13 +102,22 @@ impl ReplayIndex {
                 }
             };
             let transaction = database.begin().await?;
-            let attachment = Attachment::store(
+            let filename = lfsplanet_spr::ConventionalFilename {
+                username: lap.lfs_username.clone(),
+                track: lap.track.parse()?,
+                vehicle: lap.vehicle.parse().expect("vehicle parsing is infallible"),
+                lap_time: std::time::Duration::try_from(lap.lap_time_ms)?,
+                extension: "spr".to_owned(),
+            }
+            .to_string();
+            let attachment = Attachment::store_with_filename(
                 &transaction,
                 store,
                 bytes,
                 "spr",
                 "application/octet-stream",
                 Some(&lap.spr_filename),
+                Some(&filename),
             )
             .await
             .with_context(|| format!("failed to store SPR {:?}", lap.spr_filename))?;

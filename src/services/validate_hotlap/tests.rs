@@ -148,3 +148,36 @@ FROM hotlap CROSS JOIN (VALUES
     );
     Ok(())
 }
+
+#[sqlx::test]
+#[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+async fn raf_names_use_hotlap_metadata_and_preserve_the_generated_name(
+    pool: sqlx::PgPool,
+) -> anyhow::Result<()> {
+    sqlx::raw_sql(include_str!("fixtures.sql"))
+        .execute(&pool)
+        .await?;
+    let processor = processor(pool);
+    let transaction = processor.database.begin().await?;
+    let hotlap = HotlapEntity::find().one(&transaction).await?.unwrap();
+    let file = processor
+        .store_raf(
+            &transaction,
+            &hotlap,
+            lfsplanet_lfs::RafFile {
+                filename: "actual-LFS-output.RAF".to_owned(),
+                bytes: b"telemetry".to_vec(),
+            },
+        )
+        .await?;
+    assert_eq!(
+        file.original_filename.as_deref(),
+        Some("actual-LFS-output.RAF")
+    );
+    assert_eq!(
+        file.filename.as_deref(),
+        Some("worker-test_BL1_XFG_100000.raf")
+    );
+    transaction.commit().await?;
+    Ok(())
+}
