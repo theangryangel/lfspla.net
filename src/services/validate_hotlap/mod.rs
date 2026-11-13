@@ -102,7 +102,7 @@ impl Processor for HotlapValidation {
                 let published = result == HlvcResult::Ok && eligible;
                 if published {
                     if let Some(raf) = raf {
-                        match self.store_raf(&transaction, raf).await {
+                        match self.store_raf(&transaction, &hotlap, raf).await {
                             Ok(attachment) => active.raf_attachment_id = Set(Some(attachment.id)),
                             Err(error) => {
                                 tracing::warn!(?error, hotlap_id, "failed to store RAF attachment")
@@ -164,19 +164,34 @@ impl HotlapValidation {
     async fn store_raf(
         &self,
         transaction: &DatabaseTransaction,
+        hotlap: &Hotlap,
         raf: lfsplanet_lfs::RafFile,
     ) -> anyhow::Result<crate::models::attachment::Model> {
+        let player = hotlap
+            .find_related(crate::models::player::Entity)
+            .one(transaction)
+            .await?
+            .context("hotlap player missing")?;
+        let filename = lfsplanet_spr::ConventionalFilename {
+            username: player.lfs_username,
+            track: hotlap.track.0,
+            vehicle: hotlap.vehicle.0,
+            lap_time: Duration::try_from(hotlap.lap_time_ms)?,
+            extension: "raf".to_owned(),
+        }
+        .to_string();
         // A savepoint keeps a telemetry database error from aborting the verdict transaction.
         let savepoint = transaction.begin().await?;
         let result = tokio::time::timeout(
             Duration::from_secs(30),
-            crate::models::attachment::Model::store(
+            crate::models::attachment::Model::store_with_filename(
                 &savepoint,
                 &*self.object_store,
                 raf.bytes,
                 "raf",
                 "application/octet-stream",
                 Some(&raf.filename),
+                Some(&filename),
             ),
         )
         .await;

@@ -16,6 +16,8 @@ pub struct Model {
     pub public_id: Uuid,
     pub object_key: String,
     pub original_filename: Option<String>,
+    /// Filename used for downloads; canonical for hotlap replays and telemetry.
+    pub filename: Option<String>,
     /// Unknown for legacy objects; populated for newly stored files.
     pub sha256: Option<String>,
     pub size_bytes: Option<i64>,
@@ -61,6 +63,28 @@ impl Model {
         media_type: &str,
         original_filename: Option<&str>,
     ) -> anyhow::Result<Self> {
+        Self::store_with_filename(
+            database,
+            store,
+            bytes,
+            extension,
+            media_type,
+            original_filename,
+            original_filename,
+        )
+        .await
+    }
+
+    /// Store a file with a download name independent of its source filename.
+    pub(crate) async fn store_with_filename(
+        database: &DatabaseTransaction,
+        store: &dyn ObjectStore,
+        bytes: Vec<u8>,
+        extension: &str,
+        media_type: &str,
+        original_filename: Option<&str>,
+        filename: Option<&str>,
+    ) -> anyhow::Result<Self> {
         anyhow::ensure!(
             !extension.is_empty()
                 && extension
@@ -75,9 +99,9 @@ impl Model {
         store.put(&Path::from(key.as_str()), bytes.into()).await?;
         Self::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "INSERT INTO attachment (object_key, sha256, size_bytes, media_type, extension, original_filename) VALUES ($1,$2,$3,$4,$5,$6)
+            "INSERT INTO attachment (object_key, sha256, size_bytes, media_type, extension, original_filename, filename) VALUES ($1,$2,$3,$4,$5,$6,$7)
              RETURNING *",
-            [key.into(), digest.into(), size.into(), media_type.into(), extension.into(), original_filename.map(str::to_owned).into()],
+            [key.into(), digest.into(), size.into(), media_type.into(), extension.into(), original_filename.map(str::to_owned).into(), filename.map(str::to_owned).into()],
         )).one(database).await?.context("attachment upsert returned no row")
     }
 
@@ -192,8 +216,12 @@ mod tests {
             2
         );
         assert_eq!(sqlx::query_scalar::<_, String>("SELECT a.object_key FROM hotlap h JOIN attachment a ON a.id = h.spr_attachment_id LIMIT 1").fetch_one(&pool).await?, "missing.spr");
-        let names: Vec<String> = sqlx::query_scalar("SELECT a.original_filename FROM hotlap h JOIN attachment a ON a.id = h.spr_attachment_id ORDER BY h.id").fetch_all(&pool).await?;
-        assert_eq!(names, ["test.spr", "another.spr"]);
+        let names: Vec<String> = sqlx::query_scalar("SELECT a.filename FROM hotlap h JOIN attachment a ON a.id = h.spr_attachment_id ORDER BY h.id").fetch_all(&pool).await?;
+        assert_eq!(names, ["worker-test_BL1_XFG_100000.spr"; 2]);
+        let originals: Vec<String> = sqlx::query_scalar("SELECT a.original_filename FROM hotlap h JOIN attachment a ON a.id = h.spr_attachment_id ORDER BY h.id").fetch_all(&pool).await?;
+        assert_eq!(originals, ["test.spr", "another.spr"]);
+        let raf: String = sqlx::query_scalar("SELECT a.filename FROM hotlap h JOIN attachment a ON a.id = h.raf_attachment_id LIMIT 1").fetch_one(&pool).await?;
+        assert_eq!(raf, "worker-test_BL1_XFG_100000.raf");
         assert_eq!(sqlx::query_scalar::<_, i64>("SELECT count(*) FROM information_schema.columns WHERE table_name = 'hotlap' AND column_name = 'original_filename'").fetch_one(&pool).await?, 0);
         assert!(
             sqlx::query("DELETE FROM attachment")
@@ -251,8 +279,8 @@ mod tests {
         assert_ne!(first.id, second.id);
         assert_ne!(first.public_id, second.public_id);
         assert_eq!(first.object_key, second.object_key);
-        assert_eq!(first.original_filename.as_deref(), Some("lap.spr"));
-        assert_eq!(second.original_filename.as_deref(), Some("other.spr"));
+        assert_eq!(first.filename.as_deref(), Some("lap.spr"));
+        assert_eq!(second.filename.as_deref(), Some("other.spr"));
         assert_eq!(first.public_id.get_version_num(), 4);
         assert_eq!(
             first.object_key,

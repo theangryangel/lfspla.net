@@ -61,7 +61,7 @@ pub(crate) async fn submit(
     settings: &HotlapSettings,
     era: &Era,
     player: &Player,
-    filename: &str,
+    original_filename: &str,
     bytes: Bytes,
 ) -> Result<Hotlap, SubmitError> {
     let header = lfsplanet_spr::SprHeader::read(Cursor::new(bytes.as_ref())).map_err(|error| {
@@ -138,13 +138,22 @@ pub(crate) async fn submit(
     let digest = hex::encode(Sha256::digest(&bytes));
     let transaction = database.begin().await?;
     crate::db::lock_catalogue_read(&transaction).await?;
-    let attachment = Attachment::store(
+    let filename = lfsplanet_spr::ConventionalFilename {
+        username: player.lfs_username.clone(),
+        track: header.track,
+        vehicle,
+        lap_time,
+        extension: "spr".to_owned(),
+    }
+    .to_string();
+    let attachment = Attachment::store_with_filename(
         &transaction,
         object_store,
         bytes.to_vec(),
         "spr",
         "application/octet-stream",
-        Some(filename),
+        Some(original_filename),
+        Some(&filename),
     )
     .await?;
 
@@ -250,7 +259,7 @@ mod tests {
                 &settings,
                 &era,
                 &player,
-                "lap.spr",
+                "my hotlap.spr",
                 replay(seconds, "worker-test"),
             )
             .await;
@@ -285,11 +294,17 @@ mod tests {
                 &settings,
                 &era,
                 &player,
-                "lap.spr",
+                "my hotlap.spr",
                 replay(seconds, "worker-test"),
             )
             .await?;
             assert_eq!(lap.state, hotlap::HotlapState::Pending);
+            let file = Attachment::required(&database, lap.spr_attachment_id.unwrap()).await?;
+            assert_eq!(file.original_filename.as_deref(), Some("my hotlap.spr"));
+            assert_eq!(
+                file.filename,
+                Some(format!("worker-test_BL1_XFG_0{seconds:02}000.spr"))
+            );
         }
         let new_player = crate::models::player::Entity::find()
             .filter(crate::models::player::Column::LfsUsername.eq("new-driver"))
@@ -302,7 +317,7 @@ mod tests {
             &settings,
             &era,
             &new_player,
-            "lap.spr",
+            "my hotlap.spr",
             replay(40, "new-driver"),
         )
         .await?;

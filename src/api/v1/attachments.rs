@@ -135,13 +135,14 @@ mod tests {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
         let store = Arc::new(object_store::memory::InMemory::new());
         let transaction = database.begin().await?;
-        let first = attachment::Model::store(
+        let first = attachment::Model::store_with_filename(
             &transaction,
             &*store,
             b"same bytes".to_vec(),
             "spr",
             "application/octet-stream",
             Some("first lap.spr"),
+            Some("driver_BL1_XFG_132900.spr"),
         )
         .await?;
         let second = attachment::Model::store(
@@ -181,6 +182,12 @@ mod tests {
         )
         .await?;
         transaction.commit().await?;
+        assert_eq!(first.original_filename.as_deref(), Some("first lap.spr"));
+        assert_eq!(first.filename.as_deref(), Some("driver_BL1_XFG_132900.spr"));
+        assert_eq!(
+            crate::storage::download_disposition(&first),
+            "attachment; filename=\"driver_BL1_XFG_132900.spr\"; filename*=UTF-8''driver_BL1_XFG_132900.spr"
+        );
         assert_ne!(first.public_id, second.public_id);
         assert_eq!(first.object_key, second.object_key);
         let state = ApiState {

@@ -195,9 +195,8 @@ mod tests {
         GameVersion::from_str(text).expect("test version should parse")
     }
 
-    #[test]
-    fn derives_every_control_setting_from_the_stored_flags() {
-        let model = Model {
+    fn model() -> Model {
+        Model {
             chart_id: 1,
             id: 7,
             player_id: 3,
@@ -230,8 +229,12 @@ mod tests {
             next_attempt_at: None,
             started_at: Some(time::OffsetDateTime::UNIX_EPOCH),
             finished_at: Some(time::OffsetDateTime::UNIX_EPOCH),
-        };
+        }
+    }
 
+    #[test]
+    fn derives_every_control_setting_from_the_stored_flags() {
+        let model = model();
         // Returned controls use the flags, not the separately stored steering value.
         let controls = model.controls();
         assert_eq!(controls.steering, SteeringInput::Mouse);

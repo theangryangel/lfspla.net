@@ -1,6 +1,7 @@
-//! Parsing for the conventional metadata-bearing SPR filename.
+//! Parsing and formatting for conventional metadata-bearing hotlap filenames.
 
 use std::{
+    fmt,
     path::{Path, PathBuf},
     str::FromStr,
     sync::LazyLock,
@@ -15,14 +16,14 @@ static CONVENTIONAL_FILENAME: LazyLock<Regex> = LazyLock::new(|| {
         // The lap time is minutes, then exactly two seconds digits and three
         // millisecond digits, so the regex splits the run rather than leaving
         // the caller to slice it back apart by byte offset.
-        r"(?i)^(?P<username>.+)_(?P<track>[A-Z0-9]+)_(?P<vehicle>[A-Z0-9]+)_(?P<minutes>[0-9]+)(?P<seconds>[0-9]{2})(?P<millis>[0-9]{3})\.spr$",
+        r"(?i)^(?P<username>.+)_(?P<track>[A-Z0-9]+)_(?P<vehicle>[A-Z0-9]+)_(?P<minutes>[0-9]+)(?P<seconds>[0-9]{2})(?P<millis>[0-9]{3})\.(?P<extension>spr|raf)$",
     )
-    .expect("the conventional SPR filename regex is valid")
+    .expect("the conventional hotlap filename regex is valid")
 });
 
-/// Metadata encoded by LFS's conventional hotlap replay filename.
+/// Metadata encoded by LFS's conventional hotlap replay or telemetry filename.
 ///
-/// SPR files do not have to use this filename format. Parse a filename as this
+/// Replay and telemetry files do not have to use this filename format. Parse a filename as this
 /// type only when the metadata-bearing LFS convention is expected. Conversions
 /// from [`Path`] and [`PathBuf`] inspect only the final filename component.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,6 +32,25 @@ pub struct ConventionalFilename {
     pub track: Track,
     pub vehicle: Vehicle,
     pub lap_time: Duration,
+    /// Lowercase file extension, normally `spr` or `raf`, without a leading dot.
+    pub extension: String,
+}
+
+impl fmt::Display for ConventionalFilename {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let millis = self.lap_time.as_millis();
+        write!(
+            formatter,
+            "{}_{}_{}_{}{:02}{:03}.{}",
+            self.username,
+            self.track,
+            self.vehicle,
+            millis / 60_000,
+            millis / 1_000 % 60,
+            millis % 1_000,
+            self.extension,
+        )
+    }
 }
 
 /// A malformed or unsupported conventional hotlap replay filename.
@@ -57,15 +77,17 @@ impl FromStr for ConventionalFilename {
 impl TryFrom<&str> for ConventionalFilename {
     type Error = ConventionalFilenameError;
 
-    /// Interprets `<username>_<track>_<vehicle>_<lap-time>.spr` from the right.
+    /// Interprets `<username>_<track>_<vehicle>_<lap-time>.<spr|raf>` from the right.
     fn try_from(filename: &str) -> Result<Self, Self::Error> {
         let captures = CONVENTIONAL_FILENAME
             .captures(filename)
             .ok_or(ConventionalFilenameError::Format)?;
         let track = captures["track"]
+            .to_ascii_uppercase()
             .parse::<Track>()
             .map_err(|_| ConventionalFilenameError::Track)?;
         let vehicle = captures["vehicle"]
+            .to_ascii_uppercase()
             .parse::<Vehicle>()
             .expect("insim_core vehicle parsing is infallible");
         if vehicle == Vehicle::Unknown {
@@ -82,6 +104,7 @@ impl TryFrom<&str> for ConventionalFilename {
             track,
             vehicle,
             lap_time,
+            extension: captures["extension"].to_ascii_lowercase(),
         })
     }
 }
@@ -131,6 +154,44 @@ fn lap_time(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn constructed_filenames_round_trip_through_the_parser() {
+        for (millis, suffix) in [(92_900, "132900"), (9_005, "009005"), (600_001, "1000001")] {
+            for extension in ["spr", "raf"] {
+                let filename = ConventionalFilename {
+                    username: "driver_with_underscores".to_owned(),
+                    track: Track::Bl1,
+                    vehicle: Vehicle::Xfg,
+                    lap_time: Duration::from_millis(millis),
+                    extension: extension.to_owned(),
+                };
+                let name = filename.to_string();
+                assert_eq!(
+                    name,
+                    format!("driver_with_underscores_BL1_XFG_{suffix}.{extension}")
+                );
+                assert_eq!(name.parse::<ConventionalFilename>().unwrap(), filename);
+            }
+        }
+    }
+
+    #[test]
+    fn parsed_filenames_display_canonical_codes_and_extensions() {
+        for extension in ["SPR", "RAF"] {
+            let parsed = format!("driver_bl1_xfg_132900.{extension}")
+                .parse::<ConventionalFilename>()
+                .unwrap();
+            assert_eq!(
+                parsed.to_string(),
+                format!("driver_BL1_XFG_132900.{}", extension.to_ascii_lowercase())
+            );
+        }
+        assert_eq!(
+            ConventionalFilename::try_from("driver_BL1_XFG_132900.zip"),
+            Err(ConventionalFilenameError::Format)
+        );
+    }
 
     #[test]
     fn parses_conventional_filename_from_the_right() {
