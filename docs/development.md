@@ -95,8 +95,27 @@ era, then rebuild rankings and badges across all its laps. Existing usernames
 reuse their player accounts; duplicate demo laps for the same player, track,
 and vehicle are skipped. With the same options and catalogue, repeating a seed
 adds no new data. Run `just demo` again to add another random batch. The final
-lap count reports newly inserted laps only. To start over, delete the demo era
-and hotlaps or recreate your disposable development database.
+lap count reports newly inserted laps only.
+
+Demo generation also creates three completed, explicitly labelled mini-game
+events: Bomb Run, Metronome and Shortcut. Each demo driver gets three synthetic
+attempts per mode, providing enough standings for pagination with the default
+100 players. The command prints their `/events/{id}` URLs and dates. Browse those
+links or navigate the calendar to those dates; completed events are not shown in
+the homepage's upcoming-event list. Events use short, completed slots in the current UTC calendar week, avoiding
+existing competitions. This works on Monday too.
+
+Event identities remain fixed. Rerunning moves existing demo events into the
+current week and adjusts attempt timestamps to match, preserving their scores. Existing drivers' game
+results are preserved; new drivers accumulate results in the same demo events.
+The events share a minimal, valid LYT preview stored in the configured attachment
+storage. It is labelled as a development preview, not a playable competition
+layout. No LFS host or external layout file is required. All event/result rows
+commit in the same transaction as the demo hotlaps.
+
+To start over completely, recreate your disposable development database and
+its attachment storage. Deleting just the demo hotlap era does not delete these
+separately grouped demo events.
 
 The command is compiled only when `debug_assertions` is enabled, as it is for
 ordinary `cargo run` builds. Normal `cargo build --release` builds omit the entire

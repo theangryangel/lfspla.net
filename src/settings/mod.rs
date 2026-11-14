@@ -1,6 +1,10 @@
 //! Application settings loaded from YAML. Fields validate on read; see [`types`].
 
 mod database;
+mod event_import;
+pub use event_import::EventImportSettings;
+mod game_server;
+pub use game_server::GameServerSettings;
 mod hlvc;
 mod hotlaps;
 mod lfs;
@@ -32,6 +36,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Settings {
+    /// Optional single-connection game server configuration.
+    pub game_server: Option<GameServerSettings>,
+    #[serde(default)]
+    pub event_import: EventImportSettings,
     /// How every process reaches PostgreSQL.
     pub database: DatabaseSettings,
     /// How the API process presents itself over HTTP.
@@ -77,6 +85,14 @@ impl Settings {
     fn from_yaml(text: &str, base_dir: &Path) -> anyhow::Result<Self> {
         let mut settings: Self = serde_saphyr::from_str(text).context("failed to parse YAML")?;
         settings.hotlaps.validate()?;
+        settings.event_import.validate()?;
+        if let Some(game) = &settings.game_server {
+            anyhow::ensure!(game.insim_address.port() > 0, "InSim port must be positive");
+            anyhow::ensure!(
+                game.poll_interval_seconds.get() <= 60,
+                "game poll interval must not exceed 60 seconds"
+            );
+        }
         // Resolve paths here because deserialization has no config directory.
         settings.lfs.resolve_paths(base_dir)?;
         settings.storage.resolve_paths(base_dir);
@@ -115,6 +131,20 @@ mod tests {
             Settings::from_yaml(&yaml("", sections), &config_dir()).is_err(),
             "accepted {sections:?}"
         );
+    }
+
+    #[test]
+    fn game_server_and_import_settings_validate() {
+        let settings = load(
+            "game_server:\n  insim_address: 127.0.0.1:29999\n  admin_password: secret\nevent_import:\n  ignore_title_regex: '^LFS Planet'\n  ignore_league_ids: [432]\n",
+        );
+        assert_eq!(settings.game_server.unwrap().poll_interval_seconds.get(), 2);
+        assert_rejected("game_server:\n  insim_address: invalid\n");
+        assert_rejected(
+            "game_server:\n  insim_address: 127.0.0.1:29999\n  poll_interval_seconds: 0\n",
+        );
+        assert_rejected("event_import:\n  ignore_title_regex: '['\n");
+        assert_rejected("event_import:\n  ignore_league_ids: [0]\n");
     }
 
     #[test]

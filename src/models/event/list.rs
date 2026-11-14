@@ -1,16 +1,18 @@
 //! Public event reads and reports of listings missing from a successful sync.
 
-use super::{Column, Entity, Model, source::Source};
+use super::{Column, Entity, Model, game::EventKind as Source};
 use crate::models::{league, season};
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, DbErr, EntityTrait, FromQueryResult, JoinType, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect, Select,
+    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, FromQueryResult, JoinType,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use time::OffsetDateTime;
 
 #[derive(Debug, FromQueryResult)]
 pub(crate) struct EventListEntry {
     pub id: i64,
+    pub source: Source,
+    pub source_url: Option<String>,
     pub league_id: i64,
     pub league_name: String,
     pub league_image_attachment_id: Option<i64>,
@@ -19,6 +21,7 @@ pub(crate) struct EventListEntry {
     pub title: String,
     pub description: Option<String>,
     pub starts_at: OffsetDateTime,
+    pub ends_at: Option<OffsetDateTime>,
     pub details_url: Option<String>,
     pub signup_url: Option<String>,
     pub track_label: Option<String>,
@@ -34,9 +37,15 @@ pub(crate) struct EventListFilters {
 
 impl EventListFilters {
     pub(crate) fn select(&self) -> Select<Entity> {
-        let mut events = Entity::find()
-            .filter(Column::Hidden.eq(false))
-            .filter(Column::StartsAt.gte(self.starts_from));
+        let mut events = Entity::find().filter(Column::Hidden.eq(false)).filter(
+            Condition::any()
+                .add(Column::EndsAt.gt(self.starts_from))
+                .add(
+                    Condition::all()
+                        .add(Column::EndsAt.is_null())
+                        .add(Column::StartsAt.gte(self.starts_from)),
+                ),
+        );
         if let Some(before) = self.starts_before {
             events = events.filter(Column::StartsAt.lt(before));
         }

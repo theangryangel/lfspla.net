@@ -5,6 +5,7 @@ mod assets;
 pub(crate) mod badges;
 pub(crate) mod community_cards;
 pub(crate) mod eras;
+pub(crate) mod events;
 #[cfg(test)]
 pub(crate) mod fixtures;
 pub(crate) mod load;
@@ -23,6 +24,7 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "kind")]
 pub(crate) enum CatalogueDefinition {
     Era(EraDefinition),
+    Event(events::EventDefinition),
     Badge(badges::BadgeDefinition),
     Location(locations::LocationDefinition),
     Vehicle(vehicles::VehicleDefinition),
@@ -42,6 +44,14 @@ impl CatalogueDefinition {
         use anyhow::Context;
         let mut applied = Applied::default();
         match self {
+            Self::Event(definition) => {
+                if definition
+                    .apply(transaction, object_store, dry_run, source)
+                    .await?
+                {
+                    applied.events.push(definition.id.clone());
+                }
+            }
             Self::Badge(definition) => {
                 if definition
                     .apply(transaction, object_store, dry_run, source)

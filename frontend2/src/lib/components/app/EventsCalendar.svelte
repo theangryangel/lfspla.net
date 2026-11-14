@@ -15,6 +15,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { useApi } from '#lib/api.js';
+	import { eventHref, eventIsLive } from '#lib/events.js';
 	import { dateTime } from '#lib/format.js';
 	import Empty from './Empty.svelte';
 	import Choices from './Choices.svelte';
@@ -83,7 +84,7 @@
 			lazyFetching: false,
 			editable: false,
 			selectable: false,
-			displayEventEnd: false,
+			displayEventEnd: true,
 			eventOrder: 'start,calendarOrder',
 			eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
 			listDayFormat: { day: 'numeric', month: 'short', year: 'numeric' },
@@ -124,10 +125,12 @@
 							.filter(Boolean)
 							.join(' / '),
 						start: event.starts_at,
+						end: event.ends_at ?? undefined,
 						allDay: false,
-						url: event.details_url ?? undefined,
+						url: eventHref(event),
 						extendedProps: {
 							calendarOrder: index,
+							isLive: eventIsLive(event),
 							lastInDay:
 								lastByDay.get(new Date(event.starts_at).toDateString()) ===
 								event.id,
@@ -175,6 +178,13 @@
 				}
 				const text = document.createElement('div');
 				text.className = 'min-w-0 flex-1 whitespace-normal wrap-anywhere';
+				if (info.event.extendedProps.isLive) {
+					const live = document.createElement('span');
+					live.className =
+						'mb-1 inline-flex items-center rounded-sm border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary';
+					live.textContent = 'Live';
+					text.append(live);
+				}
 				if (info.timeText) {
 					const time = document.createElement('time');
 					time.className = 'block text-muted-foreground tabular-nums';
@@ -200,21 +210,35 @@
 			},
 			eventDidMount(info) {
 				info.el.title = info.event.start
-					? `${info.event.title}\n${dateTime(info.event.start.toISOString())}`
+					? `${info.event.title}\n${dateTime(info.event.start.toISOString())}${info.event.end ? ` - ${dateTime(info.event.end.toISOString())}` : ''}`
 					: info.event.title;
 				const links =
 					info.el instanceof HTMLAnchorElement
 						? [info.el]
 						: info.el.querySelectorAll<HTMLAnchorElement>('a[href]');
 				for (const link of links) {
-					link.target = '_blank';
-					link.rel = 'noopener noreferrer';
+					link.removeAttribute('target');
+					link.removeAttribute('rel');
 				}
 			},
 		});
 		calendar = instance;
 		instance.render();
+		const liveTimer = window.setInterval(() => {
+			instance.batchRendering(() => {
+				for (const event of instance.getEvents()) {
+					const live =
+						event.start !== null &&
+						event.end !== null &&
+						event.start.getTime() <= Date.now() &&
+						Date.now() < event.end.getTime();
+					if (live !== event.extendedProps.isLive)
+						event.setExtendedProp('isLive', live);
+				}
+			});
+		}, 15000);
 		return () => {
+			window.clearInterval(liveTimer);
 			disposed = true;
 			instance.destroy();
 		};

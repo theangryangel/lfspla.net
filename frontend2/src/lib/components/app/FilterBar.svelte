@@ -66,7 +66,7 @@
 			const min = filters[`min_${definition.key}`];
 			const max = filters[`max_${definition.key}`];
 			if (min && max)
-				return `${number(min)}–${number(max)} ${definition.range.unit}`;
+				return `${number(min)}-${number(max)} ${definition.range.unit}`;
 			if (min) return `≥ ${number(min)} ${definition.range.unit}`;
 			if (max) return `≤ ${number(max)} ${definition.range.unit}`;
 			return 'Any';

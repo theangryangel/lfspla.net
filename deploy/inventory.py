@@ -35,8 +35,6 @@ lfsplanet = [
             "backup_cipher_pass": os.environ.get("LFSPLANET_BACKUP_CIPHER_PASS"),
             "backup_bucket_region": os.environ.get("LFSPLANET_BACKUP_BUCKET_REGION", "us-east-1"),
             "backup_retention_days": os.environ.get("LFSPLANET_BACKUP_RETENTION_DAYS", "30"),
-            # Set true only after reviewing replacements to existing eras.
-            "replace_existing_eras": False,
         },
     ),
 ]

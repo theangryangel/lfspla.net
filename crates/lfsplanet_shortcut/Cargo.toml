@@ -1,0 +1,27 @@
+[package]
+name = "lfsplanet_shortcut"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+lfsplanet_game = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+insim = { workspace = true }
+kitcar = { workspace = true }
+parking_lot = { workspace = true }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "signal", "time", "sync"] }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+unused_crate_dependencies = "warn"
+unused_results = "deny"
+missing_debug_implementations = "deny"
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"

@@ -18,10 +18,14 @@ export namespace PaginatedResponseEventSummary {
       cars_label: string | null;
       description: string | null;
       details_url: string | null;
+      /** Exclusive end time; null when the duration is unknown. */
+      ends_at: string | null;
       id: number;
       league: LfsplanetApi.EventLeague;
       season: LfsplanetApi.EventSeason | null;
       signup_url: string | null;
+      source: LfsplanetApi.EventKind;
+      source_url: string | null;
       starts_at: string;
       title: string;
       track_label: string | null;

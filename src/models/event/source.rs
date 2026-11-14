@@ -1,4 +1,4 @@
-//! Provenance shared by leagues, seasons and advertised events.
+//! Provenance shared by leagues and seasons; game sources are event-specific.
 
 use sea_orm::{DeriveActiveEnum, EnumIter};
 use serde::{Deserialize, Serialize};

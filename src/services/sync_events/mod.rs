@@ -26,11 +26,13 @@ pub(crate) async fn sync(
     league: Option<u64>,
     dry_run: bool,
     storage: &crate::settings::StorageSettings,
+    exclusions: &crate::settings::EventImportSettings,
 ) -> anyhow::Result<SyncReport> {
     let _lock = persist::lock(database).await?;
     let now = OffsetDateTime::now_utc();
     let known = crate::models::league::Model::known_with_future_events(database, now).await?;
-    let snapshot = lfsplanet_lfs_leagues::snapshot(league, now, &known).await?;
+    let mut snapshot = lfsplanet_lfs_leagues::snapshot(league, now, &known).await?;
+    exclude(&mut snapshot, exclusions)?;
     let logos = snapshot.leagues.clone();
     let mut report = persist::apply(database, snapshot, dry_run, now).await?;
     let store = if dry_run {
@@ -48,4 +50,25 @@ pub(crate) async fn sync(
     };
     images::sync(database, store.as_deref(), &logos, &mut report).await;
     Ok(report)
+}
+
+/// Apply exclusions before persistence; source-only previews deliberately remain unfiltered.
+fn exclude(
+    report: &mut Report,
+    settings: &crate::settings::EventImportSettings,
+) -> anyhow::Result<()> {
+    let regex = settings.title_regex()?;
+    report
+        .leagues
+        .retain(|league| !settings.ignore_league_ids.contains(&league.external_id));
+    report
+        .seasons
+        .retain(|season| !settings.ignore_league_ids.contains(&season.league_id));
+    report.events.retain(|event| {
+        !settings.ignore_league_ids.contains(&event.league_id)
+            && !regex
+                .as_ref()
+                .is_some_and(|regex| regex.is_match(&event.title))
+    });
+    Ok(())
 }

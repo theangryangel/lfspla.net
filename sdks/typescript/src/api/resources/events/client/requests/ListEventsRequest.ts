@@ -9,9 +9,9 @@ export interface ListEventsRequest {
   league_id?: number;
   /** Local season ID. */
   season_id?: number;
-  /** Inclusive RFC 3339 start; defaults to the current time. */
+  /** Inclusive RFC 3339 window start; includes ongoing events. Defaults to now. */
   starts_from?: string;
-  /** Exclusive RFC 3339 end. */
+  /** Exclusive RFC 3339 window end. */
   starts_before?: string;
   /** One-based page number; defaults to 1. */
   page?: number;

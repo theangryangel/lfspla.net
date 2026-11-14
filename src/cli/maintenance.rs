@@ -101,8 +101,14 @@ async fn sync_events(
     league: Option<u64>,
     dry_run: bool,
 ) -> anyhow::Result<()> {
-    let report =
-        crate::services::sync_events::sync(database, league, dry_run, &settings.storage).await?;
+    let report = crate::services::sync_events::sync(
+        database,
+        league,
+        dry_run,
+        &settings.storage,
+        &settings.event_import,
+    )
+    .await?;
     println!("{}", serde_json::to_string_pretty(&report)?);
     if !report.failures.is_empty() {
         bail!(

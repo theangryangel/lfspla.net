@@ -5,6 +5,7 @@ use sea_orm::{EntityTrait, SqlxPostgresConnector};
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> anyhow::Result<()> {
     let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+    let store = object_store::memory::InMemory::new();
     let options = DemoArgs {
         yes: true,
         players: 100,
@@ -14,7 +15,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     sqlx::query("INSERT INTO vehicle (id, kind, name, normalized_name, license) VALUES ('ABCDEF', 'mod', 'Test mod', 'test mod', 's3')")
         .execute(&pool).await?;
 
-    let inserted = persist::populate(&database, &options).await?;
+    let inserted = persist::populate(&database, &options, &store).await?;
     let era = crate::models::Era::find_by_slug(&database, &"demo".parse().unwrap())
         .await?
         .unwrap();
@@ -59,8 +60,92 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         .await?;
     assert!(badges > 0);
 
-    let second = persist::populate(&database, &options).await?;
+    let events: Vec<(i64, String, time::OffsetDateTime, time::OffsetDateTime, i64)> = sqlx::query_as(
+        "SELECT id,source,starts_at,ends_at,layout_attachment_id FROM event WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut','demo-land-speed-record') ORDER BY id"
+    ).fetch_all(&pool).await?;
+    assert_eq!(events.len(), 4);
+    for (id, source, starts, ends, layout) in &events {
+        let now = time::OffsetDateTime::now_utc();
+        let monday = now.date().midnight().assume_utc()
+            - time::Duration::days(i64::from(now.weekday().number_days_from_monday()));
+        assert!(*starts >= monday && *starts < *ends && *ends < now);
+        let kind = match source.as_str() {
+            "bomb" => crate::models::event::game::EventKind::Bomb,
+            "metronome" => crate::models::event::game::EventKind::Metronome,
+            "land_speed_record" => crate::models::event::game::EventKind::LandSpeedRecord,
+            _ => crate::models::event::game::EventKind::Shortcut,
+        };
+        let (standings, total) =
+            crate::models::event::results::standings(&pool, *id, kind, 50, 0).await?;
+        assert_eq!(total, 100);
+        assert_eq!(standings.len(), 50);
+        assert_eq!(standings[0].position, 1);
+        if source == "land_speed_record" {
+            assert!(
+                standings
+                    .windows(2)
+                    .all(|rows| rows[0].speed_kph >= rows[1].speed_kph)
+            );
+            assert!(
+                standings
+                    .iter()
+                    .all(|row| row.speed_kph.is_some_and(|speed| speed > 0.0))
+            );
+        }
+        let attachment = crate::models::attachment::Model::required(&database, *layout).await?;
+        let bytes = object_store::ObjectStoreExt::get(
+            &store,
+            &object_store::path::Path::from(attachment.object_key),
+        )
+        .await?
+        .bytes()
+        .await?;
+        assert!(!insim_lyt::Lyt::read(bytes.as_ref())?.objects.is_empty());
+    }
+    let original_results: Vec<(i64, i64, i64)> = sqlx::query_as(
+        "SELECT event_id,player_id,position FROM game_event_standing ORDER BY event_id,position",
+    )
+    .fetch_all(&pool)
+    .await?;
+    let attempts: i64 = sqlx::query_scalar("SELECT (SELECT count(*) FROM bomb_run)+(SELECT count(*) FROM metronome_result)+(SELECT count(*) FROM shortcut_time)+(SELECT count(*) FROM land_speed_record_run)").fetch_one(&pool).await?;
+    assert_eq!(attempts, 1200);
+    let second = persist::populate(&database, &options, &store).await?;
     assert_eq!(second, 0);
+    assert_eq!(sqlx::query_scalar::<_,i64>("SELECT (SELECT count(*) FROM bomb_run)+(SELECT count(*) FROM metronome_result)+(SELECT count(*) FROM shortcut_time)+(SELECT count(*) FROM land_speed_record_run)").fetch_one(&pool).await?,attempts);
+    let repeated_events: Vec<(i64, String, time::OffsetDateTime, time::OffsetDateTime, i64)> =
+        sqlx::query_as(
+            "SELECT id,source,starts_at,ends_at,layout_attachment_id FROM event ORDER BY id",
+        )
+        .fetch_all(&pool)
+        .await?;
+    assert_eq!(events, repeated_events);
+    let repeated_results: Vec<(i64, i64, i64)> = sqlx::query_as(
+        "SELECT event_id,player_id,position FROM game_event_standing ORDER BY event_id,position",
+    )
+    .fetch_all(&pool)
+    .await?;
+    assert_eq!(original_results, repeated_results);
+    // Upgrade previously generated last-week fixtures without replacing scores.
+    sqlx::query("UPDATE event SET starts_at=starts_at-interval '7 days',ends_at=ends_at-interval '7 days' WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut','demo-land-speed-record')").execute(&pool).await?;
+    for query in [
+        "UPDATE bomb_run SET recorded_at=recorded_at-interval '7 days'",
+        "UPDATE metronome_result SET recorded_at=recorded_at-interval '7 days'",
+        "UPDATE shortcut_time SET recorded_at=recorded_at-interval '7 days'",
+        "UPDATE land_speed_record_run SET recorded_at=recorded_at-interval '7 days'",
+    ] {
+        sqlx::query(query).execute(&pool).await?;
+    }
+    assert_eq!(persist::populate(&database, &options, &store).await?, 0);
+    let moved: Vec<(i64, String, time::OffsetDateTime, time::OffsetDateTime, i64)> =
+        sqlx::query_as(
+            "SELECT id,source,starts_at,ends_at,layout_attachment_id FROM event ORDER BY id",
+        )
+        .fetch_all(&pool)
+        .await?;
+    assert_eq!(events, moved);
+    let outside: i64 = sqlx::query_scalar("SELECT count(*) FROM (SELECT event_id,recorded_at FROM bomb_run UNION ALL SELECT event_id,recorded_at FROM metronome_result UNION ALL SELECT event_id,recorded_at FROM shortcut_time UNION ALL SELECT event_id,recorded_at FROM land_speed_record_run) r JOIN event e ON e.id=r.event_id WHERE r.recorded_at<e.starts_at OR r.recorded_at>=e.ends_at").fetch_one(&pool).await?;
+    assert_eq!(outside, 0);
+
     let repeated = HotlapEntity::find().all(&database).await?;
     assert_eq!(repeated.len(), laps.len());
     assert!(laps.iter().all(|lap| repeated.contains(lap)));
@@ -81,6 +166,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
             seed: Some(123),
             ..options
         },
+        &store,
     )
     .await?;
     assert!(added > 0);
@@ -196,7 +282,23 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
     )
     .execute(&pool)
     .await?;
+    let league: i64 =
+        sqlx::query_scalar("INSERT INTO league (name) VALUES ('Actual competition') RETURNING id")
+            .fetch_one(&pool)
+            .await?;
+    let layout: i64 = sqlx::query_scalar("INSERT INTO attachment(object_key,media_type,extension) VALUES ('real.lyt','application/octet-stream','lyt') RETURNING id").fetch_one(&pool).await?;
+    let now = time::OffsetDateTime::now_utc();
+    let monday = now.date().midnight().assume_utc()
+        - time::Duration::days(i64::from(now.weekday().number_days_from_monday()));
+    let real_end = monday + (now - monday) / 4_i32;
+    let real_event: i64 = sqlx::query_scalar("INSERT INTO event(league_id,catalogue_id,title,starts_at,ends_at,source,game_config,layout_attachment_id) VALUES ($1,'actual-shortcut','Actual event',$3,$4,'shortcut','{\"source\":{\"type\":\"shortcut\"},\"track\":\"BL1\",\"vehicles\":[]}',$2) RETURNING id").bind(league).bind(layout).bind(monday).bind(real_end).fetch_one(&pool).await?;
+    let real_before: (time::OffsetDateTime, time::OffsetDateTime, String) =
+        sqlx::query_as("SELECT starts_at,ends_at,title FROM event WHERE id=$1")
+            .bind(real_event)
+            .fetch_one(&pool)
+            .await?;
     let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+    let store = object_store::memory::InMemory::new();
     let before = crate::models::Era::find_by_slug(&database, &"2026-09-30".parse().unwrap())
         .await?
         .unwrap();
@@ -208,6 +310,7 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
             coverage: 1,
             seed: Some(7),
         },
+        &store,
     )
     .await?;
     let after = crate::models::Era::find_by_slug(&database, &"2026-09-30".parse().unwrap())
@@ -219,5 +322,13 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
         .fetch_one(&pool)
         .await?;
     assert_eq!(real_laps, 0);
+    let real_after: (time::OffsetDateTime, time::OffsetDateTime, String) =
+        sqlx::query_as("SELECT starts_at,ends_at,title FROM event WHERE id=$1")
+            .bind(real_event)
+            .fetch_one(&pool)
+            .await?;
+    assert_eq!(real_before, real_after);
+    assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM event WHERE catalogue_id IN ('demo-bomb','demo-metronome','demo-shortcut','demo-land-speed-record') AND starts_at >= $1").bind(real_before.1).fetch_one(&pool).await?,4);
+
     Ok(())
 }

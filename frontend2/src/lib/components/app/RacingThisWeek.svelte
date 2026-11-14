@@ -11,7 +11,14 @@
 	const days = $derived.by(() => {
 		const groups = new Map<string, EventSummary[]>();
 		for (const event of events ?? []) {
-			const day = new Date(event.starts_at).toDateString();
+			const ongoing = Boolean(
+				event.ends_at &&
+				new Date(event.starts_at).getTime() < Date.now() &&
+				new Date(event.ends_at).getTime() > Date.now(),
+			);
+			const day = ongoing
+				? 'ongoing'
+				: new Date(event.starts_at).toDateString();
 			const group = groups.get(day);
 			if (group) group.push(event);
 			else groups.set(day, [event]);
@@ -31,13 +38,16 @@
 				{#each days as day (day.key)}
 					<li>
 						<h3 class="border-b bg-muted/50 px-3 py-2 font-medium">
-							<DateTime value={day.items[0].starts_at} format="date" />
+							{#if day.key === 'ongoing'}Ongoing{:else}<DateTime
+									value={day.items[0].starts_at}
+									format="date"
+								/>{/if}
 						</h3>
 						<ul class="divide-y">
 							{#each day.items as event (event.id)}
 								<li>
 									<a
-										href={event.details_url ?? '/events'}
+										href={`/events/${event.id}`}
 										class="group flex min-w-0 items-center gap-3 px-3 py-3 hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-[-2px]"
 									>
 										<Thumbnail
@@ -51,6 +61,9 @@
 												format="time"
 												class="text-muted-foreground tabular-nums"
 											/>
+											{#if event.ends_at}<span class="text-muted-foreground"
+													>Until <DateTime value={event.ends_at} /></span
+												>{/if}
 											<h4
 												class="font-medium wrap-anywhere group-hover:text-primary"
 											>

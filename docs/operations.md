@@ -38,10 +38,9 @@ against a partly changed database.
 
 The application deployment does not by itself apply changed era definitions.
 `just deploy` follows it with `deploy/catalogue.py`. Run `just deploy-catalogue`
-to deploy catalogue changes alone. A new era can be applied normally. To replace
-an existing era, first review the change and set
-`replace_existing_eras = True` in the deployment inventory for that release.
-Turn it off again afterwards.
+to deploy catalogue changes alone. Catalogue deployment passes `--yes` when
+applying era definitions, including replacements of existing eras. Review era
+changes before deploying.
 
 After a release, check the public site, sign-in flow, an API request, and the
 validator service. Read the service logs and confirm that queued hotlaps are

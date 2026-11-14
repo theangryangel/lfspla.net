@@ -1,0 +1,28 @@
+[package]
+name = "lfsplanet_game"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+insim = { workspace = true }
+serde_json = { workspace = true }
+insim_lyt = { workspace = true }
+kitcar = { workspace = true }
+object_store = { workspace = true }
+parking_lot = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+url = "2"
+tokio = { workspace = true, features = ["rt", "time"] }
+
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+unused_crate_dependencies = "warn"
+unused_results = "deny"
+missing_debug_implementations = "deny"
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"

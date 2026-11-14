@@ -19,6 +19,7 @@ const COUNTRIES: [&str; 12] = [
 pub(super) async fn populate(
     database: &DatabaseConnection,
     options: &DemoArgs,
+    store: &dyn object_store::ObjectStore,
 ) -> anyhow::Result<usize> {
     ensure!(options.yes, "generating demo data requires --yes");
     let transaction = database.begin().await?;
@@ -124,6 +125,11 @@ pub(super) async fn populate(
         total += insert_hotlaps(&transaction, &pending).await?;
         pending.clear();
     }
+    progress(
+        "Creating completed mini-game events and results",
+        super::games::populate(&transaction, store, &profiles, &player_ids, seed, now),
+    )
+    .await?;
     // These uncommitted inserts are invisible to autovacuum.
     tracing::info!(
         "Inserted {total} hotlaps for {} players in {:.1}s.",

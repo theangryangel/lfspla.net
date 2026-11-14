@@ -9,6 +9,7 @@ mod config;
 #[cfg(debug_assertions)]
 mod demo;
 mod era;
+mod game_server;
 mod hotlap;
 mod lfs;
 mod maintenance;
@@ -61,6 +62,8 @@ pub enum Command {
     Web,
     /// Run background record processors.
     Worker,
+    /// Run scheduled mini-games on the configured InSim connection.
+    GameServer,
     /// Validate, import, and reclassify stored hotlaps.
     Hotlap {
         #[command(subcommand)]
@@ -103,6 +106,7 @@ pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
         Command::GenerateConfig(options) => config::run(options),
         Command::Migrate => migrate::run(args).await,
         Command::Openapi => openapi::run(),
+        Command::GameServer => game_server::run(args).await,
         Command::Worker => worker::run(args).await,
         Command::Web => crate::api::run(args).await,
         Command::Hotlap { action } => hotlap::run(args, action).await,

@@ -26,7 +26,7 @@
 
 {#if items.length}
 	<Breadcrumb.Root class="min-w-0 {className ?? ''}">
-		<Breadcrumb.List class="min-w-0 flex-wrap gap-y-2">
+		<Breadcrumb.List class="min-h-8 min-w-0 flex-wrap gap-y-2">
 			{#each items as crumb, index (index)}
 				{@const current = index === items.length - 1}
 				{#if index > 0}

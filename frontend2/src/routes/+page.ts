@@ -28,7 +28,7 @@ export const load: PageLoad = async ({ depends, fetch }) => {
       .catch(() => null),
     upcomingEvents().catch(() => null),
   ]);
-  // Fisher–Yates gives every ordering equal probability without retaining state.
+  // Fisher-Yates gives every ordering equal probability without retaining state.
   function shuffled<T>(items: readonly T[]): T[] {
     const result = [...items];
     for (let index = result.length - 1; index > 0; index -= 1) {

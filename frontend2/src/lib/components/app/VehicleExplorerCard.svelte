@@ -38,18 +38,18 @@
 			? [
 					[
 						'Power',
-						specs.power_kw != null ? `${number(specs.power_kw)} kW` : '—',
+						specs.power_kw != null ? `${number(specs.power_kw)} kW` : '-',
 					],
 					[
 						'Torque',
-						specs.torque_nm != null ? `${number(specs.torque_nm)} Nm` : '—',
+						specs.torque_nm != null ? `${number(specs.torque_nm)} Nm` : '-',
 					],
-					['Mass', specs.mass_kg != null ? `${number(specs.mass_kg)} kg` : '—'],
+					['Mass', specs.mass_kg != null ? `${number(specs.mass_kg)} kg` : '-'],
 					[
 						'Power / weight',
 						specs.power_weight_w_kg != null
 							? `${number(specs.power_weight_w_kg)} W/kg`
-							: '—',
+							: '-',
 					],
 				]
 			: []),

@@ -344,9 +344,9 @@ and artwork, synchronizing Vehicle Mods, seeding local artwork, and applying era
 when their files change. Run the application deployment first when schema or
 command changes are required.
 
-Existing era replacements require `replace_existing_eras = True` in the deployment
-inventory. Review the changes before enabling it and reset it afterwards. If era
-seeding fails after the files have been copied, retry `seed` manually on the host;
+Catalogue deployment passes `--yes` to allow existing era replacements. Review
+era changes before deploying. If era seeding fails after the files have been
+copied, retry `seed --yes` manually on the host;
 an unchanged file sync does not retry era seeding.
 
 See [deployment](../deploy/README.md) for setup and release instructions.
