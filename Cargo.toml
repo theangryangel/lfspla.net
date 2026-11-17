@@ -93,7 +93,7 @@ time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde-
 tokio = { workspace = true, features = ["fs", "io-util", "macros", "process", "rt-multi-thread", "signal", "time"] }
 tower-http = { version = "0.7", features = ["compression-br", "compression-gzip", "fs", "set-header", "timeout", "trace"] }
 tower-sessions = { version = "0.15", features = ["private"] }
-tower-sessions-sqlx-store = { git = "https://github.com/maxcountryman/tower-sessions-stores.git", rev = "d18c9bf76f1d4fb73130dbe5aa643197f14b5d2d", features = ["postgres"] }
+tower-sessions-sqlx-store = { git = "https://github.com/maxcountryman/tower-sessions-stores.git", rev = "e6534bcc885715ba9e77153c86980233bfa77360", features = ["postgres"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = { workspace = true }
