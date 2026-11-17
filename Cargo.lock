@@ -4681,8 +4681,8 @@ dependencies = [
 
 [[package]]
 name = "tower-sessions-sqlx-store"
-version = "0.15.0"
-source = "git+https://github.com/maxcountryman/tower-sessions-stores.git?rev=d18c9bf76f1d4fb73130dbe5aa643197f14b5d2d#d18c9bf76f1d4fb73130dbe5aa643197f14b5d2d"
+version = "0.16.0"
+source = "git+https://github.com/maxcountryman/tower-sessions-stores.git?rev=e6534bcc885715ba9e77153c86980233bfa77360#e6534bcc885715ba9e77153c86980233bfa77360"
 dependencies = [
  "async-trait",
  "rmp-serde",
