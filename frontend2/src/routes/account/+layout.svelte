@@ -1,4 +1,5 @@
 <script lang="ts">
+	import UsersIcon from '@lucide/svelte/icons/users';
 	import TimerIcon from '@lucide/svelte/icons/timer';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import KeyRoundIcon from '@lucide/svelte/icons/key-round';
@@ -12,6 +13,12 @@
 	let { children }: LayoutProps = $props();
 	const session = useSession();
 	const sections = [
+		{
+			label: 'Teams',
+			icon: UsersIcon,
+			to: '/teams',
+			description: 'Browse teams or create your own.',
+		},
 		{
 			label: 'My hotlaps',
 			icon: TimerIcon,

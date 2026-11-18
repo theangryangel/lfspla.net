@@ -164,7 +164,7 @@ pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow:
                 tracing::debug_span!(
                     "http_request",
                     method = %request.method(),
-                    path = %request.uri().path(),
+                    path = %trace_path(request.uri().path()),
                     version = ?request.version(),
                 )
             }),
@@ -198,9 +198,30 @@ async fn ready(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Invite links contain reusable credentials; redact them from request spans.
+fn trace_path(path: &str) -> &str {
+    if path.starts_with("/api/v1/team-invites/") {
+        "/api/v1/team-invites/{token}"
+    } else if path.starts_with("/teams/join/") {
+        "/teams/join/{token}"
+    } else {
+        path
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn request_spans_redact_team_invite_credentials() {
+        assert_eq!(
+            trace_path("/api/v1/team-invites/secret"),
+            "/api/v1/team-invites/{token}"
+        );
+        assert_eq!(trace_path("/teams/join/secret"), "/teams/join/{token}");
+        assert_eq!(trace_path("/api/v1/teams/1"), "/api/v1/teams/1");
+    }
 
     fn compresses(content_type: &str) -> bool {
         let response = axum::http::Response::builder()

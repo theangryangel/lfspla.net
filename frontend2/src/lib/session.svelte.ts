@@ -73,7 +73,8 @@ export class Session {
 
   /** Hands the browser to LFS OAuth, returning here once it completes. */
   signIn = () => {
-    window.location.href = "/auth/lfs";
+    const returnTo = window.location.pathname + window.location.search;
+    window.location.href = `/auth/lfs?return_to=${encodeURIComponent(returnTo)}`;
   };
 
   /**
