@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { siTwitch, siYoutube } from 'simple-icons';
+	import { siTwitch, siYoutube, siDiscord } from 'simple-icons';
 	import { cn } from '#lib/utils.js';
 
 	let {
 		name,
 		class: className,
-	}: { name: 'twitch' | 'youtube'; class?: string } = $props();
-	const icon = $derived(name === 'twitch' ? siTwitch : siYoutube);
+	}: { name: 'twitch' | 'youtube' | 'discord'; class?: string } = $props();
+	const icon = $derived(
+		name === 'twitch' ? siTwitch : name === 'youtube' ? siYoutube : siDiscord,
+	);
 </script>
 
 <svg

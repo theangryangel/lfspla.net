@@ -15,6 +15,27 @@ use serde::Deserialize;
 use tower_sessions::Session;
 use utoipa_axum::{router::OpenApiRouter, routes};
 const OAUTH_STATE_KEY: &str = "oauth_state";
+const OAUTH_RETURN_KEY: &str = "oauth_return_to";
+
+#[derive(Debug, Deserialize)]
+struct StartQuery {
+    return_to: Option<String>,
+}
+
+// Only team pages are accepted; never redirect to a caller-supplied host.
+fn invite_return_path(value: Option<&str>) -> &str {
+    value
+        .filter(|path| {
+            *path == "/teams"
+                || path.strip_prefix("/teams/join/").is_some_and(|token| {
+                    token.len() == 64
+                        && token
+                            .bytes()
+                            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+                })
+        })
+        .unwrap_or("/")
+}
 
 #[derive(Debug, Deserialize)]
 struct CallbackQuery {
@@ -30,9 +51,14 @@ pub(crate) fn router() -> OpenApiRouter<ApiState> {
 }
 
 /// Redirects the browser to LFS authorization.
-async fn start(State(state): State<ApiState>, session: Session) -> Result<Response, ApiError> {
+async fn start(
+    State(state): State<ApiState>,
+    session: Session,
+    Query(query): Query<StartQuery>,
+) -> Result<Response, ApiError> {
+    let return_to = invite_return_path(query.return_to.as_deref());
     if browser_player(&session, &state.database).await?.is_some() {
-        return Ok(Redirect::to("/").into_response());
+        return Ok(Redirect::to(return_to).into_response());
     }
 
     let provider = state.oauth.as_ref().ok_or_else(|| {
@@ -43,6 +69,11 @@ async fn start(State(state): State<ApiState>, session: Session) -> Result<Respon
         )
     })?;
     let (authorization_url, csrf_state) = provider.authorize_url();
+
+    session
+        .insert(OAUTH_RETURN_KEY, return_to)
+        .await
+        .map_err(ApiError::session)?;
 
     session
         .insert(OAUTH_STATE_KEY, csrf_state.secret())
@@ -99,7 +130,11 @@ async fn callback(
         "LFS session authenticated"
     );
 
-    Ok(Redirect::to("/"))
+    let return_to = session
+        .remove::<String>(OAUTH_RETURN_KEY)
+        .await
+        .map_err(ApiError::session)?;
+    Ok(Redirect::to(invite_return_path(return_to.as_deref())))
 }
 
 /// Clears an API client's authenticated session.
@@ -132,4 +167,31 @@ async fn logout(
         );
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::invite_return_path;
+
+    #[test]
+    fn sign_in_return_paths_only_allow_team_pages() {
+        let path = format!("/teams/join/{}", "ab".repeat(32));
+        assert_eq!(invite_return_path(Some(&path)), path);
+        assert_eq!(invite_return_path(Some("/teams")), "/teams");
+        assert_eq!(invite_return_path(Some("/teams/42")), "/");
+        for invalid in [
+            None,
+            Some("https://example.com"),
+            Some("//example.com"),
+            Some("/teams/join/short"),
+            Some("/teams/join/../account"),
+            Some("/account"),
+        ] {
+            assert_eq!(invite_return_path(invalid), "/");
+        }
+        assert_eq!(
+            invite_return_path(Some(&format!("{path}?redirect=https://example.com"))),
+            "/"
+        );
+    }
 }

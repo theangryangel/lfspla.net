@@ -5,11 +5,13 @@
 		children,
 		highlight,
 		overlay,
+		actions,
 	}: {
 		label: string;
 		children?: Snippet;
 		highlight?: Snippet;
 		overlay?: Snippet;
+		actions?: Snippet;
 	} = $props();
 </script>
 
@@ -25,7 +27,14 @@
 		{#if children}<div
 				class="flex min-w-0 flex-col justify-center py-3 lg:py-4"
 			>
-				{@render children()}
+				{#if actions}
+					<div class="flex min-w-0 items-center justify-between gap-4">
+						<div class="min-w-0 flex-1">{@render children()}</div>
+						<div class="flex shrink-0 items-center gap-2">
+							{@render actions()}
+						</div>
+					</div>
+				{:else}{@render children()}{/if}
 			</div>{/if}
 		{#if highlight}<div class="identity-highlights grid min-w-0 pb-4 lg:pb-0">
 				{@render highlight()}
