@@ -10,6 +10,7 @@ use axum::{
     Json,
     extract::{Query, State},
 };
+use sea_orm::sea_query::{Expr, Func};
 use sea_orm::{
     ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
 };
@@ -73,7 +74,7 @@ pub(crate) async fn search(
         .await
         .map_err(ApiError::database)?;
     let matches = players
-        .order_by_asc(PlayerColumn::LfsUsername)
+        .order_by_asc(Func::lower(Expr::col(PlayerColumn::LfsUsername)))
         .order_by_asc(PlayerColumn::Id)
         .offset(offset)
         .limit(pagination.per_page)
@@ -133,9 +134,9 @@ mod tests {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
         for (username, display_name, country) in [
             ("alpha", "Fast driver", Some(celes::Country::germany())),
-            ("bravo", "Fast racer", Some(celes::Country::germany())),
+            ("Bravo", "Fast racer", Some(celes::Country::germany())),
             ("charlie", "Fast driver", Some(celes::Country::france())),
-            ("delta", "Other driver", None),
+            ("Delta", "Other driver", None),
             ("echo", "100% driver", Some(celes::Country::germany())),
         ] {
             crate::models::player::ActiveModel {
@@ -199,10 +200,16 @@ mod tests {
             body(&state, "?vehicle_author=false").await["pagination"]["total_items"],
             4
         );
+        let first = body(&state, "?per_page=2&page=1").await;
+        assert_eq!(first["items"][0]["lfs_username"], "alpha");
+        assert_eq!(first["items"][1]["lfs_username"], "Bravo");
         let all = body(&state, "?per_page=2&page=2").await;
         assert_eq!(all["pagination"]["total_items"], 5);
         assert_eq!(all["pagination"]["total_pages"], 3);
         assert_eq!(all["items"][0]["lfs_username"], "charlie");
+        assert_eq!(all["items"][1]["lfs_username"], "Delta");
+        let last = body(&state, "?per_page=2&page=3").await;
+        assert_eq!(last["items"][0]["lfs_username"], "echo");
         assert_eq!(
             body(&state, "?q=%20%20").await["pagination"]["total_items"],
             5
@@ -213,7 +220,7 @@ mod tests {
         );
         let combined = body(&state, "?country=DE&q=FAST&per_page=1&page=2").await;
         assert_eq!(combined["pagination"]["total_items"], 2);
-        assert_eq!(combined["items"][0]["lfs_username"], "bravo");
+        assert_eq!(combined["items"][0]["lfs_username"], "Bravo");
         assert_eq!(
             body(&state, "?q=CHARLIE").await["items"][0]["lfs_username"],
             "charlie"

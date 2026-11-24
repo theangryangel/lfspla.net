@@ -17,12 +17,12 @@ use crate::{
 };
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
 };
-use sea_orm::{EntityTrait, QueryOrder};
-use serde::Serialize;
-use utoipa::ToSchema;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 /// A ranking offered by an era.
@@ -31,6 +31,7 @@ pub(crate) struct RankingSummary {
     id: String,
     title: String,
     description: String,
+    discipline: crate::hotlap_discipline::HotLapDiscipline,
     /// Present only for authenticated requests to the rankings collection.
     #[schema(required)]
     my_progress: Option<RankingProgressResponse>,
@@ -42,6 +43,7 @@ impl From<crate::models::Ranking> for RankingSummary {
             id: ranking.slug.to_string(),
             title: ranking.title,
             description: ranking.description,
+            discipline: ranking.discipline,
             my_progress: None,
         }
     }
@@ -149,12 +151,19 @@ pub(super) fn router() -> OpenApiRouter<ApiState> {
         .routes(routes!(nation_contributions))
 }
 
+/// Optional discipline scope for a ranking collection.
+#[derive(Debug, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub(crate) struct RankingSearchQuery {
+    discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/eras/{era}/rankings",
     operation_id = "list_era_rankings",
     tag = "ranking",
-    params(("era" = String, Path, description = "Era slug")),
+    params(("era" = String, Path, description = "Era slug"), RankingSearchQuery),
     responses(
         (status = 200, description = "Rankings configured for the era", body = ListResponse<RankingSummary>),
         (status = 404, description = "Era was not found", body = ErrorResponse)
@@ -164,10 +173,14 @@ pub(crate) async fn list(
     extract::Era(era): extract::Era,
     player: Option<AuthenticatedPlayer>,
     State(state): State<ApiState>,
+    Query(query): Query<RankingSearchQuery>,
 ) -> Result<Json<ListResponse<RankingSummary>>, ApiError> {
     let player = player.map(|AuthenticatedPlayer(player)| player);
-    let rankings = ranking::Entity::find()
-        .in_era(era.id)
+    let mut rankings = ranking::Entity::find().in_era(era.id);
+    if let Some(discipline) = query.discipline {
+        rankings = rankings.filter(ranking::Column::Discipline.eq(discipline));
+    }
+    let rankings = rankings
         .order_by_asc(ranking::Column::Position)
         .all(&state.database)
         .await
@@ -284,6 +297,7 @@ pub(crate) async fn detail(
             id: ranking.definition.slug.to_string(),
             title: ranking.definition.title,
             description: ranking.definition.description,
+            discipline: ranking.definition.discipline,
             my_progress: player.map(|_| RankingProgressResponse {
                 total_charts: ranking.charts.len(),
                 completed_charts,
@@ -523,6 +537,7 @@ mod tests {
                 id: "nutter".to_owned(),
                 title: "Nutter".to_owned(),
                 description: "Complete all charts".to_owned(),
+                discipline: crate::hotlap_discipline::HotLapDiscipline::Circuit,
                 my_progress: Some(RankingProgressResponse::new(3, 2)),
             },
             rules: RankingRules {
@@ -534,6 +549,7 @@ mod tests {
         };
         let json = serde_json::to_value(response).unwrap();
         assert_eq!(json["id"], "nutter");
+        assert_eq!(json["discipline"], "circuit");
         assert!(json.get("ranking").is_none());
         assert_eq!(
             json["my_progress"],

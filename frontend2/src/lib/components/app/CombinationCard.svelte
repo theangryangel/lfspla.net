@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { Button } from '#lib/components/ui/button/index.js';
+	import HotlapDisciplineBadge from './HotlapDisciplineBadge.svelte';
+	import ChartContributions from './ChartContributions.svelte';
 	import PageIdentity from './PageIdentity.svelte';
 	import RecordHighlight from './RecordHighlight.svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -6,20 +9,37 @@
 	import { useCombinationPicker } from '#lib/picker.js';
 	import Flag from './Flag.svelte';
 	import { lapTime } from '#lib/format.js';
-	import type { Hotlap, TrackSummary, VehicleSummary } from '#lib/api.js';
+	import type {
+		EraSummary,
+		RankingContribution,
+		Hotlap,
+		TrackSummary,
+		VehicleSummary,
+	} from '#lib/api.js';
 
 	let {
 		track = null,
 		vehicle = null,
 		worldRecord = null,
+		era,
+		contributions = [],
 	}: {
 		track?: TrackSummary | null;
 		vehicle?: VehicleSummary | null;
 		worldRecord?: Hotlap | null;
+		era?: EraSummary;
+		contributions?: RankingContribution[];
 	} = $props();
 	const picker = useCombinationPicker();
-	const selectorClass =
-		'flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-sm py-1 text-left transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4';
+	const disciplines = $derived(
+		(['circuit', 'drag'] as const).filter((discipline) =>
+			era?.rankings.some(
+				(ranking) =>
+					ranking.discipline === discipline &&
+					contributions.some((contribution) => contribution.id === ranking.id),
+			),
+		),
+	);
 </script>
 
 {#snippet selector(
@@ -28,42 +48,44 @@
 	name: string | undefined,
 	image: string | null,
 )}
-	<span class="flex min-w-0 items-center gap-3 py-2">
-		{#if code}
-			<Thumbnail src={image} class="w-16 shrink-0 bg-transparent sm:w-24" />
-		{/if}
+	<Button
+		variant="outline"
+		type="button"
+		title={name || undefined}
+		aria-label={name ? `Change the ${kind}: ${name}` : `Choose a ${kind}`}
+		aria-haspopup="dialog"
+		onclick={(event) =>
+			picker.open({
+				mode: kind,
+				track,
+				vehicle,
+				from: event.currentTarget,
+			})}
+		class="h-auto w-full min-w-0 justify-start gap-3 whitespace-normal px-3 py-3 text-left"
+	>
+		{#if code}<Thumbnail
+				src={image}
+				class="w-16 shrink-0 bg-transparent sm:w-20"
+			/>{/if}
 		<span class="min-w-0 flex-1">
-			<button
-				type="button"
-				title={name || undefined}
-				aria-label={name ? `Change the ${kind}: ${name}` : `Choose a ${kind}`}
-				aria-haspopup="dialog"
-				onclick={(event) =>
-					picker.open({
-						mode: kind,
-						track,
-						vehicle,
-						from: event.currentTarget,
-					})}
-				class={selectorClass}
+			<span class="racing-page-title block break-words"
+				>{name ?? `Choose a ${kind}`}</span
 			>
-				<span class="racing-page-title break-words"
-					>{name ?? `Choose a ${kind}`}</span
-				>
-				<ChevronDownIcon
-					class="size-4 shrink-0 text-primary"
-					aria-hidden="true"
-				/>
-			</button>
-			{#if code}<span class="block text-sm text-muted-foreground">{code}</span
+			{#if code}<span
+					class="mt-1 block text-sm font-normal text-muted-foreground"
+					>{code}</span
 				>{/if}
 		</span>
-	</span>
+		<ChevronDownIcon
+			class="size-4 shrink-0 text-black dark:text-white"
+			aria-hidden="true"
+		/>
+	</Button>
 {/snippet}
 
 <PageIdentity label="Chart identity">
 	<div
-		class="grid min-w-0 content-center items-center gap-x-8 gap-y-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"
+		class="grid min-w-0 content-center items-center gap-x-5 gap-y-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.9fr)]"
 	>
 		<h1 class="min-w-0">
 			{@render selector(
@@ -73,9 +95,7 @@
 				track?.image?.url ?? track?.outline?.url ?? null,
 			)}
 		</h1>
-		<div
-			class="min-w-0 border-t pt-1 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
-		>
+		<div class="min-w-0">
 			{@render selector(
 				'vehicle',
 				vehicle?.code,
@@ -83,6 +103,21 @@
 				vehicle?.image?.url ?? null,
 			)}
 		</div>
+		{#if era}
+			<div
+				class="min-w-0 border-t pt-3 lg:col-span-2 xl:col-span-1 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-5"
+			>
+				{#if disciplines.length}
+					<div class="mb-3 flex flex-wrap gap-2" aria-label="Chart disciplines">
+						{#each disciplines as discipline (discipline)}
+							<HotlapDisciplineBadge {discipline} />
+						{/each}
+					</div>
+				{/if}
+
+				<ChartContributions {era} {contributions} />
+			</div>
+		{/if}
 	</div>
 	{#snippet highlight()}
 		{#if worldRecord !== null}

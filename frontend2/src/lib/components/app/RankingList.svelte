@@ -8,6 +8,7 @@
 		onChoose,
 		label = 'Available rankings',
 		empty = 'No rankings in this era yet.',
+		scrollable = true,
 	}: {
 		era: string;
 		rankings: { id: string; title: string; description?: string }[];
@@ -16,10 +17,16 @@
 		onChoose?: (event: MouseEvent) => void;
 		label?: string;
 		empty?: string;
+		scrollable?: boolean;
 	} = $props();
 </script>
 
-<ul class="max-h-[50dvh] overflow-y-auto border-y divide-y" aria-label={label}>
+<ul
+	class="border-y divide-y"
+	class:max-h-[50dvh]={scrollable}
+	class:overflow-y-auto={scrollable}
+	aria-label={label}
+>
 	{#each rankings as ranking (ranking.id)}
 		<li
 			class="grid gap-2 px-3 py-3 hover:bg-accent/40"

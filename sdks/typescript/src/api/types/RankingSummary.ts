@@ -7,6 +7,7 @@ import * as LfsplanetApi from "../index.js";
  */
 export interface RankingSummary {
   description: string;
+  discipline: LfsplanetApi.HotLapDiscipline;
   id: string;
   my_progress: LfsplanetApi.RankingProgressResponse | null;
   title: string;

@@ -138,7 +138,7 @@
 			{/if}
 		{/snippet}
 		<div
-			class="min-h-0 flex-1 overflow-hidden"
+			class="min-h-0 flex-1 overflow-hidden border border-border dark:border-white/15"
 			use:emblaCarouselSvelte={{ options: { loop: true }, plugins }}
 			onemblaInit={init}
 		>

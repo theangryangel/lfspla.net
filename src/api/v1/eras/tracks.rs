@@ -34,6 +34,8 @@ pub(crate) struct TrackSummary {
 pub(crate) struct TrackSearchQuery {
     /// Restrict tracks to those paired with this canonical vehicle.
     vehicle: Option<String>,
+    /// Only combinations included in rankings of this discipline.
+    discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
 }
 
 /// Builds era-scoped track routes.
@@ -87,7 +89,7 @@ pub(crate) async fn list_for_era(
             )
         })?;
     let tracks = era
-        .tracks_for_vehicle(vehicle.as_ref())
+        .tracks_for_vehicle(vehicle.as_ref(), query.discipline)
         .in_catalogue_order()
         .all(&state.database)
         .await

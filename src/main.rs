@@ -6,6 +6,7 @@ mod country;
 mod db;
 mod era_slug;
 mod game_version;
+mod hotlap_discipline;
 mod installation_id;
 mod milliseconds;
 mod models;

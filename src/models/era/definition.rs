@@ -49,6 +49,8 @@ pub(crate) struct RankingDefinition {
     pub(crate) title: String,
     #[validate(custom(function = "crate::validate::validate_non_blank"))]
     pub(crate) description: String,
+    #[serde(default)]
+    pub(crate) discipline: crate::hotlap_discipline::HotLapDiscipline,
     #[validate(nested)]
     pub(crate) rules: RankingRules,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -255,6 +257,7 @@ fn definition_from_rows(
                 id: ranking.slug,
                 title: ranking.title,
                 description: ranking.description,
+                discipline: ranking.discipline,
                 rules,
                 badge,
                 combinations: combinations
@@ -350,6 +353,7 @@ pub(crate) fn test_definitions() -> Vec<EraDefinition> {
             id: RankingSlug::try_from("test".to_owned()).expect("valid test ranking slug"),
             title: "Test ranking".to_owned(),
             description: "Test ranking description".to_owned(),
+            discipline: crate::hotlap_discipline::HotLapDiscipline::Circuit,
             rules: RankingRules {
                 benchmark_percent: 103,
                 nation_max_points: 10,

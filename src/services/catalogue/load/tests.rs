@@ -252,3 +252,17 @@ fn yaml_nesting_defines_location_membership_and_tracks_remain_unique_across_loca
     assert!(message.contains("duplicate track AU3"), "{message}");
     assert!(message.contains("custom.yaml"), "{message}");
 }
+
+#[test]
+fn ranking_discipline_defaults_to_circuit_and_is_validated_by_serde() {
+    use crate::hotlap_discipline::HotLapDiscipline;
+    let mut ranking = serde_json::to_value(&definition::test_definitions()[0].rankings[0]).unwrap();
+    ranking.as_object_mut().unwrap().remove("discipline");
+    let parsed: definition::RankingDefinition = serde_json::from_value(ranking.clone()).unwrap();
+    assert_eq!(parsed.discipline, HotLapDiscipline::Circuit);
+    ranking["discipline"] = serde_json::json!("drag");
+    let parsed: definition::RankingDefinition = serde_json::from_value(ranking.clone()).unwrap();
+    assert_eq!(parsed.discipline, HotLapDiscipline::Drag);
+    ranking["discipline"] = serde_json::json!("drift");
+    assert!(serde_json::from_value::<definition::RankingDefinition>(ranking).is_err());
+}

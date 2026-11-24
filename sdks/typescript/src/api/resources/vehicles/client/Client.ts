@@ -52,9 +52,10 @@ export class VehiclesClient {
     request: LfsplanetApi.ListEraVehiclesRequest,
     requestOptions?: VehiclesClient.RequestOptions,
   ): Promise<core.WithRawResponse<LfsplanetApi.ListResponseVehicleSummary>> {
-    const { era, track, q, limit } = request;
+    const { era, track, discipline, q, limit } = request;
     const _queryParams: Record<string, unknown> = {
       track,
+      discipline: discipline != null ? discipline : undefined,
       q,
       limit,
     };

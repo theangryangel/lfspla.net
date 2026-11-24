@@ -26,12 +26,44 @@ Era documents declare `kind: Era`. See [catalogue seeding](catalogue.md) for
 input formats, validation, and dry runs. `era export` emits tagged YAML suitable
 for `seed`.
 
+Each ranking has a `discipline`: `circuit` (the default for existing definitions)
+or `drag`. For example:
+
+```yaml
+- id: drag-stock
+  discipline: drag
+  title: Stock Drag Rank
+  # description, rules and combinations follow as usual
+```
+
+Discipline groups rankings for navigation and filtering; it does not change
+chart identity, scoring, replay admission or upload validation. An era can have
+several rankings of either discipline, and a chart can belong to several
+rankings. Discipline-scoped chart suggestions include combinations belonging
+to any matching ranking, without duplicates.
+
+The API includes `discipline` in ranking summaries and details. The era ranking,
+track and vehicle collections accept an optional `discipline=circuit|drag`
+query parameter. Omitting it preserves the complete era catalogue.
+
 Eras omitted from the input are left untouched. Rankings and combinations inside
 a supplied era retain their replacement rules. Changing an existing era requires
 `--yes` and may delete laps outside its new combinations, as reported in the
 change summary. Referenced LFS installations and canonical tracks and vehicles
 must already exist; location definitions with nested tracks and vehicle definitions can be seeded
 in the same batch.
+
+## Era statistics
+
+`GET /api/v1/eras/{era}/stats` returns `validated_hotlaps`, `rankings` and
+`charts`. Hotlaps counts all validated laps, including imports and superseded
+personal bests. Charts counts distinct offered track/vehicle combinations,
+including those without laps; membership in multiple rankings counts once.
+
+The response uses the same one-hour in-memory cache as homepage statistics,
+keyed by era path and shared across visitors. Query strings do not create extra
+cache entries. Uploads and catalogue changes may take up to an hour to appear;
+a backend restart also clears the cache.
 
 ## Completion badges
 

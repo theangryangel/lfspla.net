@@ -8,7 +8,11 @@
 	import VehiclePicker from '#lib/components/app/VehiclePicker.svelte';
 	import Thumbnail from '#lib/components/app/Thumbnail.svelte';
 	import { setCombinationPicker, type PickerRequest } from '#lib/picker.js';
-	import type { TrackSummary, VehicleSummary } from '#lib/api.js';
+	import type {
+		HotLapDiscipline,
+		TrackSummary,
+		VehicleSummary,
+	} from '#lib/api.js';
 
 	/**
 	 * The era's single combination dialog.
@@ -34,6 +38,7 @@
 
 	let dialogContent = $state<HTMLDivElement | null>(null);
 	let visible = $state(false);
+	let discipline = $state<HotLapDiscipline | undefined>();
 	// The grid in view. Neither half is the natural first step - people arrive
 	// wanting a track as often as they arrive wanting a vehicle - so with nothing
 	// to go on the dialog asks where to start instead.
@@ -70,6 +75,7 @@
 
 	export function open(request: PickerRequest = {}) {
 		const { mode = 'combination', track = null, vehicle = null } = request;
+		discipline = request.discipline;
 		editing = { track, vehicle };
 		// Changing one half alone needs the other to narrow by, so a request
 		// missing either asks where to start. Browsing is a fresh start rather
@@ -226,6 +232,7 @@
 			</div>
 		{:else if showing === 'vehicles'}
 			<VehiclePicker
+				{discipline}
 				{era}
 				track={scoped}
 				selected={!scoped || scoped.code === editing.track?.code
@@ -237,6 +244,7 @@
 			/>
 		{:else}
 			<TrackPicker
+				{discipline}
 				{era}
 				selected={editing.track}
 				{carrying}

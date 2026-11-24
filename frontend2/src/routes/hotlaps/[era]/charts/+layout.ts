@@ -10,8 +10,7 @@ export const load: LayoutLoad = async ({ fetch, parent }) => {
   const { breadcrumbs } = await parent();
   return {
     countries: await countries,
-    // The picker is a dialog rather than a page, so this crumb opens it where
-    // the era layout renders the trail, and is plain text anywhere else.
+    // The era layout sends this action to the last valid chart.
     breadcrumbs: [...breadcrumbs, { label: "Charts", action: "charts" }],
   };
 };

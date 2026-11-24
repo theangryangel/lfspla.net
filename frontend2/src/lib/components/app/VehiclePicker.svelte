@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { Input } from '#lib/components/ui/input/index.js';
-	import { type TrackSummary, type VehicleSummary, useApi } from '#lib/api.js';
+	import {
+		type HotLapDiscipline,
+		type TrackSummary,
+		type VehicleSummary,
+		useApi,
+	} from '#lib/api.js';
 
 	import { onMount, type Snippet } from 'svelte';
 	import SearchIcon from '@lucide/svelte/icons/search';
@@ -11,6 +16,7 @@
 
 	let {
 		era,
+		discipline,
 		track = null,
 		selected = null,
 		autofocus = false,
@@ -19,6 +25,7 @@
 		onSelect,
 	}: {
 		era: string;
+		discipline?: HotLapDiscipline;
 		/** The track whose pairings are offered, so a pick is always valid. A
 		 * pick from the era's whole catalogue narrows the tracks instead. */
 		track?: TrackSummary | null;
@@ -57,6 +64,7 @@
 			const found = await api.vehicles
 				.listEraVehicles({
 					era: era,
+					discipline,
 					track: track?.code,
 					q: search,
 					limit: CAP,

@@ -370,4 +370,91 @@ export class ErasClient {
       "/api/v1/eras/{era}/combinations/validate",
     );
   }
+
+  /**
+   * @param {LfsplanetApi.GetEraStatsRequest} request
+   * @param {ErasClient.RequestOptions} requestOptions - Request-specific configuration.
+   *
+   * @throws {@link LfsplanetApi.NotFoundError}
+   * @throws {@link LfsplanetApi.InternalServerError}
+   *
+   * @example
+   *     await client.eras.getEraStats({
+   *         era: "era"
+   *     })
+   */
+  public getEraStats(
+    request: LfsplanetApi.GetEraStatsRequest,
+    requestOptions?: ErasClient.RequestOptions,
+  ): core.HttpResponsePromise<LfsplanetApi.EraStatsResponse> {
+    return core.HttpResponsePromise.fromPromise(
+      this.__getEraStats(request, requestOptions),
+    );
+  }
+
+  private async __getEraStats(
+    request: LfsplanetApi.GetEraStatsRequest,
+    requestOptions?: ErasClient.RequestOptions,
+  ): Promise<core.WithRawResponse<LfsplanetApi.EraStatsResponse>> {
+    const { era } = request;
+    let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
+      this._options?.headers,
+      requestOptions?.headers,
+    );
+    const _response = await core.fetcher({
+      url: core.url.join(
+        (await core.Supplier.get(this._options.baseUrl)) ??
+          (await core.Supplier.get(this._options.environment)),
+        `api/v1/eras/${core.url.encodePathParam(era)}/stats`,
+      ),
+      method: "GET",
+      headers: _headers,
+      queryString: core.url
+        .queryBuilder()
+        .mergeAdditional(requestOptions?.queryParams)
+        .build(),
+      timeoutMs:
+        (requestOptions?.timeoutInSeconds ??
+          this._options?.timeoutInSeconds ??
+          60) * 1000,
+      maxRetries: requestOptions?.maxRetries ?? this._options?.maxRetries,
+      abortSignal: requestOptions?.abortSignal,
+      fetchFn: this._options?.fetch,
+      logging: this._options.logging,
+    });
+    if (_response.ok) {
+      return {
+        data: _response.body as LfsplanetApi.EraStatsResponse,
+        rawResponse: _response.rawResponse,
+      };
+    }
+
+    if (_response.error.reason === "status-code") {
+      switch (_response.error.statusCode) {
+        case 404:
+          throw new LfsplanetApi.NotFoundError(
+            _response.error.body as LfsplanetApi.ErrorResponse,
+            _response.rawResponse,
+          );
+        case 500:
+          throw new LfsplanetApi.InternalServerError(
+            _response.error.body as LfsplanetApi.ErrorResponse,
+            _response.rawResponse,
+          );
+        default:
+          throw new errors.LfsplanetApiError({
+            statusCode: _response.error.statusCode,
+            body: _response.error.body,
+            rawResponse: _response.rawResponse,
+          });
+      }
+    }
+
+    return handleNonStatusCodeError(
+      _response.error,
+      _response.rawResponse,
+      "GET",
+      "/api/v1/eras/{era}/stats",
+    );
+  }
 }

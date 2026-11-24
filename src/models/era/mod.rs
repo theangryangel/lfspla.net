@@ -23,6 +23,7 @@ mod coverage;
 pub(crate) mod definition;
 mod personal_bests;
 mod rankings;
+mod stats;
 
 pub(crate) use activity::rank_world_record_holders;
 
@@ -78,8 +79,12 @@ impl Model {
 
     /// The mirror of [`Self::vehicles_for_track`]. Mods narrow the catalogue
     /// like anything else, since a mod identifier is a `Vehicle` too.
-    pub fn tracks_for_vehicle(&self, vehicle: Option<&Vehicle>) -> Select<TrackEntity> {
-        let mut charts = ChartEntity::find().filter(ChartColumn::EraId.eq(self.id));
+    pub fn tracks_for_vehicle(
+        &self,
+        vehicle: Option<&Vehicle>,
+        discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
+    ) -> Select<TrackEntity> {
+        let mut charts = self.discipline_charts(discipline);
         if let Some(vehicle) = vehicle {
             charts = charts.filter(ChartColumn::VehicleId.eq(vehicle.to_string()));
         }
@@ -93,8 +98,12 @@ impl Model {
         )
     }
 
-    pub fn vehicles_for_track(&self, track: Option<&Track>) -> Select<VehicleEntity> {
-        let mut charts = ChartEntity::find().filter(ChartColumn::EraId.eq(self.id));
+    pub fn vehicles_for_track(
+        &self,
+        track: Option<&Track>,
+        discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
+    ) -> Select<VehicleEntity> {
+        let mut charts = self.discipline_charts(discipline);
         if let Some(track) = track {
             charts = charts.filter(ChartColumn::TrackId.eq(track.to_string()));
         }
@@ -108,6 +117,36 @@ impl Model {
                         .into_query(),
                 ),
             )
+    }
+
+    fn discipline_charts(
+        &self,
+        discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
+    ) -> Select<ChartEntity> {
+        use crate::models::{ranking, ranking_chart_membership as membership};
+        let charts = ChartEntity::find().filter(ChartColumn::EraId.eq(self.id));
+        let Some(discipline) = discipline else {
+            return charts;
+        };
+        charts.filter(
+            ChartColumn::Id.in_subquery(
+                membership::Entity::find()
+                    .select_only()
+                    .column(membership::Column::ChartId)
+                    .filter(membership::Column::EraId.eq(self.id))
+                    .filter(
+                        membership::Column::RankingId.in_subquery(
+                            ranking::Entity::find()
+                                .select_only()
+                                .column(ranking::Column::Id)
+                                .filter(ranking::Column::EraId.eq(self.id))
+                                .filter(ranking::Column::Discipline.eq(discipline))
+                                .into_query(),
+                        ),
+                    )
+                    .into_query(),
+            ),
+        )
     }
 
     pub(crate) async fn accepting_version(

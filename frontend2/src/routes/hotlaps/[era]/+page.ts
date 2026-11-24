@@ -6,12 +6,17 @@ export const load: PageLoad = async ({ depends, fetch, parent }) => {
   const api = createApi(fetch);
   depends("app:hotlaps");
   const { era } = await parent();
-  const holders = await api.ranking.listEraWorldRecordHolders({
-    era: era.id,
-    page: 1,
-    per_page: 100,
-  });
+  const [holders, stats] = await Promise.all([
+    api.ranking.listEraWorldRecordHolders({
+      era: era.id,
+      page: 1,
+      per_page: 100,
+    }),
+    api.eras.getEraStats({ era: era.id }).catch(() => null),
+  ]);
+
   return {
+    eraStats: stats,
     leaders: holders.items.filter((holder) => holder.position === 1),
     holders: holders.items,
     pagination: holders.pagination,

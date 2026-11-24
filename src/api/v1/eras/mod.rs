@@ -6,6 +6,7 @@ mod charts;
 mod combinations;
 mod rankings;
 pub(crate) mod response;
+mod stats;
 pub(crate) mod tracks;
 mod upload;
 pub(crate) mod vehicles;
@@ -40,6 +41,7 @@ pub(super) fn router(max_spr_upload_bytes: usize) -> OpenApiRouter<ApiState> {
         .merge(charts::router())
         .merge(combinations::router())
         .merge(rankings::router())
+        .merge(stats::router())
         .merge(tracks::router())
         .merge(upload::router(max_spr_upload_bytes))
         .merge(vehicles::router())

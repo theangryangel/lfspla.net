@@ -1,10 +1,11 @@
-import { redirect } from "@sveltejs/kit";
+import { createApi } from "#lib/api.js";
 import type { PageLoad } from "./$types";
 
-/** Preserve directory bookmarks as an entry to the era's ranking picker. */
-export const load: PageLoad = ({ params, url }) => {
-  const query = new URLSearchParams({ picker: "rankings" });
-  const search = url.searchParams.get("q");
-  if (search) query.set("q", search);
-  redirect(308, `/hotlaps/${encodeURIComponent(params.era)}?${query}`);
+export const load: PageLoad = async ({ parent, fetch, depends }) => {
+  depends("app:hotlaps");
+  const { era } = await parent();
+  const rankings = await createApi(fetch).ranking.listEraRankings({
+    era: era.id,
+  });
+  return { rankings: rankings.items };
 };
