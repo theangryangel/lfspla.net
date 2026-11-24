@@ -36,6 +36,7 @@ pub struct Model {
     pub position: i32,
     pub title: String,
     pub description: String,
+    pub discipline: crate::hotlap_discipline::HotLapDiscipline,
     pub benchmark_percent: i32,
     pub nation_max_points: i32,
     pub nation_driver_limit: i32,

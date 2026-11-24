@@ -809,6 +809,7 @@ rankings:
         - AS5
       vehicles: [BF1]
   - id: drag
+    discipline: drag
     title: Drag Strip Rank
     description: You don't need a 10-second car when you've got family.
     rules:
@@ -840,10 +841,7 @@ rankings:
         - XRR
         - FZR
         - BF1
-        - CA7F75
-        - F4BB29
-        - BD93AC
-        - 272BB9
-        - 2865E7
-        - 2F1BF3
-        - F7D77B
+        - "CA7F75"
+        - "F4BB29"
+        - "2F1BF3"
+        - "F7D77B"

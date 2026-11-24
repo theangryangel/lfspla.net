@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import DestinationMenuContent from './DestinationMenuContent.svelte';
+	import HotlapMenuContent from './HotlapMenuContent.svelte';
 	import type { EraSummary } from '#lib/api.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { Session } from '#lib/session.svelte.js';
@@ -7,23 +8,7 @@
 	import XIcon from '@lucide/svelte/icons/x';
 
 	let { eras, session }: { eras: EraSummary[]; session: Session } = $props();
-	const newestFirst = $derived([...eras].reverse());
-	const eraGroups = $derived(
-		[
-			{ label: 'Open Hotlaps', eras: newestFirst.filter((era) => era.open) },
-			{
-				label: 'Historical Hotlaps',
-				eras: newestFirst.filter((era) => !era.open),
-			},
-		].filter((group) => group.eras.length > 0),
-	);
 	let mobileOpen = $state(false);
-
-	function isActive(path: string) {
-		return (
-			page.url.pathname === path || page.url.pathname.startsWith(path + '/')
-		);
-	}
 
 	function closeMobileMenu() {
 		mobileOpen = false;
@@ -55,43 +40,29 @@
 		<nav
 			id="mobile-navigation"
 			aria-label="Global"
-			class="dark absolute left-0 right-0 top-full z-50 border-y bg-background p-6 text-foreground shadow-lg"
+			class="dark absolute left-0 right-0 top-full z-50 max-h-[80dvh] overflow-y-auto border-y bg-background p-6 text-foreground shadow-lg"
 		>
-			<div class="space-y-3 pl-2">
-				{#each eraGroups as group (group.label)}
-					<section>
-						<h2
-							class="text-sm font-semibold tracking-wide text-muted-foreground"
-						>
-							{group.label}
-						</h2>
-						<div class="mt-1 border-l pl-3">
-							{#each group.eras as era (era.id)}
-								<a
-									class={`block rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${isActive(`/hotlaps/${era.id}`) ? 'bg-accent text-accent-foreground' : ''}`}
-									href={`/hotlaps/${era.id}`}
-									onclick={closeMobileMenu}
-									aria-current={isActive(`/hotlaps/${era.id}`)
-										? 'page'
-										: undefined}
-								>
-									{era.title}
-								</a>
-							{/each}
-						</div>
-					</section>
-				{/each}
-			</div>
-			{#each [{ label: 'Drivers', href: '/drivers' }, { label: 'Vehicles', href: '/vehicles' }, { label: 'Tracks', href: '/tracks' }, { label: 'Events', href: '/events' }] as item}
-				<a
-					class={`mt-3 flex h-9 items-center rounded-md px-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${isActive(item.href) ? 'bg-accent text-accent-foreground' : ''}`}
-					href={item.href}
-					onclick={closeMobileMenu}
-					aria-current={isActive(item.href) ? 'page' : undefined}
+			<details open class="-mx-6 border-b border-white/10 pb-4">
+				<summary class="cursor-pointer px-6 text-base font-semibold"
+					>Hotlaps &amp; Drag</summary
 				>
-					{item.label}
-				</a>
-			{/each}
+				<HotlapMenuContent {eras} onNavigate={closeMobileMenu} />
+			</details>
+			<details class="-mx-6 border-b border-white/10 py-4">
+				<summary class="cursor-pointer px-6 text-base font-semibold"
+					>Online</summary
+				>
+				<DestinationMenuContent section="online" onNavigate={closeMobileMenu} />
+			</details>
+			<details class="-mx-6 border-y border-white/10 py-4">
+				<summary class="cursor-pointer px-6 text-base font-semibold"
+					>Explore</summary
+				>
+				<DestinationMenuContent
+					section="explore"
+					onNavigate={closeMobileMenu}
+				/>
+			</details>
 			<div class="mt-3 pl-2">
 				<h2 class="text-sm font-semibold tracking-wide text-muted-foreground">
 					My account

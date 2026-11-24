@@ -1,6 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { PersonalRankingEntry, NationRankingEntry } from '#lib/api.js';
+	import type {
+		HotLapDiscipline,
+		PersonalRankingEntry,
+		NationRankingEntry,
+	} from '#lib/api.js';
 	import { goto, afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import CombinationProvider from '#lib/components/app/CombinationProvider.svelte';
@@ -26,7 +30,7 @@
 	const navigation = $derived([
 		{ label: 'Overview', to: base, exact: true },
 		{ key: 'charts', label: 'Charts', content: chartsButton },
-		{ key: 'rankings', label: 'Ranks', content: ranksButton },
+		{ label: 'Rankings', to: `${base}/rankings` },
 		{ label: 'My Submissions', to: `${base}/submissions` },
 	]);
 	let rankingPicker = $state<RankingPicker | null>(null);
@@ -54,28 +58,32 @@
 	const onSubmissions = $derived(
 		page.route.id === '/hotlaps/[era]/submissions',
 	);
+	const onRankingIndex = $derived(page.route.id === '/hotlaps/[era]/rankings');
 	const onOverview = $derived(page.route.id === '/hotlaps/[era]');
-	// Support bookmarks to the former chart picker entry point.
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-		if (page.url.searchParams.get('picker') === 'charts') openPicker();
-		if (page.url.searchParams.get('picker') === 'rankings') {
-			rankingPicker?.open(null, page.url.searchParams.get('q') ?? '');
-			const url = new URL(page.url.href);
-			url.searchParams.delete('picker');
-			url.searchParams.delete('q');
-			goto(url, { shallow: true, replace: true, state: page.state });
-		}
+	// Support bookmarks to the former chart and ranking picker entry points.
+	afterNavigate(({ shallow, to }) => {
+		if (shallow) return;
+		const url = new URL((to?.url ?? page.url).href);
+		const value = url.searchParams.get('discipline');
+		const discipline: HotLapDiscipline | undefined =
+			value === 'circuit' || value === 'drag' ? value : undefined;
+		const mode = url.searchParams.get('picker');
+		if (mode === 'charts') {
+			void goto(
+				`${base}/charts${discipline ? `?discipline=${discipline}` : ''}`,
+				{ replace: true },
+			);
+			return;
+		} else if (mode === 'rankings') {
+			const query = new URLSearchParams();
+			const search = url.searchParams.get('q');
+			if (search) query.set('q', search);
+			void goto(`${base}/rankings${query.size ? `?${query}` : ''}`, {
+				replace: true,
+			});
+			return;
+		} else return;
 	});
-
-	/** Opens on the combination in view, so a chart starts where it already is. */
-	function openPicker(from?: HTMLElement | null) {
-		picker?.open({
-			track: onChart ? page.data.track : null,
-			vehicle: onChart ? page.data.vehicle : null,
-			from,
-		});
-	}
 
 	function showChart(track: string, vehicle: string) {
 		const filters = new URLSearchParams();
@@ -92,26 +100,14 @@
 	}
 </script>
 
-{#snippet ranksButton()}
-	<button
-		type="button"
-		aria-haspopup="dialog"
-		data-active={onRanking ? '' : undefined}
-		onclick={(event) => rankingPicker?.open(event.currentTarget)}
-		class="flex h-8 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 {navigationTextClass}"
-		>Ranks</button
-	>
-{/snippet}
-
 {#snippet chartsButton()}
-	<button
-		type="button"
+	<a
+		href={`${base}/charts`}
+		aria-current={onChart ? 'page' : undefined}
 		data-active={onChart ? '' : undefined}
-		onclick={(event) => openPicker(event.currentTarget)}
-		class="flex h-8 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-0 text-sm transition-all outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-1 {navigationTextClass}"
+		class="flex h-8 items-center rounded-lg px-2.5 text-sm {navigationTextClass}"
+		>Charts</a
 	>
-		Charts
-	</button>
 {/snippet}
 
 {#snippet eraContext()}
@@ -121,8 +117,12 @@
 				class="[&_ol]:flex-wrap sm:[&_ol]:flex-nowrap"
 				items={page.data.breadcrumbs}
 				actions={{
-					charts: openPicker,
-					rankings: (from) => rankingPicker?.open(from),
+					charts: () => {
+						void goto(`${base}/charts`);
+					},
+					rankings: () => {
+						void goto(`${base}/rankings`);
+					},
 				}}
 			/>
 		</div>
@@ -136,12 +136,19 @@
 
 <CombinationProvider bind:this={picker} era={data.era.id} onSelect={showChart}>
 	<main id="main" class="w-full min-w-0 flex-1">
-		{#if onChart || onOverview || onRanking || onSubmissions}
+		{#if onChart || onOverview || onRanking || onRankingIndex || onSubmissions}
 			<div class="mx-auto w-full max-w-screen-2xl px-4 py-4 md:px-6 md:py-3">
 				{@render eraContext()}
 			</div>
 			{#if onOverview}
-				<EraIdentity era={data.era} />
+				<EraIdentity era={data.era} stats={page.data.eraStats} />
+			{:else if onRankingIndex}
+				<PageIdentity label="Rankings identity">
+					<PageHeading title="Rankings"
+						>Browse the hotlap and drag rankings for {data.era
+							.title}.</PageHeading
+					>
+				</PageIdentity>
 			{:else if onSubmissions}
 				<PageIdentity label="Submission identity">
 					<PageHeading title="My submissions"
@@ -153,23 +160,24 @@
 				<PageIdentity label="Ranking identity">
 					<div class="flex min-h-19 flex-col justify-center py-2">
 						<h1 class="min-w-0">
-							<button
+							<Button
+								variant="outline"
 								type="button"
 								aria-haspopup="dialog"
 								aria-label={page.data.ranking.title + ': choose a ranking'}
 								onclick={(event) => rankingPicker?.open(event.currentTarget)}
-								class="flex max-w-full cursor-pointer items-center gap-3 rounded-sm py-1 text-left transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4"
+								class="h-auto w-full min-w-0 justify-start gap-3 whitespace-normal px-3 py-3 text-left"
 							>
-								<span class="racing-page-title break-words"
+								<span class="racing-page-title min-w-0 flex-1 break-words"
 									>{page.data.ranking.title}</span
 								>
 								<ChevronDownIcon
-									class="size-4 shrink-0 text-primary"
+									class="size-4 shrink-0 text-black dark:text-white"
 									aria-hidden="true"
 								/>
-							</button>
+							</Button>
 						</h1>
-						<p class="text-sm text-muted-foreground">
+						<p class="mt-2 text-sm text-muted-foreground">
 							{page.data.ranking.description}
 						</p>
 						<Button
@@ -247,6 +255,8 @@
 				</PageIdentity>
 			{:else}
 				<CombinationCard
+					era={data.era}
+					contributions={page.data.chart?.contributes_to ?? []}
 					track={page.data.track}
 					vehicle={page.data.vehicle}
 					worldRecord={page.data.chart?.world_record ?? null}

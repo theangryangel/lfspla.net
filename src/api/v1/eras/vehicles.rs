@@ -35,6 +35,8 @@ pub(crate) struct VehicleSummary {
 pub(crate) struct VehicleSearchQuery {
     /// Restrict suggestions to combinations on this canonical track.
     track: Option<String>,
+    /// Only combinations included in rankings of this discipline.
+    discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
     /// Vehicle code or name search text.
     q: Option<String>,
     /// Maximum number of vehicles to return (1-100).
@@ -92,7 +94,7 @@ pub(crate) async fn list_for_era(
             )
         })?;
     let vehicles: Vec<_> = era
-        .vehicles_for_track(track.as_ref())
+        .vehicles_for_track(track.as_ref(), query.discipline)
         .name_or_id_contains(search)
         .in_catalogue_search_order(search)
         .limit(u64::from(limit))

@@ -52,9 +52,10 @@ export class TracksClient {
     request: LfsplanetApi.ListEraTracksRequest,
     requestOptions?: TracksClient.RequestOptions,
   ): Promise<core.WithRawResponse<LfsplanetApi.ListResponseTrackSummary>> {
-    const { era, vehicle } = request;
+    const { era, vehicle, discipline } = request;
     const _queryParams: Record<string, unknown> = {
       vehicle,
+      discipline: discipline != null ? discipline : undefined,
     };
     let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
       this._options?.headers,

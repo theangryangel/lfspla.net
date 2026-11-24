@@ -18,6 +18,7 @@ export namespace ListResponseRankingSummary {
      */
     export interface Item {
       description: string;
+      discipline: LfsplanetApi.HotLapDiscipline;
       id: string;
       my_progress: LfsplanetApi.RankingProgressResponse | null;
       title: string;

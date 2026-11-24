@@ -108,7 +108,8 @@ server.shell(
     name="Apply lfsplanet era definitions",
     commands=[
         f"{app_root}/lfsplanet --config {config_dir}/config.yaml seed "
-        f"{apply_confirmation}{config_dir}/eras/*.yaml"
+        f"{apply_confirmation}{config_dir}/eras/*.yaml "
+        "--yes"
     ],
     _if=era_sync.did_change,
     _sudo_user=app_user,

@@ -5,7 +5,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import RankingList from '#lib/components/app/RankingList.svelte';
-	import { useApi, type EraSummary } from '#lib/api.js';
+	import { useApi, type HotLapDiscipline, type EraSummary } from '#lib/api.js';
 	import { useSession } from '#lib/session.svelte.js';
 
 	let { era, selected }: { era: EraSummary; selected?: string } = $props();
@@ -13,6 +13,7 @@
 	const session = useSession();
 	let visible = $state(false);
 	let search = $state('');
+	let discipline = $state<HotLapDiscipline | undefined>();
 	let participation = $state<'all' | 'participating' | 'missed'>('all');
 	let progress = $state<Record<
 		string,
@@ -24,7 +25,12 @@
 	let opener: HTMLElement | null = null;
 	let dialogContent = $state<HTMLElement | null>(null);
 
-	export function open(from?: HTMLElement | null, query = '') {
+	export function open(
+		from?: HTMLElement | null,
+		query = '',
+		filter?: HotLapDiscipline,
+	) {
+		discipline = filter;
 		opener = from ?? null;
 		search = query;
 		participation = 'all';
@@ -68,8 +74,13 @@
 		};
 	});
 
+	const available = $derived(
+		era.rankings.filter(
+			(ranking) => !discipline || ranking.discipline === discipline,
+		),
+	);
 	const matches = $derived(
-		era.rankings.filter((ranking) => {
+		available.filter((ranking) => {
 			const own = progress?.[ranking.id];
 			const participating =
 				!session.signedIn ||
@@ -122,7 +133,13 @@
 		}}
 	>
 		<Dialog.Header class="pr-8">
-			<Dialog.Title>Choose a ranking</Dialog.Title>
+			<Dialog.Title
+				>{discipline === 'drag'
+					? 'Choose a drag ranking'
+					: discipline === 'circuit'
+						? 'Choose a circuit ranking'
+						: 'Choose a ranking'}</Dialog.Title
+			>
 			<Dialog.Description
 				>{era.title} - Rankings available in this era.</Dialog.Description
 			>
@@ -151,7 +168,7 @@
 				>
 			</ToggleGroup.Root>
 			<span class="text-muted-foreground"
-				>{matches.length} of {era.rankings.length}</span
+				>{matches.length} of {available.length}</span
 			>
 		</div>
 		{#if !session.signedIn}
@@ -181,7 +198,7 @@
 			{selected}
 			progress={session.signedIn ? progress : null}
 			onChoose={choose}
-			empty={era.rankings.length
+			empty={available.length
 				? 'No matching rankings. Try another search or participation filter.'
 				: 'No rankings in this era yet.'}
 		/>

@@ -155,7 +155,11 @@
 										</Button>
 									{/snippet}
 								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="end" class="dark w-60">
+								<DropdownMenu.Content
+									align="end"
+									sideOffset={6}
+									class="dark w-60 max-w-[calc(100vw-2rem)] border border-white/15 bg-[#111113] shadow-2xl ring-0"
+								>
 									<DropdownMenu.Item>
 										{#snippet child({ props })}<a
 												{...props}

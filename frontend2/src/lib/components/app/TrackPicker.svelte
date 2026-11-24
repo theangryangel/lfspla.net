@@ -13,12 +13,17 @@
 
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import TrackCard from '#lib/components/app/TrackCard.svelte';
-	import { useApi, type VehicleSummary } from '#lib/api.js';
+	import {
+		useApi,
+		type HotLapDiscipline,
+		type VehicleSummary,
+	} from '#lib/api.js';
 
 	const api = useApi();
 
 	let {
 		era,
+		discipline,
 		selected = null,
 		carrying = null,
 		autofocus = false,
@@ -27,6 +32,7 @@
 		onSelect,
 	}: {
 		era: string;
+		discipline?: HotLapDiscipline;
 		/** The track in use, marked in the grid. */
 		selected?: TrackSummary | null;
 		/** A vehicle to keep, which narrows the grid to the tracks offering it,
@@ -69,11 +75,11 @@
 		let active = true;
 		tracks = null;
 		failed = false;
-		const key = JSON.stringify([era, vehicle || null]);
+		const key = JSON.stringify([era, vehicle || null, discipline ?? null]);
 		let request = requests.get(key);
 		if (!request) {
 			request = api.tracks
-				.listEraTracks({ era, vehicle: vehicle || undefined })
+				.listEraTracks({ era, vehicle: vehicle || undefined, discipline })
 				.then((response) => response.items)
 				.catch((cause) => {
 					requests.delete(key);

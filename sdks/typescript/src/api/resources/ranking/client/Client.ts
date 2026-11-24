@@ -51,7 +51,10 @@ export class RankingClient {
     request: LfsplanetApi.ListEraRankingsRequest,
     requestOptions?: RankingClient.RequestOptions,
   ): Promise<core.WithRawResponse<LfsplanetApi.ListResponseRankingSummary>> {
-    const { era } = request;
+    const { era, discipline } = request;
+    const _queryParams: Record<string, unknown> = {
+      discipline: discipline != null ? discipline : undefined,
+    };
     let _headers: core.Fetcher.Args["headers"] = mergeHeaders(
       this._options?.headers,
       requestOptions?.headers,
@@ -66,6 +69,7 @@ export class RankingClient {
       headers: _headers,
       queryString: core.url
         .queryBuilder()
+        .addMany(_queryParams)
         .mergeAdditional(requestOptions?.queryParams)
         .build(),
       timeoutMs:

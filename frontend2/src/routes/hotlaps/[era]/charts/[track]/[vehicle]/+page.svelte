@@ -1,6 +1,5 @@
 <script lang="ts">
 	import DateTime from '#lib/components/app/DateTime.svelte';
-	import ChartContributions from '#lib/components/app/ChartContributions.svelte';
 	import FloatingPanel from '#lib/components/app/FloatingPanel.svelte';
 	import HotlapComparison from '#lib/components/app/HotlapComparison.svelte';
 	import GitCompare from '@lucide/svelte/icons/git-compare';
@@ -123,16 +122,6 @@
 					{definitions}
 					label="Hotlap filters"
 					onApply={(values) => setQuery({ ...values, page: '' })}
-				/>
-			</div>
-		{/if}
-		{#if data.chart}
-			<div class="ml-auto">
-				<ChartContributions
-					contributions={data.chart.contributes_to}
-					era={data.era}
-					track={data.track?.code}
-					vehicle={data.vehicle?.code}
 				/>
 			</div>
 		{/if}

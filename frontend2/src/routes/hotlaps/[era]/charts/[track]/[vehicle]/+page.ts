@@ -1,3 +1,4 @@
+import { rememberChart } from "#lib/chart-history.js";
 import { NotFoundError } from "@lfsplanet/sdk/api";
 
 import { type CombinationRejection, createApi } from "#lib/api.js";
@@ -15,7 +16,7 @@ export const load: PageLoad = async ({
 }) => {
   const api = createApi(fetch);
   depends("app:hotlaps");
-  const { breadcrumbs } = await parent();
+  const { breadcrumbs, era } = await parent();
   const filters = {
     country: url.searchParams.get("country")?.toUpperCase() ?? "",
     controller: url.searchParams.get("controller") ?? "",
@@ -57,6 +58,23 @@ export const load: PageLoad = async ({
   }
   const track = chart?.chart.track ?? null;
   const vehicle = chart?.chart.vehicle ?? null;
+
+  const offeredDisciplines = (["circuit", "drag"] as const).filter(
+    (discipline) =>
+      era.rankings.some(
+        (ranking) =>
+          ranking.discipline === discipline &&
+          chart?.contributes_to.some(
+            (contribution) => contribution.id === ranking.id,
+          ),
+      ),
+  );
+  if (chart) {
+    const selection = { track: params.track, vehicle: params.vehicle };
+    rememberChart(params.era, selection);
+    for (const discipline of offeredDisciplines)
+      rememberChart(params.era, selection, discipline);
+  }
 
   return {
     filters,

@@ -135,6 +135,7 @@ pub(super) async fn persist(
             active.position = Set(position);
             active.title = Set(definition.title.trim().to_owned());
             active.description = Set(definition.description.trim().to_owned());
+            active.discipline = Set(definition.discipline);
             active.benchmark_percent = Set(definition.rules.benchmark_percent);
             active.nation_max_points = Set(definition.rules.nation_max_points);
             active.nation_driver_limit = Set(definition.rules.nation_driver_limit);
@@ -148,6 +149,7 @@ pub(super) async fn persist(
                 position: Set(position),
                 title: Set(definition.title.trim().to_owned()),
                 description: Set(definition.description.trim().to_owned()),
+                discipline: Set(definition.discipline),
                 benchmark_percent: Set(definition.rules.benchmark_percent),
                 nation_max_points: Set(definition.rules.nation_max_points),
                 nation_driver_limit: Set(definition.rules.nation_driver_limit),

@@ -1,5 +1,9 @@
 import { getContext, setContext } from "svelte";
-import type { TrackSummary, VehicleSummary } from "#lib/api.js";
+import type {
+  HotLapDiscipline,
+  TrackSummary,
+  VehicleSummary,
+} from "#lib/api.js";
 
 /** Which half of a combination an opener wants changed. */
 export type PickerMode = "combination" | "track" | "vehicle";
@@ -7,6 +11,7 @@ export type PickerMode = "combination" | "track" | "vehicle";
 export interface PickerRequest {
   /** Changing one half alone needs both, so a request missing either browses. */
   mode?: PickerMode;
+  discipline?: HotLapDiscipline;
   track?: TrackSummary | null;
   vehicle?: VehicleSummary | null;
   /** The control that asked, so closing can hand focus back to it. */

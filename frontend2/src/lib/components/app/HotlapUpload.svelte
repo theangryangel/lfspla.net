@@ -22,7 +22,13 @@
 	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
 	import UploadIcon from '@lucide/svelte/icons/upload';
 	import XIcon from '@lucide/svelte/icons/x';
-	import { beforeNavigate, invalidate } from '$app/navigation';
+	import {
+		afterNavigate,
+		beforeNavigate,
+		goto,
+		invalidate,
+	} from '$app/navigation';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 
 	import * as Dialog from '#lib/components/ui/dialog/index.js';
@@ -64,6 +70,16 @@
 	const maxBytes = $derived(session.me.max_spr_upload_bytes);
 
 	let open = $state(false);
+	afterNavigate(({ shallow, to }) => {
+		// Consuming the flag triggers a shallow navigation. page.url keeps the
+		// loaded URL during that navigation, so reading it again would loop.
+		if (shallow) return;
+		const url = new URL((to?.url ?? page.url).href);
+		if (url.searchParams.get('upload') !== '1') return;
+		open = true;
+		url.searchParams.delete('upload');
+		void goto(url, { replace: true, shallow: true, state: page.state });
+	});
 	let items = $state<Item[]>([]);
 	let running = $state(false);
 
@@ -316,7 +332,7 @@
 			{#snippet child({ props })}
 				<Button {...props} class="rounded-sm">
 					<UploadIcon />
-					Upload hotlap
+					Upload hotlap or drag
 				</Button>
 			{/snippet}
 		</Dialog.Trigger>

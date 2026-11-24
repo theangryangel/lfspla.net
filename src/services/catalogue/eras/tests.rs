@@ -238,3 +238,94 @@ async fn shared_charts_keep_identity_until_last_membership_is_removed(
     );
     Ok(())
 }
+
+#[sqlx::test]
+#[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
+async fn discipline_round_trips_and_scopes_shared_charts_across_multiple_rankings(
+    pool: sqlx::PgPool,
+) -> anyhow::Result<()> {
+    use crate::hotlap_discipline::HotLapDiscipline::{Circuit, Drag};
+    use definition::CombinationDefinition;
+
+    let database = setup(pool).await?;
+    let mut desired = definition::test_definitions().remove(0);
+    let mut drag = desired.rankings[0].clone();
+    drag.id = "straight-line-stock".to_owned().try_into()?;
+    drag.discipline = Drag;
+    drag.combinations = vec![
+        CombinationDefinition {
+            track: "AU3".parse()?,
+            vehicle: "XFG".parse()?,
+        },
+        CombinationDefinition {
+            track: "AU3".parse()?,
+            vehicle: "XRG".parse()?,
+        },
+    ]
+    .into();
+    let mut other = drag.clone();
+    other.id = "straight-line-open".to_owned().try_into()?;
+    other.combinations = vec![
+        CombinationDefinition {
+            track: "AU4".parse()?,
+            vehicle: "XRG".parse()?,
+        },
+        // Sharing a chart doesn't change its identity or its other memberships.
+        CombinationDefinition {
+            track: "FE1".parse()?,
+            vehicle: "XFG".parse()?,
+        },
+    ]
+    .into();
+    desired.rankings.extend([drag, other]);
+    apply(&database, std::slice::from_ref(&desired), |_| Ok(())).await?;
+    assert_eq!(
+        definition::find(&database, &desired.id).await?,
+        Some(desired.clone())
+    );
+    let era = crate::models::Era::find_by_slug(&database, &desired.id)
+        .await?
+        .unwrap();
+    let xrg = "XRG".parse()?;
+    let circuit = era
+        .tracks_for_vehicle(None, Some(Circuit))
+        .all(&database)
+        .await?;
+    assert_eq!(
+        circuit
+            .iter()
+            .map(|track| track.id.to_string())
+            .collect::<Vec<_>>(),
+        ["FE1"]
+    );
+    let drag = era
+        .tracks_for_vehicle(Some(&xrg), Some(Drag))
+        .all(&database)
+        .await?;
+    let mut tracks = drag
+        .iter()
+        .map(|track| track.id.to_string())
+        .collect::<Vec<_>>();
+    tracks.sort();
+    assert_eq!(tracks, ["AU3", "AU4"]);
+    let all = era.tracks_for_vehicle(None, None).all(&database).await?;
+    assert_eq!(all.len(), 3, "shared charts must not duplicate suggestions");
+    let vehicles = era
+        .vehicles_for_track(Some(&"AU3".parse()?), Some(Circuit))
+        .all(&database)
+        .await?;
+    assert!(vehicles.is_empty());
+    let vehicles = era
+        .vehicles_for_track(Some(&"AU3".parse()?), Some(Drag))
+        .all(&database)
+        .await?;
+    assert_eq!(vehicles.len(), 2);
+    // Changing the discipline is an ordinary catalogue update.
+    desired.rankings[1].discipline = Circuit;
+    apply(&database, std::slice::from_ref(&desired), |_| Ok(())).await?;
+    assert_eq!(
+        definition::find(&database, &desired.id).await?,
+        Some(desired)
+    );
+    Ok(())
+}

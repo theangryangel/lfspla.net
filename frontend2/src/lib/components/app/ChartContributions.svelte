@@ -1,70 +1,30 @@
 <script lang="ts">
-	import InfoIcon from '@lucide/svelte/icons/info';
-	import * as Dialog from '#lib/components/ui/dialog/index.js';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import RankingList from './RankingList.svelte';
 	import type { EraSummary, RankingContribution } from '#lib/api.js';
-
 	let {
 		contributions,
 		era,
-		track,
-		vehicle,
-	}: {
-		contributions: RankingContribution[];
-		era: EraSummary;
-		track?: string;
-		vehicle?: string;
-	} = $props();
-	let open = $state(false);
-	const rankings = $derived(
-		contributions.map((ranking) => ({
-			...ranking,
-			description: era.rankings.find((candidate) => candidate.id === ranking.id)
-				?.description,
-		})),
-	);
+	}: { contributions: RankingContribution[]; era: EraSummary } = $props();
 </script>
 
-<Dialog.Root bind:open>
-	<Dialog.Trigger>
-		{#snippet child({ props })}
-			<Button
-				{...props}
-				variant="outline"
-				size="sm"
-				class="h-8 rounded-sm text-sm"
-				aria-label="Contributes toward rankings"
-				title="Rankings this chart contributes to"
-			>
-				<InfoIcon class="size-4" aria-hidden="true" />
-				Contributes toward rankings...
-			</Button>
-		{/snippet}
-	</Dialog.Trigger>
-	<Dialog.Content
-		class="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-sm sm:max-w-2xl"
-	>
-		<Dialog.Header class="pr-8">
-			<Dialog.Title>Contributes to</Dialog.Title>
-			<Dialog.Description
-				>Personal bests on {track} / {vehicle} count towards these rankings in {era.title}.</Dialog.Description
-			>
-		</Dialog.Header>
-		<RankingList
-			era={era.id}
-			{rankings}
-			label="Contributing rankings"
-			empty="No rankings include this chart."
-			onChoose={(event) => {
-				if (
-					!event.metaKey &&
-					!event.ctrlKey &&
-					!event.shiftKey &&
-					!event.altKey
-				)
-					open = false;
-			}}
-		/>
-	</Dialog.Content>
-</Dialog.Root>
+<section class="min-w-0" aria-label="Contributing rankings">
+	<h2 class="mb-2 text-sm font-semibold text-muted-foreground">
+		Contributes to
+	</h2>
+	{#if contributions.length}
+		<ul class="flex flex-wrap gap-x-4 gap-y-2">
+			{#each contributions as ranking (ranking.id)}
+				<li>
+					<a
+						href={`/hotlaps/${encodeURIComponent(era.id)}/rankings/${encodeURIComponent(ranking.id)}`}
+						title={era.rankings.find((candidate) => candidate.id === ranking.id)
+							?.description}
+						class="text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-current focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+						>{ranking.title}</a
+					>
+				</li>
+			{/each}
+		</ul>
+	{:else}<p class="text-sm text-muted-foreground">
+			No rankings include this chart.
+		</p>{/if}
+</section>
