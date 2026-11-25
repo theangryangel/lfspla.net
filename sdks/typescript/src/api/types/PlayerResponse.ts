@@ -11,4 +11,5 @@ export interface PlayerResponse extends LfsplanetApi.PlayerSummary {
   highlights: LfsplanetApi.Hotlap[];
   profile_links: LfsplanetApi.ProfileLinks;
   stats: LfsplanetApi.PlayerStatsResponse;
+  teams: LfsplanetApi.PlayerTeamResponse[];
 }

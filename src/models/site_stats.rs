@@ -372,7 +372,7 @@ INSERT INTO hotlap (player_id, era_id, chart_id, track, vehicle, raw_vehicle_nam
     source, fingerprint, steering, player_flags, game_version, state)
 SELECT player.id, chart.era_id, chart.id, chart.track_id, chart.vehicle_id, 'XF GTI',
     65000, 0, 0, 0, 0, 'demo', 'demo:progress:' || sequence, 'wheel', 0, '0.7A', 'valid'
-FROM player CROSS JOIN chart CROSS JOIN generate_series(1,100) sequence;
+FROM player CROSS JOIN chart CROSS JOIN generate_series(1,100) sequence WHERE player.lfs_username = 'worker-test';
 ",
         )
         .execute(&pool)
@@ -607,7 +607,7 @@ INSERT INTO hotlap (player_id, era_id, chart_id, track, vehicle, raw_vehicle_nam
     source, fingerprint, steering, player_flags, game_version, state, created_at)
 SELECT player.id, chart.era_id, chart.id, chart.track_id, chart.vehicle_id, 'XF GTI',
     65000, 0, 0, 0, 0, 'demo', 'demo:' || sequence, 'wheel', 0, '0.7A', 'valid', '2000-01-01'
-FROM player CROSS JOIN chart CROSS JOIN generate_series(1,101) sequence;
+FROM player CROSS JOIN chart CROSS JOIN generate_series(1,101) sequence WHERE player.lfs_username = 'worker-test';
 ",
         )
         .execute(&pool)
@@ -638,7 +638,7 @@ INSERT INTO hotlap (player_id, era_id, chart_id, track, vehicle, raw_vehicle_nam
     source, fingerprint, steering, player_flags, game_version, state)
 SELECT player.id, chart.era_id, chart.id, chart.track_id, chart.vehicle_id, 'RB4 GT',
     65000 + sequence, 0, 0, 0, 0, 'demo', 'demo:rb4:' || sequence, 'wheel', 0, '0.7A', 'valid'
-FROM player CROSS JOIN chart CROSS JOIN generate_series(1,3) sequence WHERE chart.vehicle_id = 'RB4';
+FROM player CROSS JOIN chart CROSS JOIN generate_series(1,3) sequence WHERE chart.vehicle_id = 'RB4' AND player.lfs_username = 'worker-test';
 ").execute(&pool).await?;
         crate::models::era::Entity::find()
             .one(&database)

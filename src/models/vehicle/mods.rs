@@ -321,6 +321,7 @@ mod tests {
         use crate::models::player::{ActiveModel as PlayerMutation, Entity as PlayerEntity};
         use sea_orm::{ActiveModelTrait, PaginatorTrait};
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
+        let original_players = PlayerEntity::find().count(&database).await?;
         let existing = PlayerMutation {
             lfs_username: Set("KnownAuthor".to_owned()),
             display_name: Set("Chosen display name".to_owned()),
@@ -354,7 +355,10 @@ mod tests {
         ];
         crate::models::Vehicle::refresh(&database, &remote).await?;
         crate::models::Vehicle::refresh(&database, &remote).await?;
-        assert_eq!(PlayerEntity::find().count(&database).await?, 2);
+        assert_eq!(
+            PlayerEntity::find().count(&database).await?,
+            original_players + 2
+        );
         assert_eq!(
             PlayerEntity::find_by_id(existing.id)
                 .one(&database)
@@ -428,6 +432,9 @@ mod tests {
     #[sqlx::test]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn migration_backfills_cached_author_profiles(pool: sqlx::PgPool) -> anyhow::Result<()> {
+        let original_players: i64 = sqlx::query_scalar("SELECT count(*) FROM player")
+            .fetch_one(&pool)
+            .await?;
         // Recreate the pre-migration state in this isolated test database.
         sqlx::query("ALTER TABLE vehicle DROP COLUMN author_player_id")
             .execute(&pool)
@@ -456,7 +463,7 @@ mod tests {
         let players: i64 = sqlx::query_scalar("SELECT count(*) FROM player")
             .fetch_one(&pool)
             .await?;
-        assert_eq!(players, 2);
+        assert_eq!(players, original_players + 2);
         let linked: i64 =
             sqlx::query_scalar("SELECT count(*) FROM vehicle WHERE author_player_id IS NOT NULL")
                 .fetch_one(&pool)

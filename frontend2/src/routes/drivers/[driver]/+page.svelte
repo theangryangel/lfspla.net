@@ -7,6 +7,7 @@
 	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
 	import RecordHighlight from '#lib/components/app/RecordHighlight.svelte';
 	import Flag from '#lib/components/app/Flag.svelte';
+	import { Badge } from '#lib/components/ui/badge/index.js';
 	import * as Table from '#lib/components/ui/table/index.js';
 	import HotlapActivity from '#lib/components/app/HotlapActivity.svelte';
 	import Breadcrumbs from '#lib/components/app/Breadcrumbs.svelte';
@@ -39,13 +40,23 @@
 </script>
 
 <main id="main" class="w-full min-w-0 flex-1">
-	<div class="mx-auto w-full max-w-screen-2xl px-4 py-4 md:px-6 md:py-3">
+	<div
+		class="mx-auto flex w-full max-w-screen-2xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-6 md:py-3"
+	>
 		<Breadcrumbs items={data.breadcrumbs} />
+		<div class="flex shrink-0 items-center gap-2">
+			{#if ownProfile}<Button
+					href="/account/personal"
+					variant="outline"
+					size="sm"><Pencil /> Edit profile</Button
+				>{/if}
+			<CompareButton driver={player} showLabel />
+		</div>
 	</div>
 	<PageIdentity label="Driver identity">
 		<div class="space-y-4 py-2">
 			<div
-				class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+				class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8"
 			>
 				<div class="min-w-0 flex-1 space-y-2">
 					<div class="flex items-center gap-3">
@@ -67,14 +78,31 @@
 							/>{/each}
 					</div>
 				</div>
-				<div class="flex shrink-0 items-center gap-2">
-					{#if ownProfile}<Button
-							href="/account/personal"
-							variant="outline"
-							size="sm"><Pencil /> Edit profile</Button
-						>{/if}
-					<CompareButton driver={player} />
-				</div>
+				{#if player.teams.length}
+					<section
+						class="min-w-0 sm:w-56 sm:shrink-0"
+						aria-label="Driver teams"
+					>
+						<h2 class="mb-2 text-sm font-semibold text-muted-foreground">
+							Teams
+						</h2>
+						<ul class="flex flex-wrap gap-2">
+							{#each player.teams as team (team.id)}
+								<li class="min-w-0 max-w-full">
+									<Badge
+										href={`/teams/${team.id}`}
+										variant="outline"
+										class="h-auto max-w-full whitespace-normal break-words text-left"
+										title={team.tag ?? undefined}
+									>
+										{team.name}{#if team.status === 'disbanded'}
+											· Disbanded{/if}
+									</Badge>
+								</li>
+							{/each}
+						</ul>
+					</section>
+				{/if}
 			</div>
 			{#if player.stats.first_hotlap_at}
 				<p class="text-sm text-muted-foreground">

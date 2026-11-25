@@ -13,6 +13,7 @@ pub(crate) mod player;
 pub(crate) mod ranking;
 pub(crate) mod season;
 pub(crate) mod site_stats;
+pub(crate) mod team;
 pub(crate) mod track;
 pub(crate) mod vehicle;
 

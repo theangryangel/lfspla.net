@@ -175,7 +175,7 @@
 			{title}
 		</h2>
 		<Tabs.List
-			aria-label={eraBreakdown ? 'Driver record views' : 'Filter hotlaps'}
+			aria-label={eraBreakdown ? 'Driver record views' : 'Hotlap views'}
 			class="max-w-full flex-wrap group-data-horizontal/tabs:h-auto"
 		>
 			{#if views.includes('by_era') && eraBreakdown}

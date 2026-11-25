@@ -89,9 +89,10 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     for lap in &laps {
         assert!(accumulated.contains(lap), "existing lap must be preserved");
     }
-    let accumulated_players: i64 = sqlx::query_scalar("SELECT count(*) FROM player")
-        .fetch_one(&pool)
-        .await?;
+    let accumulated_players: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM player WHERE deny_auth AND deny_uploads")
+            .fetch_one(&pool)
+            .await?;
     assert!(accumulated_players > total_players);
     let ranked: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM hotlap_personal_best WHERE chart_id IN (SELECT id FROM chart WHERE era_id = $1) AND position > 0",

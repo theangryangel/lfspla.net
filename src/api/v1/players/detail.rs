@@ -6,9 +6,14 @@ use super::response::chart_result_responses;
 use crate::api::v1::hotlaps::response::Hotlap;
 use crate::{
     api::{ApiError, ApiState, ErrorResponse, extractors as extract, v1::PlayerSummary},
-    models::{badge::PlayerBadge, player::PlayerProfile},
+    models::{
+        badge::PlayerBadge,
+        player::PlayerProfile,
+        team::{self, TeamFilter, TeamOrder},
+    },
 };
 use axum::{Json, extract::State};
+use sea_orm::{EntityTrait, FromQueryResult, QuerySelect};
 use serde::Serialize;
 use utoipa::ToSchema;
 
@@ -53,10 +58,21 @@ pub(crate) struct PlayerResponse {
     #[serde(flatten)]
     player: PlayerSummary,
     profile_links: crate::models::player::ProfileLinks,
+    teams: Vec<PlayerTeamResponse>,
     stats: PlayerStatsResponse,
     badges: Vec<PlayerBadge>,
     eras: Vec<PlayerEraStatsResponse>,
     highlights: Vec<Hotlap>,
+}
+
+/// A public team membership, including teams that have since disbanded.
+#[derive(Debug, Serialize, ToSchema, FromQueryResult)]
+pub(crate) struct PlayerTeamResponse {
+    id: i64,
+    name: String,
+    #[schema(required)]
+    tag: Option<String>,
+    status: team::Status,
 }
 
 #[utoipa::path(
@@ -78,11 +94,25 @@ pub(crate) async fn detail(
         .profile(&state.database)
         .await
         .map_err(ApiError::database)?;
-    Ok(Json(PlayerResponse::from(profile)))
+    let teams = team::Entity::find()
+        .select_only()
+        .columns([
+            team::Column::Id,
+            team::Column::Name,
+            team::Column::Tag,
+            team::Column::Status,
+        ])
+        .with_member(profile.player.id)
+        .in_name_order()
+        .into_model::<PlayerTeamResponse>()
+        .all(&state.database)
+        .await
+        .map_err(ApiError::database)?;
+    Ok(Json(PlayerResponse::new(profile, teams)))
 }
 
-impl From<PlayerProfile> for PlayerResponse {
-    fn from(profile: PlayerProfile) -> Self {
+impl PlayerResponse {
+    fn new(profile: PlayerProfile, teams: Vec<PlayerTeamResponse>) -> Self {
         let profile_links = profile.player.profile_links.clone();
         let player: PlayerSummary = profile.player.into();
         let badges_by_era: std::collections::HashMap<_, _> = profile
@@ -105,6 +135,7 @@ impl From<PlayerProfile> for PlayerResponse {
         PlayerResponse {
             player,
             profile_links,
+            teams,
             badges: profile.badges.clone(),
             stats: PlayerStatsResponse {
                 hotlaps: profile.stats.hotlaps,

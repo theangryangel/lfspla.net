@@ -86,8 +86,7 @@ mod tests {
         .execute(&pool)
         .await?;
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-        let player = crate::models::player::Entity::find()
-            .one(&database)
+        let player = crate::models::Player::find_by_username(&database, "worker-test")
             .await?
             .unwrap();
         let hotlap = crate::models::hotlap::Entity::find()

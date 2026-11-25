@@ -109,7 +109,7 @@ mod tests {
         sqlx::raw_sql(
             "INSERT INTO personal_access_token (player_id, name, token_hash, token_hint, expires_at)
              SELECT id, 'New', decode(repeat('cd', 32), 'hex'), 'lfspla_...abcdef12',
-                now() + interval '1 day' FROM player;"
+                now() + interval '1 day' FROM player WHERE lfs_username = 'hint-test';"
         ).execute(&pool).await?;
         Ok(())
     }

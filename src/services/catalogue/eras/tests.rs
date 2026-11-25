@@ -151,7 +151,7 @@ async fn shared_charts_keep_identity_until_last_membership_is_removed(
         steering, player_flags, game_version, state)
         SELECT player.id, chart.era_id, chart.id, track_id, vehicle_id, vehicle_id,
         60000, 0, 0, 0, 0, 'lfsworld_v1', '2006-01-01:1', 'wheel', 0, '0.5A', 'valid'
-        FROM player CROSS JOIN chart WHERE chart.id = $1",
+        FROM player CROSS JOIN chart WHERE chart.id = $1 AND player.lfs_username = 'chart-test'",
     )
     .bind(chart.id)
     .execute(&pool)
