@@ -43,6 +43,7 @@
 <style>
 	.record-highlight {
 		--highlight-background: var(--brand-yellow);
+		--highlight-pattern-tint: 90%;
 		color: black;
 	}
 	.record-highlight[data-compact] > h2 {
@@ -58,13 +59,36 @@
 	}
 	.record-highlight[data-variant='neutral'] {
 		--highlight-background: var(--border);
+		--highlight-pattern-tint: 95%;
 		color: var(--foreground);
 	}
 	.record-highlight::before {
 		content: '';
 		position: absolute;
 		inset: 0;
-		background: var(--highlight-background);
+		/* Fade a gently waving chequer into the panel's own colour.
+		   All layers share this surface so overlaps and header bleed stay seamless. */
+		background-color: var(--highlight-background);
+		background-image:
+			linear-gradient(
+				115deg,
+				rgb(255 255 255 / 0.06),
+				transparent 42%,
+				rgb(0 0 0 / 0.08)
+			),
+			linear-gradient(
+				100deg,
+				var(--highlight-background) 10%,
+				color-mix(
+					in srgb,
+					var(--highlight-background) var(--highlight-pattern-tint),
+					transparent
+				)
+			),
+			url('/images/chequered-flag.svg');
+		background-size: cover, cover, 16rem 8rem;
+		background-position: center;
+		pointer-events: none;
 		/* One direction for every highlight: bottom to the left, top to the right. */
 		clip-path: polygon(
 			var(--highlight-slant) 0,
