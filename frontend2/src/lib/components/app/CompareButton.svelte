@@ -4,7 +4,10 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { useComparison, type CompareDriver } from '#lib/compare.svelte.js';
-	let { driver }: { driver: CompareDriver } = $props();
+	let {
+		driver,
+		showLabel = false,
+	}: { driver: CompareDriver; showLabel?: boolean } = $props();
 	const comparison = useComparison();
 	const selected = $derived(comparison.selected(driver.lfs_username));
 	const full = $derived(!selected && comparison.drivers.length === 2);
@@ -22,13 +25,14 @@
 			-->
 			<Button
 				{...mergeProps(props, { onclick: () => comparison.toggle(driver) })}
-				variant={selected ? 'outline' : 'ghost'}
-				size="icon-sm"
+				variant={selected || showLabel ? 'outline' : 'ghost'}
+				size={showLabel ? 'sm' : 'icon-sm'}
 				aria-pressed={selected}
 				aria-label={label}
 				disabled={full}
 			>
 				<GitCompareArrows />
+				{#if showLabel}{selected ? 'In comparison' : 'Compare driver'}{/if}
 			</Button>
 		{/snippet}
 	</Tooltip.Trigger>

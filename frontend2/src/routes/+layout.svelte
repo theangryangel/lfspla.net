@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { mode, ModeWatcher, toggleMode } from 'mode-watcher';
 	import { page } from '$app/state';
+	import { MediaQuery } from 'svelte/reactivity';
+	import { setHelp, type HelpTopic } from '#lib/help.svelte.js';
+	import HelpSidebar from '#lib/components/app/HelpSidebar.svelte';
 	import LoadingProgress from '#lib/components/app/LoadingProgress.svelte';
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import SunIcon from '@lucide/svelte/icons/sun';
@@ -33,6 +36,19 @@
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps & { children: Snippet } = $props();
+
+	const help = setHelp();
+	const wide = new MediaQuery('(min-width: 1280px)');
+	const helpTopic = $derived<HelpTopic | null>(
+		page.route.id?.startsWith('/teams')
+			? 'teams'
+			: page.route.id?.startsWith('/hotlaps/[era]')
+				? 'hotlaps'
+				: null,
+	);
+	$effect(() => {
+		if (!helpTopic) help.open = false;
+	});
 
 	const comparison = setComparison();
 	setFloatingPanels();
@@ -75,7 +91,13 @@
 <ModeWatcher />
 
 <Tooltip.Provider delayDuration={300}>
-	<div class="flex min-h-screen flex-col" data-sveltekit-preload-data="false">
+	<div
+		class="flex min-h-screen min-w-0 flex-col {help.open && helpTopic
+			? 'xl:pr-88'
+			: ''}"
+		inert={help.open && helpTopic !== null && !wide.current}
+		data-sveltekit-preload-data="false"
+	>
 		<a class="sr-only focus:not-sr-only focus:p-4" href="#main"
 			>Skip to content</a
 		>
@@ -272,4 +294,5 @@
 		<CompareTray />
 		<FloatingPanelStack />
 	</div>
+	<HelpSidebar topic={helpTopic} modal={!wide.current} />
 </Tooltip.Provider>

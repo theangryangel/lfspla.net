@@ -15,6 +15,24 @@ use serde::Deserialize;
 use tower_sessions::Session;
 use utoipa_axum::{router::OpenApiRouter, routes};
 const OAUTH_STATE_KEY: &str = "oauth_state";
+const RETURN_TO_KEY: &str = "oauth_return_to";
+
+#[derive(Debug, Default, Deserialize)]
+struct StartQuery {
+    return_to: Option<String>,
+}
+
+fn safe_return_to(value: Option<String>) -> String {
+    value
+        .filter(|value| {
+            value.starts_with('/')
+                && !value.starts_with("//")
+                && !value.contains('\\')
+                && !value.chars().any(char::is_control)
+                && value.len() <= 2048
+        })
+        .unwrap_or_else(|| "/".to_owned())
+}
 
 #[derive(Debug, Deserialize)]
 struct CallbackQuery {
@@ -30,9 +48,14 @@ pub(crate) fn router() -> OpenApiRouter<ApiState> {
 }
 
 /// Redirects the browser to LFS authorization.
-async fn start(State(state): State<ApiState>, session: Session) -> Result<Response, ApiError> {
+async fn start(
+    State(state): State<ApiState>,
+    session: Session,
+    Query(query): Query<StartQuery>,
+) -> Result<Response, ApiError> {
+    let return_to = safe_return_to(query.return_to);
     if browser_player(&session, &state.database).await?.is_some() {
-        return Ok(Redirect::to("/").into_response());
+        return Ok(Redirect::to(&return_to).into_response());
     }
 
     let provider = state.oauth.as_ref().ok_or_else(|| {
@@ -43,6 +66,11 @@ async fn start(State(state): State<ApiState>, session: Session) -> Result<Respon
         )
     })?;
     let (authorization_url, csrf_state) = provider.authorize_url();
+
+    session
+        .insert(RETURN_TO_KEY, return_to)
+        .await
+        .map_err(ApiError::session)?;
 
     session
         .insert(OAUTH_STATE_KEY, csrf_state.secret())
@@ -99,7 +127,32 @@ async fn callback(
         "LFS session authenticated"
     );
 
-    Ok(Redirect::to("/"))
+    let return_to = session
+        .remove::<String>(RETURN_TO_KEY)
+        .await
+        .map_err(ApiError::session)?;
+    Ok(Redirect::to(&safe_return_to(return_to)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::safe_return_to;
+
+    #[test]
+    fn oauth_returns_to_local_pages_only() {
+        assert_eq!(
+            safe_return_to(Some("/teams/join/secret".into())),
+            "/teams/join/secret"
+        );
+        for value in [
+            "https://example.com",
+            "//example.com",
+            "/\\example.com",
+            "/\nLocation: bad",
+        ] {
+            assert_eq!(safe_return_to(Some(value.into())), "/");
+        }
+    }
 }
 
 /// Clears an API client's authenticated session.

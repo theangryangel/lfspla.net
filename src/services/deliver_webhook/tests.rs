@@ -50,7 +50,7 @@ async fn fixture(pool: &sqlx::PgPool) -> anyhow::Result<DatabaseConnection> {
     sqlx::raw_sql(include_str!("../validate_hotlap/fixtures.sql"))
         .execute(pool)
         .await?;
-    sqlx::raw_sql("INSERT INTO webhook (player_id, name, url, format, event_kind) SELECT id, 'Club', 'invalid-test-url', 'discord', 'hotlap_validated' FROM player;").execute(pool).await?;
+    sqlx::raw_sql("INSERT INTO webhook (player_id, name, url, format, event_kind) SELECT id, 'Club', 'invalid-test-url', 'discord', 'hotlap_validated' FROM player WHERE lfs_username = 'worker-test';").execute(pool).await?;
     Ok(SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone()))
 }
 

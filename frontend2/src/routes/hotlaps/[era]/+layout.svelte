@@ -1,4 +1,5 @@
 <script lang="ts">
+	import HelpButton from '#lib/components/app/HelpButton.svelte';
 	import type { Snippet } from 'svelte';
 	import type {
 		HotLapDiscipline,
@@ -14,7 +15,6 @@
 	import Flag from '#lib/components/app/Flag.svelte';
 	import PageHeading from '#lib/components/app/PageHeading.svelte';
 	import PageIdentity from '#lib/components/app/PageIdentity.svelte';
-	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import EraIdentity from '#lib/components/app/EraIdentity.svelte';
 	import CombinationCard from '#lib/components/app/CombinationCard.svelte';
@@ -128,7 +128,11 @@
 		</div>
 		<div class="w-full min-w-0 border-t pt-3 md:w-auto md:border-t-0 md:pt-0">
 			<PageNavigation label="Era" items={navigation} wrap>
-				{#snippet action()}<HotlapUpload era={data.era} />{/snippet}
+				{#snippet action()}
+					<div class="flex flex-wrap items-center gap-2">
+						<HelpButton /><HotlapUpload era={data.era} />
+					</div>
+				{/snippet}
 			</PageNavigation>
 		</div>
 	</div>
@@ -180,13 +184,6 @@
 						<p class="mt-2 text-sm text-muted-foreground">
 							{page.data.ranking.description}
 						</p>
-						<Button
-							variant="outline"
-							class="mt-2 self-start"
-							href={`/hotlaps/${data.era.id}/rankings/${page.data.ranking.id}/combinations`}
-						>
-							<CircleHelpIcon />Rank Info
-						</Button>
 					</div>
 					{#snippet highlight()}
 						{#if driverLeaders.length || nationLeaders.length}

@@ -116,12 +116,13 @@
 								alt=""
 								class="absolute -right-4 top-2 -z-10 w-4/5 max-w-64 opacity-25"
 							/>
-						{/if}
-						{#if link.href === '/teams'}
-							<span
-								class="mb-2 inline-flex w-fit border border-brand-yellow/40 bg-black/30 px-2 py-0.5 text-xs font-medium text-brand-yellow"
-								>Coming soon</span
-							>
+						{:else if link.href === '/teams'}
+							<img
+								src="/images/navigation/teams.webp"
+								alt=""
+								class="absolute inset-0 -z-20 h-full w-full object-cover object-[center_40%]"
+							/>
+							<div class="absolute inset-0 -z-10 bg-black/40"></div>
 						{/if}
 						<h3 class="racing-section-title text-white">{link.label}</h3>
 						<p class="mt-2 text-sm text-white/70">{link.description}</p>

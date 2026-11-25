@@ -64,6 +64,8 @@ pub struct Model {
     pub hotlaps: HasMany<crate::models::hotlap::Entity>,
     #[sea_orm(has_many)]
     pub personal_access_tokens: HasMany<crate::models::personal_access_token::Entity>,
+    #[sea_orm(has_many)]
+    pub team_memberships: HasMany<crate::models::team_member::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

@@ -131,6 +131,10 @@ mod tests {
     async fn directory_filters_before_counting_and_pagination(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
+        // Pagination assertions below use a directory of exactly five known profiles.
+        sqlx::raw_sql("DELETE FROM team_member; DELETE FROM player;")
+            .execute(&pool)
+            .await?;
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
         for (username, display_name, country) in [
             ("alpha", "Fast driver", Some(celes::Country::germany())),

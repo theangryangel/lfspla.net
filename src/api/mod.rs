@@ -159,12 +159,19 @@ pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow:
         .route("/health/ready", get(ready))
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &axum::http::Request<Body>| {
-                // Deliberately omit the query string: OAuth callback URLs carry
-                // short-lived authorization codes and state values there.
+                // Omit OAuth query secrets and redact shareable invitation secrets.
+                let path = request.uri().path();
+                let path = if path.starts_with("/api/v1/team-invites/") {
+                    "/api/v1/team-invites/[redacted]"
+                } else if path.starts_with("/teams/join/") {
+                    "/teams/join/[redacted]"
+                } else {
+                    path
+                };
                 tracing::debug_span!(
                     "http_request",
                     method = %request.method(),
-                    path = %request.uri().path(),
+                    path,
                     version = ?request.version(),
                 )
             }),
