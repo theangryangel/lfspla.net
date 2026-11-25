@@ -3,16 +3,12 @@
 mod invites;
 mod manage;
 
-use std::collections::HashMap;
-
 use axum::{
     Json,
     extract::{Path, Query, State},
+    http::StatusCode,
 };
-use sea_orm::sea_query::{Expr, Func, extension::postgres::PgExpr};
-use sea_orm::{
-    Condition, FromQueryResult, QueryOrder, QuerySelect, QueryTrait, entity::prelude::*,
-};
+use sea_orm::{EntityTrait, PaginatorTrait, QuerySelect};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -22,8 +18,7 @@ use crate::{
         ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
         extractors::AuthenticatedPlayer, v1::PlayerSummary,
     },
-    db::escaped_like::EscapedLike,
-    models::{player, team, team_member},
+    models::team::{self, TeamError, TeamFilter, TeamOrder, member},
 };
 
 pub(super) fn router() -> OpenApiRouter<ApiState> {
@@ -91,7 +86,7 @@ impl TeamSummary {
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct TeamMemberResponse {
     player: PlayerSummary,
-    role: team_member::Role,
+    role: member::Role,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -122,33 +117,22 @@ pub(crate) async fn list_teams(
         let player = viewer
             .ok_or_else(|| {
                 ApiError::new(
-                    axum::http::StatusCode::UNAUTHORIZED,
+                    StatusCode::UNAUTHORIZED,
                     "authentication_required",
                     "Sign in to view your teams.",
                 )
             })?
             .0;
-        let memberships = team_member::Entity::find()
-            .select_only()
-            .column(team_member::Column::TeamId)
-            .filter(team_member::Column::PlayerId.eq(player.id))
-            .into_query();
-        teams = teams.filter(team::Column::Id.in_subquery(memberships));
+        teams = teams.with_member(player.id);
     }
-    if let Some(q) = query.q.as_deref().map(str::trim).filter(|q| !q.is_empty()) {
-        let pattern = EscapedLike::contains(q);
-        teams = teams.filter(
-            Condition::any()
-                .add(Expr::col(team::Column::Name).ilike(pattern.clone()))
-                .add(Expr::col(team::Column::Tag).ilike(pattern)),
-        );
+    if let Some(q) = query.q.as_deref() {
+        teams = teams.matching(q);
     }
     if let Some(discipline) = query.discipline {
-        teams =
-            teams.filter(Expr::col(team::Column::Tags).contains(serde_json::json!([discipline])));
+        teams = teams.with_tag(discipline);
     }
     if let Some(accepts) = query.accepts_applications {
-        teams = teams.filter(team::Column::AcceptsApplications.eq(accepts));
+        teams = teams.accepting_applications(accepts);
     }
     let total_items = teams
         .clone()
@@ -156,32 +140,15 @@ pub(crate) async fn list_teams(
         .await
         .map_err(ApiError::database)?;
     let teams = teams
-        .order_by_asc(Func::lower(Expr::col(team::Column::Name)))
-        .order_by_asc(team::Column::Id)
+        .in_name_order()
         .offset(offset)
         .limit(pagination.per_page)
         .all(&state.database)
         .await
         .map_err(ApiError::database)?;
-
-    #[derive(FromQueryResult)]
-    struct MemberCount {
-        team_id: i64,
-        member_count: i64,
-    }
-    let counts: HashMap<_, _> = team_member::Entity::find()
-        .select_only()
-        .column(team_member::Column::TeamId)
-        .column_as(team_member::Column::PlayerId.count(), "member_count")
-        .filter(team_member::Column::TeamId.is_in(teams.iter().map(|team| team.id)))
-        .group_by(team_member::Column::TeamId)
-        .into_model::<MemberCount>()
-        .all(&state.database)
+    let counts = team::Model::member_counts(&state.database, teams.iter().map(|team| team.id))
         .await
-        .map_err(ApiError::database)?
-        .into_iter()
-        .map(|row| (row.team_id, row.member_count))
-        .collect();
+        .map_err(ApiError::database)?;
     Ok(Json(PaginatedResponse {
         items: teams
             .into_iter()
@@ -210,36 +177,59 @@ pub(crate) async fn get_team(
         .one(&state.database)
         .await
         .map_err(ApiError::database)?
-        .ok_or_else(|| ApiError::not_found("team_not_found", "Team"))?;
-    let mut members = team_member::Entity::find()
-        .filter(team_member::Column::TeamId.eq(id))
-        .find_also_related(player::Entity)
-        .all(&state.database)
+        .ok_or(TeamError::NotFound)?;
+    let members: Vec<_> = member::Model::roster(&state.database, id)
         .await
         .map_err(ApiError::database)?
         .into_iter()
-        .map(|(membership, player)| {
-            let player = player.ok_or_else(|| {
-                ApiError::database(DbErr::Custom("team member has no player".into()))
-            })?;
-            Ok(TeamMemberResponse {
-                player: player.into(),
-                role: membership.role,
-            })
+        .map(|(role, player)| TeamMemberResponse {
+            player: player.into(),
+            role,
         })
-        .collect::<Result<Vec<_>, ApiError>>()?;
-    members.sort_by_key(|member| {
-        (
-            member.role != team_member::Role::Owner,
-            member.player.lfs_username.to_ascii_lowercase(),
-        )
-    });
+        .collect();
     let member_count = i64::try_from(members.len())
         .map_err(|error| ApiError::internal(&error, "team roster count"))?;
     Ok(Json(TeamResponse {
         team: TeamSummary::new(team, member_count),
         members,
     }))
+}
+
+impl From<TeamError> for ApiError {
+    fn from(error: TeamError) -> Self {
+        match error {
+            TeamError::NotFound => ApiError::not_found("team_not_found", "Team"),
+            TeamError::MemberNotFound => {
+                ApiError::not_found("team_member_not_found", "Team member")
+            }
+            TeamError::InviteNotFound => ApiError::not_found("team_invite_not_found", "Invitation"),
+            TeamError::InviteUnavailable => {
+                ApiError::not_found("team_invite_unavailable", "Active invitation")
+            }
+            TeamError::OwnerRequired => ApiError::new(
+                StatusCode::FORBIDDEN,
+                "team_owner_required",
+                "Only team owners can do this",
+            ),
+            TeamError::LastOwner => ApiError::new(
+                StatusCode::CONFLICT,
+                "team_conflict",
+                "A team must keep at least one owner. Make another member an owner first",
+            ),
+            TeamError::TransferToSelf => ApiError::new(
+                StatusCode::BAD_REQUEST,
+                "invalid_team",
+                "Choose another team member",
+            ),
+            TeamError::Disbanded => ApiError::new(
+                StatusCode::CONFLICT,
+                "team_conflict",
+                "Reactivate the team first",
+            ),
+            TeamError::Validation(errors) => errors.into(),
+            TeamError::Database(error) => ApiError::database(error),
+        }
+    }
 }
 
 #[cfg(test)]

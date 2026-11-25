@@ -65,7 +65,7 @@ pub struct Model {
     #[sea_orm(has_many)]
     pub personal_access_tokens: HasMany<crate::models::personal_access_token::Entity>,
     #[sea_orm(has_many)]
-    pub team_memberships: HasMany<crate::models::team_member::Entity>,
+    pub team_memberships: HasMany<crate::models::team::member::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

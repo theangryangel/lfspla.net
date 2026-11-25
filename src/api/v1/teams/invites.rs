@@ -1,14 +1,18 @@
-//! Invitation secrets are returned once. Team locks serialize redemption with revocation.
+//! Invitation secrets are returned once. The workflows live in `models::team::invite`.
 
-use super::manage::{conflict, invalid, lock_team, require_owner};
-use super::*;
-use crate::{
-    api::{ListResponse, extractors::AuthenticatedPlayer},
-    models::team_invite,
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
 };
-use axum::http::StatusCode;
-use sea_orm::{ActiveValue::Set, DatabaseTransaction, IntoActiveModel, TransactionTrait};
-use sha2::{Digest, Sha256};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+use super::TeamSummary;
+use crate::{
+    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors::AuthenticatedPlayer},
+    models::team::invite::{self, CreateTeamInvite},
+};
 
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct TeamInviteResponse {
@@ -27,8 +31,8 @@ pub(crate) struct TeamInviteResponse {
     revoked_at: Option<time::OffsetDateTime>,
 }
 
-impl From<team_invite::Model> for TeamInviteResponse {
-    fn from(record: team_invite::Model) -> Self {
+impl From<invite::Model> for TeamInviteResponse {
+    fn from(record: invite::Model) -> Self {
         Self {
             id: record.id,
             created_at: record.created_at,
@@ -61,20 +65,6 @@ pub(crate) struct TeamInvitePreview {
     team: TeamSummary,
 }
 
-pub(super) async fn revoke_all(database: &DatabaseTransaction, id: i64) -> Result<(), ApiError> {
-    team_invite::Entity::update_many()
-        .col_expr(
-            team_invite::Column::RevokedAt,
-            Expr::value(time::OffsetDateTime::now_utc()),
-        )
-        .filter(team_invite::Column::TeamId.eq(id))
-        .filter(team_invite::Column::RevokedAt.is_null())
-        .exec(database)
-        .await
-        .map_err(ApiError::database)?;
-    Ok(())
-}
-
 #[utoipa::path(get, path = "/api/v1/teams/{id}/invites", tag = "teams",
     security(("cookie_session" = []), ("personal_access_token" = [])), params(("id" = i64, Path)),
     responses((status = 200, body = ListResponse<TeamInviteResponse>, description = "Owner-visible invitation metadata, never secrets"),
@@ -84,21 +74,10 @@ pub(crate) async fn list_team_invites(
     State(state): State<ApiState>,
     AuthenticatedPlayer(player): AuthenticatedPlayer,
 ) -> Result<Json<ListResponse<TeamInviteResponse>>, ApiError> {
-    require_owner(&state.database, id, player.id).await?;
-    let records = team_invite::Entity::find()
-        .filter(team_invite::Column::TeamId.eq(id))
-        .order_by_desc(team_invite::Column::CreatedAt)
-        .order_by_desc(team_invite::Column::Id)
-        .all(&state.database)
-        .await
-        .map_err(ApiError::database)?;
-    Ok(Json(
-        records
-            .into_iter()
-            .map(Into::into)
-            .collect::<Vec<_>>()
-            .into(),
-    ))
+    let records = invite::Model::list(&state.database, id, player.id).await?;
+    Ok(Json(ListResponse::from(
+        records.into_iter().map(Into::into).collect::<Vec<_>>(),
+    )))
 }
 
 #[utoipa::path(post, path = "/api/v1/teams/{id}/invites", tag = "teams",
@@ -115,44 +94,27 @@ pub(crate) async fn create_team_invite(
     AuthenticatedPlayer(player): AuthenticatedPlayer,
     Json(request): Json<CreateTeamInviteRequest>,
 ) -> Result<(StatusCode, Json<CreatedTeamInviteResponse>), ApiError> {
-    if request
-        .expires_in_days
-        .is_some_and(|days| !(1..=365).contains(&days))
-        || request
-            .max_uses
-            .is_some_and(|uses| !(1..=10_000).contains(&uses))
-    {
-        return Err(invalid(
-            "Choose an expiry of 1 to 365 days and a usage limit of 1 to 10,000, or leave them unlimited",
-        ));
-    }
-    let tx = state.database.begin().await.map_err(ApiError::database)?;
-    let team = lock_team(&tx, id).await?;
-    require_owner(&tx, id, player.id).await?;
-    if team.status != team::Status::Active {
-        return Err(conflict("Reactivate the team before inviting members"));
-    }
-    let token = hex::encode(rand::random::<[u8; 32]>());
-    let now = time::OffsetDateTime::now_utc();
-    let record = team_invite::ActiveModel {
-        team_id: Set(id),
-        created_by: Set(player.id),
-        token_hash: Set(hash(&token)),
-        expires_at: Set(request
-            .expires_in_days
-            .map(|days| now + time::Duration::days(days))),
-        max_uses: Set(request.max_uses),
-        ..Default::default()
-    }
-    .insert(&tx)
-    .await
-    .map_err(ApiError::database)?;
-    tx.commit().await.map_err(ApiError::database)?;
+    let issued = invite::Model::issue(
+        &state.database,
+        id,
+        player.id,
+        CreateTeamInvite {
+            expires_in_days: request.expires_in_days,
+            max_uses: request.max_uses,
+        },
+    )
+    .await?;
+    tracing::info!(
+        player_id = player.id,
+        team_id = id,
+        invite_id = issued.record.id,
+        "team invitation created"
+    );
     Ok((
         StatusCode::CREATED,
         Json(CreatedTeamInviteResponse {
-            token,
-            invite: record.into(),
+            token: issued.token,
+            invite: issued.record.into(),
         }),
     ))
 }
@@ -167,47 +129,14 @@ pub(crate) async fn revoke_team_invite(
     State(state): State<ApiState>,
     AuthenticatedPlayer(player): AuthenticatedPlayer,
 ) -> Result<StatusCode, ApiError> {
-    let tx = state.database.begin().await.map_err(ApiError::database)?;
-    lock_team(&tx, id).await?;
-    require_owner(&tx, id, player.id).await?;
-    let result = team_invite::Entity::update_many()
-        .col_expr(
-            team_invite::Column::RevokedAt,
-            Expr::value(time::OffsetDateTime::now_utc()),
-        )
-        .filter(team_invite::Column::Id.eq(invite_id))
-        .filter(team_invite::Column::TeamId.eq(id))
-        .exec(&tx)
-        .await
-        .map_err(ApiError::database)?;
-    if result.rows_affected == 0 {
-        return Err(ApiError::not_found("team_invite_not_found", "Invitation"));
-    }
-    tx.commit().await.map_err(ApiError::database)?;
+    invite::Model::revoke(&state.database, id, player.id, invite_id).await?;
+    tracing::info!(
+        player_id = player.id,
+        team_id = id,
+        invite_id,
+        "team invitation revoked"
+    );
     Ok(StatusCode::NO_CONTENT)
-}
-
-fn hash(token: &str) -> Vec<u8> {
-    Sha256::digest(token.as_bytes()).to_vec()
-}
-
-fn unavailable() -> ApiError {
-    ApiError::not_found("team_invite_unavailable", "Active invitation")
-}
-
-async fn find_invite(
-    database: &impl ConnectionTrait,
-    token: &str,
-) -> Result<team_invite::Model, ApiError> {
-    if token.len() != 64 || !token.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err(unavailable());
-    }
-    team_invite::Entity::find()
-        .filter(team_invite::Column::TokenHash.eq(hash(token)))
-        .one(database)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(unavailable)
 }
 
 #[utoipa::path(get, path = "/api/v1/team-invites/{token}", tag = "teams", params(("token" = String, Path)),
@@ -217,25 +146,11 @@ pub(crate) async fn preview_team_invite(
     Path(token): Path<String>,
     State(state): State<ApiState>,
 ) -> Result<Json<TeamInvitePreview>, ApiError> {
-    let invite = find_invite(&state.database, &token).await?;
-    if !invite.usable_at(time::OffsetDateTime::now_utc()) {
-        return Err(unavailable());
-    }
-    let team = team::Entity::find_by_id(invite.team_id)
-        .one(&state.database)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(unavailable)?;
-    if team.status != team::Status::Active {
-        return Err(unavailable());
-    }
-    let count = team_member::Entity::find()
-        .filter(team_member::Column::TeamId.eq(team.id))
-        .count(&state.database)
+    let team = invite::Model::preview(&state.database, &token).await?;
+    let count = team
+        .member_count(&state.database)
         .await
         .map_err(ApiError::database)?;
-    let count =
-        i64::try_from(count).map_err(|error| ApiError::internal(&error, "team roster count"))?;
     Ok(Json(TeamInvitePreview {
         team: TeamSummary::new(team, count),
     }))
@@ -252,38 +167,15 @@ pub(crate) async fn accept_team_invite(
     State(state): State<ApiState>,
     AuthenticatedPlayer(player): AuthenticatedPlayer,
 ) -> Result<Json<TeamSummary>, ApiError> {
-    let tx = state.database.begin().await.map_err(ApiError::database)?;
-    let invite = find_invite(&tx, &token).await?;
-    let team = lock_team(&tx, invite.team_id).await?;
-    // Re-read after locking the team: revocation or another redemption may have won the lock.
-    let invite = find_invite(&tx, &token).await?;
-    if team.status != team::Status::Active || !invite.usable_at(time::OffsetDateTime::now_utc()) {
-        return Err(unavailable());
-    }
-    let member = team_member::Entity::find_by_id((team.id, player.id))
-        .one(&tx)
+    let team = invite::Model::accept(&state.database, &token, player.id).await?;
+    tracing::info!(
+        player_id = player.id,
+        team_id = team.id,
+        "team invitation accepted"
+    );
+    let count = team
+        .member_count(&state.database)
         .await
         .map_err(ApiError::database)?;
-    if member.is_none() {
-        team_member::ActiveModel {
-            team_id: Set(team.id),
-            player_id: Set(player.id),
-            role: Set(team_member::Role::Member),
-        }
-        .insert(&tx)
-        .await
-        .map_err(ApiError::database)?;
-        let mut active = invite.into_active_model();
-        active.uses = Set(active.uses.unwrap() + 1);
-        active.update(&tx).await.map_err(ApiError::database)?;
-    }
-    let count = team_member::Entity::find()
-        .filter(team_member::Column::TeamId.eq(team.id))
-        .count(&tx)
-        .await
-        .map_err(ApiError::database)?;
-    let count =
-        i64::try_from(count).map_err(|error| ApiError::internal(&error, "team roster count"))?;
-    tx.commit().await.map_err(ApiError::database)?;
     Ok(Json(TeamSummary::new(team, count)))
 }

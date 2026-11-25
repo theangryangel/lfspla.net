@@ -48,10 +48,27 @@ export function apiErrorBody(cause: unknown): ErrorBody | undefined {
   return (cause.body as Partial<ErrorResponse> | undefined)?.error;
 }
 
+/** The first field message from a `validation_error`, shaped `{ field: [{ message }] }`. */
+function validationMessage(body: ErrorBody | undefined): string | undefined {
+  if (body?.code !== "validation_error") return undefined;
+  const fields = body.details;
+  if (!fields || typeof fields !== "object") return undefined;
+  for (const errors of Object.values(fields as Record<string, unknown>)) {
+    if (!Array.isArray(errors)) continue;
+    for (const error of errors) {
+      const message = (error as { message?: unknown } | null)?.message;
+      if (typeof message === "string" && message) return message;
+    }
+  }
+  return undefined;
+}
+
 /** Show the backend's message rather than Fern's status-class name. */
 export function apiErrorMessage(cause: unknown): string {
+  const body = apiErrorBody(cause);
   return (
-    apiErrorBody(cause)?.message ??
+    validationMessage(body) ??
+    body?.message ??
     (cause instanceof LfsplanetApiError && cause.statusCode == null
       ? "The request could not be sent."
       : cause instanceof Error

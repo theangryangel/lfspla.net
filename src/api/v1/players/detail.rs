@@ -6,11 +6,14 @@ use super::response::chart_result_responses;
 use crate::api::v1::hotlaps::response::Hotlap;
 use crate::{
     api::{ApiError, ApiState, ErrorResponse, extractors as extract, v1::PlayerSummary},
-    models::{badge::PlayerBadge, player::PlayerProfile, team, team_member},
+    models::{
+        badge::PlayerBadge,
+        player::PlayerProfile,
+        team::{self, TeamFilter, TeamOrder},
+    },
 };
 use axum::{Json, extract::State};
-use sea_orm::sea_query::{Expr, Func};
-use sea_orm::{FromQueryResult, QueryOrder, QuerySelect, QueryTrait, entity::prelude::*};
+use sea_orm::{EntityTrait, FromQueryResult, QuerySelect};
 use serde::Serialize;
 use utoipa::ToSchema;
 
@@ -91,11 +94,6 @@ pub(crate) async fn detail(
         .profile(&state.database)
         .await
         .map_err(ApiError::database)?;
-    let memberships = team_member::Entity::find()
-        .select_only()
-        .column(team_member::Column::TeamId)
-        .filter(team_member::Column::PlayerId.eq(profile.player.id))
-        .into_query();
     let teams = team::Entity::find()
         .select_only()
         .columns([
@@ -104,9 +102,8 @@ pub(crate) async fn detail(
             team::Column::Tag,
             team::Column::Status,
         ])
-        .filter(team::Column::Id.in_subquery(memberships))
-        .order_by_asc(Func::lower(Expr::col(team::Column::Name)))
-        .order_by_asc(team::Column::Id)
+        .with_member(profile.player.id)
+        .in_name_order()
         .into_model::<PlayerTeamResponse>()
         .all(&state.database)
         .await

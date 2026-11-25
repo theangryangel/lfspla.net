@@ -1,9 +1,11 @@
 use super::*;
+use crate::models::player;
 use axum::{
     Extension,
     body::{Body, to_bytes},
     http::{Request, StatusCode},
 };
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, sea_query::Expr};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -220,6 +222,43 @@ async fn team_management_enforces_roles_and_preserves_ownership(
             .0,
         StatusCode::NOT_FOUND
     );
+    let (_, spare) = call(
+        &state,
+        "POST",
+        &format!("{base}/invites"),
+        Some(token),
+        json!({}),
+    )
+    .await;
+    let spare_id = spare["invite"]["id"].clone();
+    let spare_path = format!("{base}/invites/{spare_id}");
+    let invites_path = format!("{base}/invites");
+    let (state_ref, invites_ref, spare_ref) = (&state, &invites_path, &spare_id);
+    let revoked_at = move || async move {
+        let (_, invites) = call(state_ref, "GET", invites_ref, Some(token), Value::Null).await;
+        invites["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["id"] == *spare_ref)
+            .unwrap()["revoked_at"]
+            .clone()
+    };
+    assert_eq!(
+        call(&state, "DELETE", &spare_path, Some(token), Value::Null)
+            .await
+            .0,
+        StatusCode::NO_CONTENT
+    );
+    let first_revoked_at = revoked_at().await;
+    assert!(!first_revoked_at.is_null());
+    assert_eq!(
+        call(&state, "DELETE", &spare_path, Some(token), Value::Null)
+            .await
+            .0,
+        StatusCode::NO_CONTENT
+    );
+    assert_eq!(revoked_at().await, first_revoked_at);
     assert_eq!(
         call(
             &state,
@@ -399,12 +438,12 @@ async fn limited_invites_are_atomic_and_browser_writes_require_csrf(
     )
     .await;
     let invite_id = invite["invite"]["id"].as_i64().unwrap();
-    crate::models::team_invite::Entity::update_many()
+    crate::models::team::invite::Entity::update_many()
         .col_expr(
-            crate::models::team_invite::Column::ExpiresAt,
+            crate::models::team::invite::Column::ExpiresAt,
             Expr::value(time::OffsetDateTime::UNIX_EPOCH),
         )
-        .filter(crate::models::team_invite::Column::Id.eq(invite_id))
+        .filter(crate::models::team::invite::Column::Id.eq(invite_id))
         .exec(&state.database)
         .await?;
     let path = format!("/api/v1/team-invites/{}", invite["token"].as_str().unwrap());
