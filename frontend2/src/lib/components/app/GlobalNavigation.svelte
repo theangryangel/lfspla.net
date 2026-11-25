@@ -64,10 +64,7 @@
 	class="global-navigation z-50 hidden items-center gap-2 md:flex"
 >
 	{#each menus as menu (menu.id)}
-		<div
-			data-global-mega-menu
-			class={menu.id === 'hotlaps' ? 'relative' : undefined}
-		>
+		<div data-global-mega-menu>
 			<Button
 				id={`${menu.id}-menu-trigger`}
 				variant="ghost"
@@ -87,9 +84,7 @@
 				<div
 					id={`${menu.id}-mega-menu`}
 					aria-labelledby={`${menu.id}-menu-trigger`}
-					class={menu.id === 'hotlaps'
-						? 'dark absolute left-0 top-full z-50 mt-2 max-h-[calc(100dvh-6rem)] w-64 overflow-y-auto rounded-lg border border-white/15 bg-[#111113] text-foreground shadow-lg'
-						: panelClass}
+					class={panelClass}
 				>
 					{#if menu.id === 'hotlaps'}<HotlapMenuContent
 							{eras}
