@@ -2065,10 +2065,29 @@ dependencies = [
  "digest 0.11.3",
  "from_variants",
  "indexmap",
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9eb018ce6e3a9995c808d7cf58609154297c22e8)",
  "serde",
  "thiserror 2.0.21",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "insim_core"
+version = "3.0.0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=8ee7904829af3421b1be0810e3ab22d0de98bc5f#8ee7904829af3421b1be0810e3ab22d0de98bc5f"
+dependencies = [
+ "arrayvec",
+ "bitflags",
+ "bytes",
+ "encoding_rs",
+ "glam",
+ "insim_macros 0.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=8ee7904829af3421b1be0810e3ab22d0de98bc5f)",
+ "itertools 0.15.0",
+ "num-traits",
+ "serde",
+ "smallvec",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -2082,13 +2101,24 @@ dependencies = [
  "bytes",
  "encoding_rs",
  "glam",
- "insim_macros",
+ "insim_macros 0.1.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9eb018ce6e3a9995c808d7cf58609154297c22e8)",
  "itertools 0.15.0",
  "num-traits",
  "serde",
  "smallvec",
  "thiserror 2.0.21",
  "tracing",
+]
+
+[[package]]
+name = "insim_macros"
+version = "0.1.0"
+source = "git+https://github.com/theangryangel/insim.rs.git?rev=8ee7904829af3421b1be0810e3ab22d0de98bc5f#8ee7904829af3421b1be0810e3ab22d0de98bc5f"
+dependencies = [
+ "darling 0.24.1",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -2110,7 +2140,7 @@ dependencies = [
  "bitflags",
  "bytes",
  "glam",
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=9eb018ce6e3a9995c808d7cf58609154297c22e8)",
  "thiserror 2.0.21",
 ]
 
@@ -2300,7 +2330,7 @@ dependencies = [
  "hex",
  "http-body-util",
  "insim",
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=8ee7904829af3421b1be0810e3ab22d0de98bc5f)",
  "itertools 0.15.0",
  "lfsplanet_flags",
  "lfsplanet_game_version_req",
@@ -2355,7 +2385,7 @@ dependencies = [
 name = "lfsplanet_game_version_req"
 version = "0.1.0"
 dependencies = [
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=8ee7904829af3421b1be0810e3ab22d0de98bc5f)",
  "sea-orm",
  "serde",
  "serde_json",
@@ -2417,7 +2447,7 @@ dependencies = [
 name = "lfsplanet_pubstat"
 version = "0.1.0"
 dependencies = [
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=8ee7904829af3421b1be0810e3ab22d0de98bc5f)",
  "serde",
  "serde-xml-rs",
  "serde_json",
@@ -2431,7 +2461,7 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "insim",
- "insim_core",
+ "insim_core 3.0.0 (git+https://github.com/theangryangel/insim.rs.git?rev=8ee7904829af3421b1be0810e3ab22d0de98bc5f)",
  "memchr",
  "regex",
  "thiserror 2.0.21",
