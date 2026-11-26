@@ -34,10 +34,10 @@ struct_excessive_bools = "allow"
 anyhow = "1"
 bytes = "1"
 clap = "4"
-insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb018ce6e3a9995c808d7cf58609154297c22e8", features = ["serde"] }
-insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb018ce6e3a9995c808d7cf58609154297c22e8", features = ["serde"] }
-insim_extra = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb018ce6e3a9995c808d7cf58609154297c22e8" }
-insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "9eb018ce6e3a9995c808d7cf58609154297c22e8" }
+insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f", features = ["serde"] }
+insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f", features = ["serde"] }
+insim_extra = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f" }
+insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f" }
 lfsplanet_game_version_req = { path = "crates/lfsplanet_game_version_req" }
 memchr = "2"
 oauth2 = "5"
