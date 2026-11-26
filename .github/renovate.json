@@ -11,14 +11,6 @@
   },
   "packageRules": [
     {
-      "description": "Batch routine frontend updates weekly; keep merging a manual decision.",
-      "matchManagers": ["npm"],
-      "matchFileNames": ["frontend2/package.json"],
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "schedule": ["* * * * 1"],
-      "automerge": false
-    },
-    {
       "description": "Update the Svelte compiler, Kit, adapter, and build tooling together within their existing majors.",
       "matchManagers": ["npm"],
       "matchFileNames": ["frontend2/package.json"],
@@ -46,6 +38,23 @@
       "groupSlug": "prettier"
     },
     {
+      "description": "FullCalendar declares temporal-polyfill as a peer dependency, so upgrade them together, majors included.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["frontend2/package.json"],
+      "matchPackageNames": ["fullcalendar", "temporal-polyfill"],
+      "groupName": "FullCalendar",
+      "groupSlug": "fullcalendar"
+    },
+    {
+      "description": "Icon packs",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["frontend2/package.json"],
+      "matchPackageNames": ["@lucide/svelte", "simple-icons"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "schedule": ["* * * * 1"],
+      "automerge": true
+    },
+    {
       "description": "Keep frontend majors visible in the Dashboard without creating PRs until requested; coordinate required companion upgrades during migration.",
       "matchManagers": ["npm"],
       "matchFileNames": ["frontend2/package.json"],
@@ -54,10 +63,11 @@
       "automerge": false
     },
     {
-      "description": "insim, insim_core are pulled from the insim.rs main branch as git dependencies; renovate must not manage them.",
+      "description": "insim, insim_core, insim_extra, and insim_pth are pinned to the same rev of the insim.rs git repo, so upgrade them together.",
       "matchManagers": ["cargo"],
-      "matchPackageNames": ["insim", "insim_core", "insim_pth"],
-      "enabled": false
+      "matchDepNames": ["insim", "insim_core", "insim_extra", "insim_pth"],
+      "groupName": "insim.rs",
+      "groupSlug": "insim-rs"
     },
     {
       "matchManagers": ["cargo"],
