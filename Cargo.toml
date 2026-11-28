@@ -43,10 +43,10 @@ fake = { version = "5", features = ["derive"] }
 flate2 = "1"
 futures = "0.3"
 hex = "0.4"
-insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f", features = ["serde"] }
-insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f", features = ["serde"] }
-insim_extra = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f" }
-insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f" }
+insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "604d801ff8ff45780c9d7b0b0125e395933bb72a", features = ["serde"] }
+insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "604d801ff8ff45780c9d7b0b0125e395933bb72a", features = ["serde"] }
+insim_extra = { git = "https://github.com/theangryangel/insim.rs.git", rev = "604d801ff8ff45780c9d7b0b0125e395933bb72a" }
+insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "604d801ff8ff45780c9d7b0b0125e395933bb72a" }
 itertools = "0.15"
 lfsplanet_core = { path = "crates/lfsplanet_core" }
 lfsplanet_country_ext = { path = "crates/lfsplanet_country_ext", features = ["sea-orm"] }
