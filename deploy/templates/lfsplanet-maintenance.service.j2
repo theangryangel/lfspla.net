@@ -10,7 +10,11 @@ Group={{ host.data.app_group }}
 WorkingDirectory={{ host.data.state_dir }}
 Environment=RUST_LOG=warn,lfsplanet=info
 EnvironmentFile={{ host.data.config_dir }}/storage.env
-ExecStart={{ host.data.app_root }}/lfsplanet --config {{ host.data.config_dir }}/config.yaml maintenance run-all --delete
+# Each step runs in order; a failure stops the later steps until the next run.
+ExecStart={{ host.data.app_root }}/lfsplanet --config {{ host.data.config_dir }}/config.yaml gc --all --yes
+ExecStart={{ host.data.app_root }}/lfsplanet --config {{ host.data.config_dir }}/config.yaml hotlaps rebadge --pending
+ExecStart={{ host.data.app_root }}/lfsplanet --config {{ host.data.config_dir }}/config.yaml race-calendar sync
+ExecStart={{ host.data.app_root }}/lfsplanet --config {{ host.data.config_dir }}/config.yaml vehicles sync-mods
 UMask=0027
 NoNewPrivileges=true
 PrivateTmp=true

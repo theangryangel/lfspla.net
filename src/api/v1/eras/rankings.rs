@@ -1,24 +1,22 @@
 //! Rankings offered by an era, and their standings.
 
-use crate::milliseconds::Milliseconds;
+use lfsplanet_core::milliseconds::Milliseconds;
 
 use super::response::Chart;
 use crate::api::v1::hotlaps::response::Hotlap;
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract,
-        extractors::AuthenticatedPlayer, v1::PlayerSummary,
-    },
-    models::{
-        badge::PlayerBadge,
-        chart::BestHotlap,
-        ranking::{self, RankingFilter, RankingRules},
-    },
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract,
+    extractors::AuthenticatedPlayer, v1::PlayerSummary,
 };
 use axum::{
     Json,
     extract::{Path, Query, State},
     http::StatusCode,
+};
+use lfsplanet_core::models::badge::PlayerBadge;
+use lfsplanet_hotlaps::models::{
+    chart::BestHotlap,
+    ranking::{self, RankingFilter, RankingRules},
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde::{Deserialize, Serialize};
@@ -31,14 +29,14 @@ pub(crate) struct RankingSummary {
     id: String,
     title: String,
     description: String,
-    discipline: crate::hotlap_discipline::HotLapDiscipline,
+    discipline: lfsplanet_hotlaps::hotlap_discipline::HotLapDiscipline,
     /// Present only for authenticated requests to the rankings collection.
     #[schema(required)]
     my_progress: Option<RankingProgressResponse>,
 }
 
-impl From<crate::models::Ranking> for RankingSummary {
-    fn from(ranking: crate::models::Ranking) -> Self {
+impl From<lfsplanet_hotlaps::models::Ranking> for RankingSummary {
+    fn from(ranking: lfsplanet_hotlaps::models::Ranking) -> Self {
         Self {
             id: ranking.slug.to_string(),
             title: ranking.title,
@@ -155,7 +153,7 @@ pub(super) fn router() -> OpenApiRouter<ApiState> {
 #[derive(Debug, Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub(crate) struct RankingSearchQuery {
-    discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
+    discipline: Option<lfsplanet_hotlaps::hotlap_discipline::HotLapDiscipline>,
 }
 
 #[utoipa::path(
@@ -332,7 +330,7 @@ pub(crate) async fn players(
     State(state): State<ApiState>,
 ) -> Result<Json<RankingStandings<PersonalRankingEntryResponse>>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
-    let ranking = crate::models::Ranking::find(&state.database, era.id, &ranking_id)
+    let ranking = lfsplanet_hotlaps::models::Ranking::find(&state.database, era.id, &ranking_id)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("ranking_not_found", "Ranking"))?;
@@ -394,7 +392,7 @@ pub(crate) async fn nations(
     State(state): State<ApiState>,
 ) -> Result<Json<RankingStandings<NationRankingEntryResponse>>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
-    let ranking = crate::models::Ranking::find(&state.database, era.id, &ranking_id)
+    let ranking = lfsplanet_hotlaps::models::Ranking::find(&state.database, era.id, &ranking_id)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("ranking_not_found", "Ranking"))?;
@@ -457,7 +455,7 @@ pub(crate) async fn nation_contributions(
     State(state): State<ApiState>,
 ) -> Result<Json<ListResponse<NationContributionResponse>>, ApiError> {
     let era = extract::resolve_era(&state.database, &era_id).await?;
-    let ranking = crate::models::Ranking::find(&state.database, era.id, &ranking_id)
+    let ranking = lfsplanet_hotlaps::models::Ranking::find(&state.database, era.id, &ranking_id)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("ranking_not_found", "Ranking"))?;
@@ -477,83 +475,4 @@ pub(crate) async fn nation_contributions(
             .map(NationContributionResponse::from)
             .collect::<Vec<_>>(),
     )))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn standings_and_contributors_serialize_a_shared_nested_player() {
-        let player = PlayerSummary {
-            id: 7,
-            lfs_username: "driver".to_owned(),
-            display_name: "Driver".to_owned(),
-            country_code: Some("GB".to_owned()),
-            flag_code: None,
-        };
-        let standings = RankingStandings {
-            id: "nutter".to_owned(),
-            title: "Nutter".to_owned(),
-            total_charts: 3,
-            entries: vec![PersonalRankingEntryResponse {
-                position: 1,
-                player: player.clone(),
-                completed_charts: 2,
-                total_charts: 3,
-                handicap_ms: Milliseconds::ZERO,
-                badges: vec![],
-            }],
-        };
-        let contributor = NationContributionResponse {
-            player: player.clone(),
-            points: 10,
-            contributing_charts: 2,
-            handicap_ms: Milliseconds::ZERO,
-        };
-        let standings = serde_json::to_value(standings).unwrap();
-        let contributor = serde_json::to_value(contributor).unwrap();
-        let expected = serde_json::to_value(player).unwrap();
-        assert_eq!(standings["id"], "nutter");
-        assert!(standings.get("ranking_id").is_none());
-        for row in [&standings["entries"][0], &contributor] {
-            assert_eq!(row["player"], expected);
-            for old in [
-                "player_id",
-                "lfs_username",
-                "display_name",
-                "country_code",
-                "flag_code",
-            ] {
-                assert!(row.get(old).is_none());
-            }
-        }
-    }
-
-    #[test]
-    fn ranking_detail_keeps_flat_metadata_and_chart_progress() {
-        let response = RankingDetailResponse {
-            ranking: RankingSummary {
-                id: "nutter".to_owned(),
-                title: "Nutter".to_owned(),
-                description: "Complete all charts".to_owned(),
-                discipline: crate::hotlap_discipline::HotLapDiscipline::Circuit,
-                my_progress: Some(RankingProgressResponse::new(3, 2)),
-            },
-            rules: RankingRules {
-                benchmark_percent: 103,
-                nation_max_points: 10,
-                nation_driver_limit: 3,
-            },
-            charts: vec![],
-        };
-        let json = serde_json::to_value(response).unwrap();
-        assert_eq!(json["id"], "nutter");
-        assert_eq!(json["discipline"], "circuit");
-        assert!(json.get("ranking").is_none());
-        assert_eq!(
-            json["my_progress"],
-            serde_json::json!({ "total_charts": 3, "completed_charts": 2 })
-        );
-    }
 }

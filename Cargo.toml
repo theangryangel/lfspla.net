@@ -11,7 +11,7 @@ aws = ["object_store/aws"]
 azure = ["object_store/azure"]
 gcp = ["object_store/gcp"]
 http = ["object_store/http"]
-test-database = []
+test-database = ["lfsplanet_core/test-database", "lfsplanet_hotlaps/test-database", "lfsplanet_race_calendar/test-database"]
 
 [workspace]
 members = ["crates/*"]
@@ -32,77 +32,114 @@ struct_excessive_bools = "allow"
 
 [workspace.dependencies]
 anyhow = "1"
-bytes = "1"
-clap = "4"
-insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f", features = ["serde"] }
-insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f", features = ["serde"] }
-insim_extra = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f" }
-insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f" }
-lfsplanet_game_version_req = { path = "crates/lfsplanet_game_version_req" }
-memchr = "2"
-oauth2 = "5"
-regex = "1"
-reqwest = { version = "0.13", default-features = false }
-sea-orm = "2"
-serde = "1"
-serde_json = "1"
-tempfile = "3"
-thiserror = "2"
-tokio = "1"
-url = "2"
-
-[dependencies]
-anyhow = { workspace = true }
 axum = { version = "0.8", features = ["multipart"] }
 axum-response-cache = "0.5"
+bytes = "1"
 celes = "3.0.0"
-lfsplanet_flags = { path = "crates/lfsplanet_flags", features = ["sea-orm"] }
-clap = { workspace = true, features = ["derive"] }
+clap = "4"
 csv = "1"
 encoding_rs = "0.8"
 fake = { version = "5", features = ["derive"] }
 flate2 = "1"
 futures = "0.3"
 hex = "0.4"
-insim = { workspace = true }
-insim_core = { workspace = true }
+insim = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f", features = ["serde"] }
+insim_core = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f", features = ["serde"] }
+insim_extra = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f" }
+insim_pth = { git = "https://github.com/theangryangel/insim.rs.git", rev = "8ee7904829af3421b1be0810e3ab22d0de98bc5f" }
 itertools = "0.15"
-lfsplanet_game_version_req = { workspace = true, features = ["sea-orm"] }
+lfsplanet_core = { path = "crates/lfsplanet_core" }
+lfsplanet_country_ext = { path = "crates/lfsplanet_country_ext", features = ["sea-orm"] }
+lfsplanet_game_version_req = { path = "crates/lfsplanet_game_version_req", features = ["sea-orm"] }
+lfsplanet_hotlaps = { path = "crates/lfsplanet_hotlaps" }
 lfsplanet_jobs = { path = "crates/lfsplanet_jobs" }
-lfsplanet_lfs = { path = "crates/lfsplanet_lfs" }
-lfsplanet_lfs_api = { path = "crates/lfsplanet_lfs_api", features = ["openapi", "sea-orm"] }
-lfsplanet_lfs_leagues = { path = "crates/lfsplanet_lfs_leagues" }
+lfsplanet_lfs_installations = { path = "crates/lfsplanet_lfs_installations" }
+lfsplanet_lfs_net_api = { path = "crates/lfsplanet_lfs_net_api", features = ["openapi", "sea-orm"] }
+lfsplanet_lfs_net_leagues = { path = "crates/lfsplanet_lfs_net_leagues" }
+lfsplanet_pubstat_types = { path = "crates/lfsplanet_pubstat_types" }
+lfsplanet_race_calendar = { path = "crates/lfsplanet_race_calendar" }
 lfsplanet_spr = { path = "crates/lfsplanet_spr" }
-lfsplanet_pubstat = { path = "crates/lfsplanet_pubstat" }
-oauth2 = { workspace = true }
+memchr = "2"
+oauth2 = "5"
 object_store = "0.14"
 rand = "0.10"
-reqwest = { workspace = true, features = ["json", "rustls", "stream"] }
-sea-orm = { workspace = true, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-json", "with-time", "with-uuid"] }
-serde = { workspace = true, features = ["derive"] }
+regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "stream"] }
+sea-orm = { version = "2", features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-json", "with-time", "with-uuid"] }
+serde = { version = "1", features = ["derive"] }
 serde-saphyr = "2.0"
-serde_json = { workspace = true }
+serde_json = "1"
 serde_urlencoded = "0.7"
 sha2 = "0.11"
 size = { version = "0.6.0", features = ["serde"] }
 sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls-ring", "postgres", "migrate", "time"] }
 strum = { version = "0.28", features = ["derive"] }
 subtle = "2"
-tempfile = { workspace = true }
-thiserror = { workspace = true }
+tempfile = "3"
+thiserror = "2"
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde-well-known"] }
-tokio = { workspace = true, features = ["fs", "io-util", "macros", "process", "rt-multi-thread", "signal", "time"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "process", "rt-multi-thread", "signal", "time"] }
 tower-http = { version = "0.7", features = ["compression-br", "compression-gzip", "fs", "set-header", "timeout", "trace"] }
 tower-sessions = { version = "0.15", features = ["private"] }
 tower-sessions-sqlx-store = { git = "https://github.com/maxcountryman/tower-sessions-stores.git", rev = "e6534bcc885715ba9e77153c86980233bfa77360", features = ["postgres"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-url = { workspace = true }
+url = "2"
 utoipa = { version = "6", features = ["axum_extras"] }
 utoipa-axum = "0.3"
 utoipa-swagger-ui = { version = "10", features = ["axum", "vendored"] }
 validator = { version = "0.21", features = ["derive"] }
 
+[dependencies]
+anyhow = { workspace = true }
+axum = { workspace = true }
+axum-response-cache = { workspace = true }
+celes = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+csv = { workspace = true }
+encoding_rs = { workspace = true }
+fake = { workspace = true }
+flate2 = { workspace = true }
+hex = { workspace = true }
+insim_core = { workspace = true }
+lfsplanet_core = { workspace = true }
+lfsplanet_country_ext = { workspace = true }
+lfsplanet_hotlaps = { workspace = true }
+lfsplanet_jobs = { workspace = true }
+lfsplanet_lfs_installations = { workspace = true }
+lfsplanet_lfs_net_api = { workspace = true }
+lfsplanet_pubstat_types = { workspace = true }
+lfsplanet_race_calendar = { workspace = true }
+lfsplanet_spr = { workspace = true }
+oauth2 = { workspace = true }
+object_store = { workspace = true }
+rand = { workspace = true }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde-saphyr = { workspace = true }
+serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
+sha2 = { workspace = true }
+size = { workspace = true }
+sqlx = { workspace = true }
+strum = { workspace = true }
+subtle = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true }
+tower-http = { workspace = true }
+tower-sessions = { workspace = true }
+tower-sessions-sqlx-store = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+url = { workspace = true }
+utoipa = { workspace = true }
+utoipa-axum = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+validator = { workspace = true }
+
 [dev-dependencies]
 http-body-util = "0.1"
+lfsplanet_hotlaps = { workspace = true, features = ["test-support"] }
 tower = { version = "0.5", features = ["util"] }

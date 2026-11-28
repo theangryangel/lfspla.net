@@ -1,15 +1,15 @@
 //! Shared public hotlap schemas and owner-only submission responses.
 
-use crate::era_slug::EraSlug;
+use lfsplanet_hotlaps::era_slug::EraSlug;
 
-use crate::milliseconds::Milliseconds;
+use lfsplanet_core::milliseconds::Milliseconds;
 
 use crate::api::v1::{PlayerSummary, attachments::Attachment};
 use std::collections::HashMap;
 
-use crate::models::{
+use lfsplanet_core::models::badge::PlayerBadge;
+use lfsplanet_hotlaps::models::{
     Era, Hotlap as HotlapModel,
-    badge::PlayerBadge,
     hotlap::{DriverSide, HotlapState, SteeringInput},
     player::PlayerChartResult,
 };
@@ -159,7 +159,7 @@ impl Hotlap {
     }
 
     pub(crate) fn from_best(
-        best: crate::models::chart::BestHotlap,
+        best: lfsplanet_hotlaps::models::chart::BestHotlap,
         badges: Vec<PlayerBadge>,
         era: &Era,
         attachments: &HashMap<i64, Attachment>,
@@ -173,7 +173,7 @@ impl Hotlap {
     }
 
     pub(crate) fn from_chart_result(result: PlayerChartResult, player: PlayerSummary) -> Self {
-        let controls = crate::models::hotlap::ControlConfiguration::from_player_flags(
+        let controls = lfsplanet_hotlaps::models::hotlap::ControlConfiguration::from_player_flags(
             result.player_flags.0,
             &result.game_version.0,
         );
@@ -220,7 +220,7 @@ impl Hotlap {
 
 /// Shared conversion for model pages; private metadata is authorized by the caller.
 pub(crate) fn list_response(
-    page: crate::models::hotlap::HotlapPage,
+    page: lfsplanet_hotlaps::models::hotlap::HotlapPage,
     pagination: &crate::api::PaginationQuery,
     submission_owner: Option<i64>,
     attachments: &HashMap<i64, Attachment>,
@@ -230,7 +230,7 @@ pub(crate) fn list_response(
             .entries
             .into_iter()
             .map(|entry| {
-                let crate::models::hotlap::HotlapListEntry {
+                let lfsplanet_hotlaps::models::hotlap::HotlapListEntry {
                     hotlap,
                     player,
                     era,
@@ -259,9 +259,9 @@ pub(crate) fn list_response(
     }
 }
 
-impl From<crate::models::hotlap::HotlapListError> for crate::api::ApiError {
-    fn from(error: crate::models::hotlap::HotlapListError) -> Self {
-        use crate::models::hotlap::HotlapListError;
+impl From<lfsplanet_hotlaps::models::hotlap::HotlapListError> for crate::api::ApiError {
+    fn from(error: lfsplanet_hotlaps::models::hotlap::HotlapListError) -> Self {
+        use lfsplanet_hotlaps::models::hotlap::HotlapListError;
         match error {
             HotlapListError::Database(error) => Self::database(error),
             HotlapListError::MissingPlayer => Self::new(
@@ -278,8 +278,8 @@ impl From<crate::models::hotlap::HotlapListError> for crate::api::ApiError {
     }
 }
 
-impl From<crate::models::hotlap::RankingContribution> for RankingContribution {
-    fn from(value: crate::models::hotlap::RankingContribution) -> Self {
+impl From<lfsplanet_hotlaps::models::hotlap::RankingContribution> for RankingContribution {
+    fn from(value: lfsplanet_hotlaps::models::hotlap::RankingContribution) -> Self {
         Self {
             id: value.id,
             title: value.title,

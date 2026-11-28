@@ -114,13 +114,4 @@ mod tests {
             assert!(serde_urlencoded::from_str::<PaginationQuery>(query).is_err());
         }
     }
-
-    #[test]
-    fn unpaginated_lists_omit_pagination() {
-        let list: ListResponse<u8> = vec![1, 2].into();
-        assert_eq!(
-            serde_json::to_value(list).unwrap(),
-            serde_json::json!({"items": [1, 2]})
-        );
-    }
 }

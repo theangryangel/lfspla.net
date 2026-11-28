@@ -1,13 +1,11 @@
 //! Removing an uploaded hotlap, which only its owner may do.
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
-    models::badge::rebuild_published_badges,
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
+use lfsplanet_hotlaps::models::badge::rebuild_published_badges;
 
 #[utoipa::path(
     delete,
@@ -34,7 +32,7 @@ pub(crate) async fn remove(
     AuthenticatedPlayer(player): AuthenticatedPlayer,
 ) -> Result<StatusCode, ApiError> {
     let (era_id, published) =
-        crate::models::Hotlap::delete_owned(&state.database, hotlap_id, player.id)
+        lfsplanet_hotlaps::models::Hotlap::delete_owned(&state.database, hotlap_id, player.id)
             .await
             .map_err(ApiError::database)?
             .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Hotlap"))?;

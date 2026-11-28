@@ -4,14 +4,10 @@ mod personal_access_tokens;
 mod webhook_notifications;
 mod webhooks;
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse,
-        extractors::{AuthenticatedPlayer, BrowserAuthenticatedPlayer, csrf_token},
-        v1::PlayerSummary,
-    },
-    country::CountryCode,
-    models::player::ProfileLinks,
+use crate::api::{
+    ApiError, ApiState, ErrorResponse,
+    extractors::{AuthenticatedPlayer, BrowserAuthenticatedPlayer, csrf_token},
+    v1::PlayerSummary,
 };
 use axum::{
     Json,
@@ -19,7 +15,8 @@ use axum::{
     http::{HeaderMap, StatusCode, header},
 };
 use celes::Country;
-use lfsplanet_flags::{CountryFlagsExt, FlagCode};
+use lfsplanet_core::{country::CountryCode, models::player::ProfileLinks};
+use lfsplanet_country_ext::{CountryFlagsExt, FlagCode};
 
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
@@ -242,14 +239,12 @@ mod tests {
         ] {
             for allow_uploads in [true, false] {
                 let state = ApiState {
-                    database: Default::default(),
-                    oauth: None,
-                    object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
                     hotlaps: crate::settings::HotlapSettings {
                         allow_uploads,
                         ..Default::default()
                     },
                     site_notice: notice.map(str::to_owned),
+                    ..ApiState::for_tests(Default::default())
                 };
                 let session = Session::new(
                     None,

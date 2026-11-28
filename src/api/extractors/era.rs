@@ -9,7 +9,7 @@ use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 
 /// An era resolved from the route's `{era}` path parameter.
-pub(crate) struct Era(pub(crate) crate::models::Era);
+pub(crate) struct Era(pub(crate) lfsplanet_hotlaps::models::Era);
 
 #[derive(Deserialize)]
 struct EraParameter {
@@ -39,11 +39,11 @@ impl FromRequestParts<ApiState> for Era {
 pub(crate) async fn resolve_era(
     database: &DatabaseConnection,
     id: &str,
-) -> Result<crate::models::Era, ApiError> {
+) -> Result<lfsplanet_hotlaps::models::Era, ApiError> {
     let slug = id
-        .parse::<crate::era_slug::EraSlug>()
+        .parse::<lfsplanet_hotlaps::era_slug::EraSlug>()
         .map_err(|_| ApiError::not_found("era_not_found", "Era"))?;
-    crate::models::Era::find_by_slug(database, &slug)
+    lfsplanet_hotlaps::models::Era::find_by_slug(database, &slug)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(|| ApiError::not_found("era_not_found", "Era"))

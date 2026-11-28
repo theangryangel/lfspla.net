@@ -1,8 +1,8 @@
 //! Typed action queries. Serde owns scalar parsing; only Pubstat track IDs
 //! and abbreviated controller names need protocol-specific adaptation.
-use crate::models::hotlap::SteeringInput;
 use insim_core::{track::Track, vehicle::Vehicle};
-use lfsplanet_pubstat::track::TrackPubstatExt;
+use lfsplanet_hotlaps::models::hotlap::SteeringInput;
+use lfsplanet_pubstat_types::track::TrackPubstatExt;
 use serde::{Deserialize, Deserializer, de::Error};
 
 #[derive(Deserialize)]

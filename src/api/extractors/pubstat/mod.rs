@@ -10,7 +10,7 @@ use axum::{
 };
 pub(crate) use compression::Compression;
 pub(crate) use format::Format;
-use lfsplanet_pubstat::Version;
+use lfsplanet_pubstat_types::Version;
 pub(crate) use query::{ChartQuery, HlQuery, WrQuery};
 use serde::Deserialize;
 

@@ -5,7 +5,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use flate2::write::{DeflateEncoder, GzEncoder, ZlibEncoder};
-use lfsplanet_pubstat::ser::xml::XmlRoot;
+use lfsplanet_pubstat_types::ser::xml::XmlRoot;
 use std::io::Write;
 
 pub(crate) fn respond(
@@ -16,7 +16,7 @@ pub(crate) fn respond(
     let (mut content_type, bytes) = match format {
         Format::Text => (
             "text/plain; charset=utf-8",
-            lfsplanet_pubstat::ser::to_string(value)
+            lfsplanet_pubstat_types::ser::to_string(value)
                 .map_err(|error| Error::internal(&error))?
                 .into_bytes(),
         ),
@@ -26,7 +26,7 @@ pub(crate) fn respond(
         ),
         Format::Xml => (
             "text/xml; charset=utf-8",
-            lfsplanet_pubstat::ser::xml::to_string(value)
+            lfsplanet_pubstat_types::ser::xml::to_string(value)
                 .map_err(|error| Error::internal(&error))?
                 .into_bytes(),
         ),

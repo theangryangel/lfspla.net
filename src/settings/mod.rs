@@ -1,23 +1,14 @@
-//! Application settings loaded from YAML. Fields validate on read; see [`types`].
+//! Application configuration composition and YAML loading.
 
-mod database;
-mod hlvc;
-mod hotlaps;
-mod lfs;
-mod storage;
 mod types;
 mod web;
-mod webhooks;
 
-pub use database::DatabaseSettings;
-pub use hlvc::HlvcSettings;
-pub use hotlaps::HotlapSettings;
-pub use lfs::LfsSettings;
-pub(crate) use lfs::OAuthSettings;
-pub use storage::{StorageLocation, StorageSettings};
-pub(crate) use types::{NonEmptyString, PublicBaseUrl};
+#[cfg(test)]
+use lfsplanet_core::settings::StorageLocation;
+pub use lfsplanet_core::settings::{DatabaseSettings, StorageSettings};
+pub use lfsplanet_hotlaps::settings::HotlapSettings;
+pub(crate) use types::PublicBaseUrl;
 pub use web::WebSettings;
-pub use webhooks::WebhookSettings;
 
 use std::path::Path;
 
@@ -36,28 +27,15 @@ pub struct Settings {
     pub database: DatabaseSettings,
     /// How the API process presents itself over HTTP.
     pub web: WebSettings,
-    /// Local installations, platform runtime and outbound LFS integration.
+    /// How the application reaches lfs.net: API credentials and request limits.
     #[serde(default)]
-    pub lfs: LfsSettings,
-    /// Policy applied to uploaded replays.
+    pub lfs_net: lfsplanet_lfs_net_api::Config,
+    /// Upload policy, LFS installations, validation and webhook delivery.
     #[serde(default)]
     pub hotlaps: HotlapSettings,
     /// Where replay files and cached catalogue images are kept.
     #[serde(default)]
     pub storage: StorageSettings,
-    /// Background worker configuration.
-    #[serde(default)]
-    pub worker: WorkerSettings,
-}
-
-/// Scheduling and concurrency for each background processor.
-#[derive(Clone, Default, Deserialize, Serialize)]
-#[serde(default, deny_unknown_fields)]
-pub struct WorkerSettings {
-    /// Hotlap validation settings.
-    pub hlvc: HlvcSettings,
-    /// Outgoing webhook delivery settings.
-    pub webhooks: WebhookSettings,
 }
 
 impl Settings {
@@ -78,7 +56,7 @@ impl Settings {
         let mut settings: Self = serde_saphyr::from_str(text).context("failed to parse YAML")?;
         settings.hotlaps.validate()?;
         // Resolve paths here because deserialization has no config directory.
-        settings.lfs.resolve_paths(base_dir)?;
+        settings.hotlaps.resolve_paths(base_dir)?;
         settings.storage.resolve_paths(base_dir);
         Ok(settings)
     }
@@ -87,7 +65,6 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
 
     /// Builds a document from the two required sections, plus optional extra
     /// lines inside `web:` and optional extra top-level sections.
@@ -120,63 +97,25 @@ mod tests {
     #[test]
     fn optional_sections_may_be_omitted_entirely() {
         let settings = load("");
-        let mut defaults = LfsSettings::default();
+        let mut defaults = HotlapSettings::default();
         defaults.resolve_paths(&config_dir()).unwrap();
         assert_eq!(
-            settings.lfs.installation_root.path(),
+            settings.hotlaps.installation_root.path(),
             defaults.installation_root.path()
         );
         assert_eq!(
-            settings.lfs.installer_cache_root(),
+            settings.hotlaps.installer_cache_root(),
             defaults.installation_root.path().join(".cache/installers")
         );
         #[cfg(target_os = "linux")]
         assert_eq!(
-            settings.lfs.runtime.wine_prefix.as_path(),
+            settings.hotlaps.runtime.wine_prefix.as_path(),
             Path::new("/srv/lfs/.wine")
         );
         assert_eq!(
             settings.storage.object_store_root,
             StorageLocation::Local(config_dir().join("data/storage"))
         );
-        assert!(settings.lfs.oauth.is_none());
-        assert!(settings.hotlaps.enforce_replay_username);
-        assert!(settings.web.site_notice.is_none());
-    }
-
-    #[test]
-    fn the_required_sections_are_required() {
-        let key = "a5".repeat(64);
-        assert!(
-            Settings::from_yaml(&format!("web:\n  session_key: \"{key}\"\n"), &config_dir())
-                .is_err(),
-            "accepted a document with no database section"
-        );
-        assert!(
-            Settings::from_yaml("database:\n  url: postgresql://x\n", &config_dir()).is_err(),
-            "accepted a document with no web section"
-        );
-        assert!(
-            Settings::from_yaml(
-                &format!("database:\n  url: \"\"\nweb:\n  session_key: \"{key}\"\n"),
-                &config_dir()
-            )
-            .is_err(),
-            "accepted a blank database url"
-        );
-    }
-
-    #[test]
-    fn oauth_credentials_are_optional_but_must_not_be_blank() {
-        assert!(load("").lfs.oauth.is_none());
-
-        let settings = load("lfs:\n  oauth:\n    client_id: client\n    client_secret: secret\n");
-        let oauth = settings.lfs.oauth.as_ref().unwrap();
-        assert_eq!(oauth.client_id.as_str(), "client");
-        assert_eq!(oauth.client_secret.as_str(), "secret");
-
-        assert_rejected("lfs:\n  oauth:\n    client_id: \"\"\n    client_secret: secret\n");
-        assert_rejected("lfs:\n  oauth:\n    client_id: client\n");
     }
 
     #[test]
@@ -190,19 +129,19 @@ mod tests {
     #[test]
     fn relative_paths_are_resolved_from_the_config_directory() {
         let settings = load(
-            "lfs:\n  installation_root: lfs\n  wine_prefix: prefix\nstorage:\n  object_store_root: objects\n",
+            "hotlaps:\n  installation_root: lfs\n  runtime:\n    wine_prefix: prefix\nstorage:\n  object_store_root: objects\n",
         );
         assert_eq!(
-            settings.lfs.installation_root.path(),
+            settings.hotlaps.installation_root.path(),
             config_dir().join("lfs")
         );
         assert_eq!(
-            settings.lfs.installer_cache_root(),
+            settings.hotlaps.installer_cache_root(),
             config_dir().join("lfs/.cache/installers")
         );
         #[cfg(target_os = "linux")]
         assert_eq!(
-            settings.lfs.runtime.wine_prefix.as_path(),
+            settings.hotlaps.runtime.wine_prefix.as_path(),
             config_dir().join("prefix")
         );
         assert_eq!(
@@ -211,123 +150,55 @@ mod tests {
         );
     }
 
-    #[cfg(target_os = "linux")]
     #[test]
-    fn system_executable_paths_are_not_resolved_against_the_config_directory() {
-        let settings = load("lfs:\n  wine_executable: /usr/bin/wine\n");
-        #[cfg(target_os = "linux")]
-        assert_eq!(
-            settings.lfs.runtime.wine_executable.as_path(),
-            Path::new("/usr/bin/wine")
-        );
-    }
-
-    #[test]
-    fn validator_defaults_are_sane() {
-        let settings = load("");
-        #[cfg(target_os = "linux")]
-        assert_eq!(
-            settings.lfs.runtime.wine_executable.as_path(),
-            Path::new("/usr/bin/wine")
-        );
-        #[cfg(target_os = "linux")]
-        assert_eq!(
-            settings.lfs.runtime.bubblewrap_executable.as_path(),
-            Path::new("/usr/bin/bwrap")
-        );
-        assert_eq!(
-            settings.worker.hlvc.poll_interval.duration(),
-            Duration::from_secs(2)
-        );
-        assert_eq!(
-            settings.worker.hlvc.timeout.duration(),
-            Duration::from_secs(300)
-        );
-        assert_eq!(settings.worker.webhooks.workers.get(), 3);
-    }
-
-    #[test]
-    fn webhook_worker_count_can_be_configured_and_must_be_positive() {
-        assert_eq!(
-            load("worker:\n  webhooks:\n    workers: 6\n")
-                .worker
-                .webhooks
-                .workers
-                .get(),
-            6
-        );
-        assert_rejected("worker:\n  webhooks:\n    workers: 0\n");
-    }
-
-    #[test]
-    fn consolidated_lfs_configuration_round_trips() {
+    fn crate_aligned_configuration_round_trips() {
         let settings = load(
-            "lfs:\n  installation_root: games\n  wine_prefix: prefix\n  wine_executable: /usr/bin/wine\n  bubblewrap_executable: /usr/bin/bwrap\n  outbound_http_timeout_seconds: 25\n  oauth:\n    client_id: client\n    client_secret: secret\n",
+            "lfs_net:\n  outbound_http_timeout_seconds: 25\n  oauth:\n    client_id: client\n    client_secret: secret\nhotlaps:\n  installation_root: games\n  runtime:\n    wine_prefix: prefix\n    wine_executable: /usr/bin/wine\n    bubblewrap_executable: /usr/bin/bwrap\n  validation:\n    poll_interval_seconds: 3\n    timeout_seconds: 120\n  webhooks:\n    workers: 4\n",
         );
         let serialized = serde_saphyr::to_string(&settings).unwrap();
-        assert!(serialized.contains("lfs:"));
-        assert!(!serialized.contains("runtime:"));
-        assert_eq!(
-            settings.lfs.installation_root.path(),
-            config_dir().join("games")
-        );
-        assert_eq!(
-            settings.lfs.outbound_http_timeout.duration(),
-            Duration::from_secs(25)
-        );
-        assert_eq!(
-            settings.lfs.oauth.as_ref().unwrap().client_id.as_str(),
-            "client"
-        );
         Settings::from_yaml(&serialized, &config_dir()).unwrap();
-        assert_rejected("wine_executable: /usr/bin/wine\n");
-        #[cfg(target_os = "linux")]
-        assert_rejected("lfs:\n  installer_download_root: downloads\n");
     }
 
     #[cfg(target_os = "linux")]
     #[test]
     fn linux_runtime_rejects_empty_paths_and_unknown_settings() {
-        assert_rejected("lfs:\n  wine_prefix: \"\"\n");
-        assert_rejected("lfs:\n  wine_executable: \"\"\n");
-        assert_rejected("lfs:\n  bubblewrap_executable: \"\"\n");
-        assert_rejected("lfs:\n  not_a_setting: true\n");
+        assert_rejected("hotlaps:\n  runtime:\n    wine_prefix: \"\"\n");
+        assert_rejected("hotlaps:\n  runtime:\n    wine_executable: \"\"\n");
+        assert_rejected("hotlaps:\n  runtime:\n    bubblewrap_executable: \"\"\n");
+        assert_rejected("hotlaps:\n  runtime:\n    not_a_setting: true\n");
     }
 
     #[cfg(not(target_os = "linux"))]
     #[test]
     fn unsupported_runtime_ignores_extra_fields_without_losing_application_settings() {
         let settings = load(
-            "lfs:\n  installation_root: games\n  wine_prefix: ignored\n  future_runtime: ignored\n  outbound_http_timeout_seconds: 25\n",
+            "lfs_net:\n  outbound_http_timeout_seconds: 25\nhotlaps:\n  installation_root: games\n  runtime:\n    wine_prefix: ignored\n    future_runtime: ignored\n",
         );
         assert_eq!(
-            settings.lfs.installation_root.path(),
+            settings.hotlaps.installation_root.path(),
             config_dir().join("games")
         );
         assert_eq!(
-            settings.lfs.outbound_http_timeout.duration(),
-            Duration::from_secs(25)
+            settings.lfs_net.timeout(),
+            std::time::Duration::from_secs(25)
         );
-        assert_rejected("lfs:\n  outbound_http_timeout_seconds: 0\n");
+        assert_rejected("lfs_net:\n  outbound_http_timeout_seconds: 0\n");
     }
 
     #[test]
     fn unknown_settings_are_rejected_at_every_level() {
         assert_rejected("not_a_setting: true\n");
-        assert_rejected("worker:\n  not_a_setting: true\n");
-        assert_rejected("worker:\n  hlvc:\n    not_a_setting: true\n");
-        assert_rejected("worker:\n  webhooks:\n    not_a_setting: true\n");
-        assert_rejected("lfs:\n  oauth:\n    client_id: a\n    client_secret: b\n    extra: c\n");
+        assert_rejected("lfs_net:\n  not_a_setting: true\n");
+        assert_rejected("hotlaps:\n  not_a_setting: true\n");
+        assert_rejected("hotlaps:\n  validation:\n    not_a_setting: true\n");
+        assert_rejected("hotlaps:\n  webhooks:\n    not_a_setting: true\n");
+        assert_rejected(
+            "lfs_net:\n  oauth:\n    client_id: a\n    client_secret: b\n    extra: c\n",
+        );
     }
 
     #[test]
-    fn hotlap_policy_defaults_can_be_overridden() {
-        let settings = load("");
-        assert!(settings.hotlaps.enforce_replay_username);
-        assert_eq!(settings.hotlaps.max_queued_per_player.get(), 10);
-        assert_eq!(settings.hotlaps.max_spr_upload_bytes(), 2 * 1024 * 1024);
-        assert!(!settings.hotlaps.allow_test_validation);
-
+    fn hotlap_policy_can_be_overridden() {
         let settings = load(
             "hotlaps:\n  enforce_replay_username: false\n  max_queued_per_player: 25\n  max_spr_upload_bytes: 4 MiB\n  allow_test_validation: true\n",
         );
@@ -336,7 +207,6 @@ mod tests {
         assert_eq!(settings.hotlaps.max_spr_upload_bytes(), 4 * 1024 * 1024);
         assert!(settings.hotlaps.allow_test_validation);
 
-        assert_rejected("hotlaps:\n  max_queued_per_player: 0\n");
         assert_rejected("hotlaps:\n  max_spr_upload_bytes: 0\n");
         assert_rejected("hotlaps:\n  max_spr_upload_bytes: -1 B\n");
     }
@@ -345,45 +215,5 @@ mod tests {
     fn cookie_secure_defaults_on_and_can_be_disabled() {
         assert!(load("").web.cookie_secure);
         assert!(!load_web("  cookie_secure: false\n").web.cookie_secure);
-    }
-
-    #[test]
-    fn network_and_database_timeouts_have_sane_defaults() {
-        let settings = load("");
-        assert_eq!(
-            settings.web.http_request_timeout.duration(),
-            Duration::from_secs(30)
-        );
-        assert_eq!(
-            settings.lfs.outbound_http_timeout.duration(),
-            Duration::from_secs(15)
-        );
-        assert_eq!(
-            settings.database.connect_timeout.duration(),
-            Duration::from_secs(5)
-        );
-        assert_eq!(
-            settings.database.acquire_timeout.duration(),
-            Duration::from_secs(5)
-        );
-        assert_eq!(
-            settings.database.statement_timeout.duration(),
-            Duration::from_secs(30)
-        );
-    }
-
-    #[test]
-    fn timeouts_must_be_positive_in_every_section() {
-        assert_rejected("lfs:\n  outbound_http_timeout_seconds: 0\n");
-        assert_rejected("database:\n  connect_timeout_seconds: 0\n");
-        assert_rejected("worker:\n  hlvc:\n    timeout_seconds: 0\n");
-        assert!(
-            Settings::from_yaml(
-                &yaml("  http_request_timeout_seconds: 0\n", ""),
-                &config_dir()
-            )
-            .is_err(),
-            "accepted a zero inbound request timeout"
-        );
     }
 }

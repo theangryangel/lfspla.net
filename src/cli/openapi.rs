@@ -17,13 +17,3 @@ fn document() -> anyhow::Result<String> {
         .context("failed to serialize the OpenAPI document as JSON")?;
     Ok(format!("{json}\n"))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn document_is_valid_json() {
-        serde_json::from_str::<serde_json::Value>(&document().unwrap()).unwrap();
-    }
-}

@@ -1,14 +1,14 @@
 //! Public homepage totals and activity spotlights.
-use crate::{
-    api::v1::{
+use crate::api::{
+    ApiError, ApiState, ErrorResponse,
+    v1::{
         PlayerSummary,
         eras::{response::Chart, tracks::TrackSummary, vehicles::VehicleSummary},
     },
-    api::{ApiError, ApiState, ErrorResponse},
-    models::site_stats::SiteStats,
 };
 use axum::{Json, extract::State};
 use axum_response_cache::CacheLayer;
+use lfsplanet_hotlaps::models::site_stats::SiteStats;
 use serde::Serialize;
 use std::time::Duration;
 use utoipa::ToSchema;
@@ -69,45 +69,46 @@ pub(crate) async fn get_stats(
         .await
         .map_err(ApiError::database)?;
     let locations = super::track_locations::TrackLocationSummary::load(&state.database).await?;
-    let convert_combo = |combo: crate::models::site_stats::ComboSpotlight| -> Result<_, ApiError> {
-        Ok(Chart::new(
-            combo.era_id,
-            combo.era_title,
-            TrackSummary::new(
-                combo.track,
-                combo.track_name,
-                super::track_locations::TrackLocationSummary::find(
-                    &locations,
-                    &combo.track_location,
-                )?,
-                combo.track_reverse,
-                combo.track_open_configuration,
-                combo.track_image_public_id.map(|id| {
-                    crate::api::v1::attachments::Attachment::new(
-                        id,
-                        combo.track_image_original_filename,
-                    )
-                }),
-                combo.track_outline_public_id.map(|id| {
-                    crate::api::v1::attachments::Attachment::new(
-                        id,
-                        combo.track_outline_original_filename,
-                    )
-                }),
-            ),
-            VehicleSummary::new(
-                combo.vehicle,
-                combo.vehicle_name,
-                combo.vehicle_license,
-                combo.vehicle_image_public_id.map(|id| {
-                    crate::api::v1::attachments::Attachment::new(
-                        id,
-                        combo.vehicle_image_original_filename,
-                    )
-                }),
-            ),
-        ))
-    };
+    let convert_combo =
+        |combo: lfsplanet_hotlaps::models::site_stats::ComboSpotlight| -> Result<_, ApiError> {
+            Ok(Chart::new(
+                combo.era_id,
+                combo.era_title,
+                TrackSummary::new(
+                    combo.track,
+                    combo.track_name,
+                    super::track_locations::TrackLocationSummary::find(
+                        &locations,
+                        &combo.track_location,
+                    )?,
+                    combo.track_reverse,
+                    combo.track_open_configuration,
+                    combo.track_image_public_id.map(|id| {
+                        crate::api::v1::attachments::Attachment::new(
+                            id,
+                            combo.track_image_original_filename,
+                        )
+                    }),
+                    combo.track_outline_public_id.map(|id| {
+                        crate::api::v1::attachments::Attachment::new(
+                            id,
+                            combo.track_outline_original_filename,
+                        )
+                    }),
+                ),
+                VehicleSummary::new(
+                    combo.vehicle,
+                    combo.vehicle_name,
+                    combo.vehicle_license,
+                    combo.vehicle_image_public_id.map(|id| {
+                        crate::api::v1::attachments::Attachment::new(
+                            id,
+                            combo.vehicle_image_original_filename,
+                        )
+                    }),
+                ),
+            ))
+        };
     let mut spotlights = Vec::new();
     for spotlight in totals.spotlights {
         let content = if let Some(combo) = spotlight.combo {

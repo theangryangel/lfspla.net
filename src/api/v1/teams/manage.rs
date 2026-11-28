@@ -9,10 +9,8 @@ use serde::Deserialize;
 use utoipa::ToSchema;
 
 use super::TeamSummary;
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
-    models::team::{self, TeamDetails, member},
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer};
+use lfsplanet_core::models::team::{self, TeamDetails, member};
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]

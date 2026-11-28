@@ -1,7 +1,7 @@
 use super::{DemoArgs, generate};
-use crate::milliseconds::Milliseconds;
-use crate::models::Era;
 use anyhow::{Context, ensure};
+use lfsplanet_core::milliseconds::Milliseconds;
+use lfsplanet_hotlaps::models::Era;
 use rand::{RngExt, SeedableRng, rngs::StdRng, seq::SliceRandom};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, TransactionTrait};
 use serde_json::{Value, json};
@@ -24,7 +24,7 @@ pub(super) async fn populate(
     let transaction = database.begin().await?;
     progress(
         "Waiting for the catalogue lock",
-        crate::db::lock_catalogue_write(&transaction),
+        lfsplanet_core::db::lock_catalogue_write(&transaction),
     )
     .await?;
     let era = progress(
@@ -163,7 +163,7 @@ pub(super) async fn populate(
         era.rebuild_badges(database),
     )
     .await
-    .context("demo data was committed, but badge rebuilding failed; run hotlap rebadge --all")?;
+    .context("demo data was committed, but badge rebuilding failed; run hotlaps rebadge --all")?;
     Ok(total)
 }
 
@@ -192,7 +192,7 @@ async fn progress<T, E>(label: &str, task: impl Future<Output = Result<T, E>>) -
 async fn create_era(database: &sea_orm::DatabaseTransaction) -> anyhow::Result<Era> {
     // Demo generation explicitly supplies every canonical track and standard vehicle.
     for track in insim_core::track::Track::ALL {
-        crate::services::catalogue::tracks::TrackDefinition {
+        lfsplanet_hotlaps::services::catalogue::tracks::TrackDefinition {
             id: *track,
             outline: None,
             image: None,
@@ -202,12 +202,12 @@ async fn create_era(database: &sea_orm::DatabaseTransaction) -> anyhow::Result<E
             None,
             false,
             std::path::Path::new("demo"),
-            crate::models::track::location::canonical_code(*track),
+            lfsplanet_core::models::track::location::canonical_code(*track),
         )
         .await?;
     }
-    for (vehicle, _) in crate::models::vehicle::STANDARD_VEHICLES {
-        crate::services::catalogue::vehicles::VehicleDefinition {
+    for (vehicle, _) in lfsplanet_core::models::vehicle::STANDARD_VEHICLES {
+        lfsplanet_hotlaps::services::catalogue::vehicles::VehicleDefinition {
             id: *vehicle,
             image: None,
         }
@@ -227,8 +227,8 @@ async fn create_era(database: &sea_orm::DatabaseTransaction) -> anyhow::Result<E
                 .to_owned(),
         ))
         .await?;
-    crate::models::Era::validate_version_requirements(database).await?;
-    let era = crate::models::Era::find_by_slug(database, &"demo".parse().unwrap())
+    lfsplanet_hotlaps::models::Era::validate_version_requirements(database).await?;
+    let era = lfsplanet_hotlaps::models::Era::find_by_slug(database, &"demo".parse().unwrap())
         .await?
         .context("demo era was not found")?;
     // Demo fixtures create metadata without an object store, like tracks/vehicles above.

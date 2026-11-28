@@ -1,15 +1,15 @@
 //! Vehicle catalogue endpoints scoped to an era.
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse, PER_PAGE, extractors as extract},
-    models::{
-        Vehicle as VehicleRecord,
-        vehicle::{VehicleFilter, VehicleOrder},
-    },
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, ListResponse, PER_PAGE, extractors as extract,
 };
 use axum::{
     Json,
     extract::{Query, State},
+};
+use lfsplanet_core::models::{
+    Vehicle as VehicleRecord,
+    vehicle::{VehicleFilter, VehicleOrder},
 };
 use sea_orm::QuerySelect;
 use serde::{Deserialize, Serialize};
@@ -36,7 +36,7 @@ pub(crate) struct VehicleSearchQuery {
     /// Restrict suggestions to combinations on this canonical track.
     track: Option<String>,
     /// Only combinations included in rankings of this discipline.
-    discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
+    discipline: Option<lfsplanet_hotlaps::hotlap_discipline::HotLapDiscipline>,
     /// Vehicle code or name search text.
     q: Option<String>,
     /// Maximum number of vehicles to return (1-100).
@@ -115,7 +115,7 @@ pub(crate) async fn list_for_era(
 
 impl VehicleSummary {
     pub(crate) fn new(
-        code: crate::vehicle_id::VehicleId,
+        code: lfsplanet_core::vehicle_id::VehicleId,
         name: String,
         license: String,
         image: Option<crate::api::v1::attachments::Attachment>,

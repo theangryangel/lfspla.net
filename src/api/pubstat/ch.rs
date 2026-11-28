@@ -1,10 +1,8 @@
 use super::{error::Error, version::load};
+use crate::api::ApiError;
 use crate::api::extractors::pubstat::ChartQuery;
-use crate::{
-    api::ApiError,
-    models::{Chart as ChartModel, Era, hotlap::pubstat::Filters},
-};
-use lfsplanet_pubstat::{Version, ch::Chart};
+use lfsplanet_hotlaps::models::{Chart as ChartModel, Era, hotlap::pubstat::Filters};
+use lfsplanet_pubstat_types::{Version, ch::Chart};
 use sea_orm::DatabaseConnection;
 
 pub(super) async fn get(

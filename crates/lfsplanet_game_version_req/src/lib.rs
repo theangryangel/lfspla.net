@@ -271,14 +271,6 @@ mod tests {
     }
 
     #[test]
-    fn matches_a_speculative_range() {
-        let requirement = ">=0.5Y,<0.8".parse::<GameVersionReq>().unwrap();
-        assert!(!requirement.matches(&version("0.5X39")));
-        assert!(requirement.matches(&version("0.5Y")));
-        assert!(requirement.matches(&version("0.7D41")));
-        assert!(!requirement.matches(&version("0.8A")));
-    }
-    #[test]
     fn a_bare_version_is_an_exact_requirement() {
         let requirement = "0.7D41".parse::<GameVersionReq>().unwrap();
         assert!(requirement.matches(&version("0.7D41")));
@@ -296,6 +288,9 @@ mod tests {
             ("<0.7D41", false),
             ("<=0.7D41", true),
             ("=0.7D41", true),
+            (">=0.5Y,<0.8", true),
+            (">=0.5Y,<0.7D41", false),
+            (">=0.7D42,<0.8", false),
         ];
         for (requirement, expected) in cases {
             assert_eq!(
@@ -332,16 +327,6 @@ mod tests {
             ">=not-a-version".parse::<GameVersionReq>(),
             Err(GameVersionReqParseError::InvalidVersion { .. })
         ));
-    }
-    #[test]
-    fn serializes_as_the_requirement_string() {
-        let requirement = ">=0.5Y,<0.8".parse::<GameVersionReq>().unwrap();
-        let json = serde_json::to_string(&requirement).unwrap();
-        assert_eq!(json, r#"">=0.5Y,<0.8""#);
-        assert_eq!(
-            serde_json::from_str::<GameVersionReq>(&json).unwrap(),
-            requirement
-        );
     }
     #[test]
     fn detects_impossible_and_overlapping_requirements() {

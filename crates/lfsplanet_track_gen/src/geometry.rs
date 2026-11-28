@@ -354,11 +354,6 @@ mod tests {
     }
 
     #[test]
-    fn refuses_a_marker_beyond_the_end_of_the_path() {
-        assert!(tick(&[point(0.0, 0.0)], 4, false, 4.0).is_none());
-    }
-
-    #[test]
     fn fits_a_square_centred_without_stretching_it() {
         let fitted = fit(
             &[

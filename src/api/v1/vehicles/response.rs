@@ -1,7 +1,7 @@
 //! Typed public specifications, deserialized from the cached upstream JSON.
 use super::super::{attachments, eras::vehicles::VehicleSummary};
-use crate::models::vehicle::Model;
-use lfsplanet_lfs_api::{
+use lfsplanet_core::models::vehicle::Model;
+use lfsplanet_lfs_net_api::{
     Drivetrain, EngineLayout, Transmission, VehicleClass, VehicleModMetadata,
     VehicleModSpecifications,
 };

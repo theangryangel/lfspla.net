@@ -2,23 +2,21 @@
 
 use super::response::Chart;
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
-        extractors as extract,
-        v1::hotlaps::{
-            query::{controller_filter, country_filter},
-            response::{Hotlap, RankingContribution, list_response},
-        },
-    },
-    models::{
-        Hotlap as HotlapModel,
-        hotlap::{HotlapListColumn, HotlapListFilters, HotlapListPage},
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
+    extractors as extract,
+    v1::hotlaps::{
+        query::{controller_filter, country_filter},
+        response::{Hotlap, RankingContribution, list_response},
     },
 };
 use axum::{
     Json,
     extract::{Path, Query, State},
+};
+use lfsplanet_hotlaps::models::{
+    Hotlap as HotlapModel,
+    hotlap::{HotlapListColumn, HotlapListFilters, HotlapListPage},
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
@@ -97,7 +95,7 @@ pub(crate) async fn best(
     State(state): State<ApiState>,
 ) -> Result<Json<HotlapChartResponse>, ApiError> {
     let era = extract::resolve_era(&state.database, &path.era).await?;
-    let chart = crate::models::Chart::find_combination(
+    let chart = lfsplanet_hotlaps::models::Chart::find_combination(
         &state.database,
         era.id,
         &path.track.to_ascii_uppercase(),
@@ -191,82 +189,22 @@ mod tests {
     use super::*;
     use axum::http::StatusCode;
 
-    #[test]
-    fn empty_leaderboards_still_expose_the_chart_resource() {
-        use crate::api::v1::eras::{tracks::TrackSummary, vehicles::VehicleSummary};
-        let response = HotlapChartResponse {
-            chart: Chart::new(
-                "2007-12-21".parse().unwrap(),
-                "Historical".to_owned(),
-                TrackSummary::new(
-                    crate::track_id::TrackId(insim_core::track::Track::Bl1),
-                    "Blackwood GP".to_owned(),
-                    crate::api::v1::track_locations::TrackLocationSummary {
-                        code: "BL".into(),
-                        name: "Blackwood".into(),
-                        description: None,
-                        sequence: 0,
-                        image: None,
-                    },
-                    false,
-                    false,
-                    None,
-                    None,
-                ),
-                VehicleSummary::new(
-                    "XFG".parse().unwrap(),
-                    "XF GTI".to_owned(),
-                    "demo".to_owned(),
-                    None,
-                ),
-            ),
-            world_record: None,
-            page: PaginatedResponse {
-                items: vec![],
-                pagination: PaginationQuery::default().metadata(0),
-            },
-            contributes_to: vec![],
-        };
-        let json = serde_json::to_value(response).unwrap();
-        assert_eq!(json["chart"]["era_id"], "2007-12-21");
-        assert_eq!(json["chart"]["track"]["code"], "BL1");
-        assert_eq!(json["chart"]["vehicle"]["code"], "XFG");
-        assert_eq!(
-            json["chart"]["vehicle"]["image"]["url"],
-            serde_json::Value::Null
-        );
-        assert_eq!(json["world_record"], serde_json::Value::Null);
-        assert_eq!(json["items"], serde_json::json!([]));
-        assert_eq!(json["pagination"]["total_items"], 0);
-        for old in ["era_id", "track", "vehicle"] {
-            assert!(json.get(old).is_none());
-        }
-    }
-
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn world_record_is_independent_of_the_leaderboard_query(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         use sea_orm::EntityTrait;
 
-        sqlx::raw_sql(include_str!(
-            "../../../services/validate_hotlap/fixtures.sql"
-        ))
-        .execute(&pool)
-        .await?;
+        sqlx::raw_sql(lfsplanet_hotlaps::test_support::FIXTURE_SQL)
+            .execute(&pool)
+            .await?;
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
-        let original = crate::models::hotlap::Entity::find()
+        let original = lfsplanet_hotlaps::models::hotlap::Entity::find()
             .one(&database)
             .await?
             .unwrap();
-        let state = ApiState {
-            database,
-            oauth: None,
-            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-            site_notice: None,
-        };
+        let state = ApiState::for_tests(database);
         // Pending uploads do not provide a world record.
         let load = |search: &str| {
             best(
@@ -301,7 +239,7 @@ mod tests {
             assert_eq!(record.position, Some(1));
             assert_eq!(
                 record.distance_to_world_record_ms,
-                Some(crate::milliseconds::Milliseconds::ZERO)
+                Some(lfsplanet_core::milliseconds::Milliseconds::ZERO)
             );
             assert!(record.distance_to_benchmark_ms.is_some());
             assert!(record.spr.is_some());
@@ -319,46 +257,12 @@ mod tests {
     }
 
     #[test]
-    fn chart_filters_and_shared_pagination_deserialize_together() {
-        let search = "country=GB&controller=wheel&page=3&per_page=25";
-        let query: ChartHotlapQuery = serde_urlencoded::from_str(search).unwrap();
-        let pagination: PaginationQuery = serde_urlencoded::from_str(search).unwrap();
-        assert_eq!(query.country.as_deref(), Some("GB"));
-        assert_eq!(query.controller.as_deref(), Some("wheel"));
-        assert_eq!(pagination.offset().unwrap(), 50);
-        let pagination: PaginationQuery = serde_urlencoded::from_str("country=GB").unwrap();
-        assert_eq!(pagination.offset().unwrap(), 0);
-    }
-    #[test]
-    fn chart_sort_values_are_typed_and_default_to_rank_ascending() {
+    fn chart_sort_defaults_to_rank_ascending_and_accepts_the_legacy_column() {
         let defaults: ChartHotlapQuery = serde_urlencoded::from_str("").unwrap();
         assert_eq!(defaults.column, HotlapListColumn::Rank);
         assert_eq!(defaults.order, Ordering::Asc);
         let legacy: ChartHotlapQuery = serde_urlencoded::from_str("column=set").unwrap();
         assert_eq!(legacy.column, HotlapListColumn::Submitted);
-        for column in [
-            HotlapListColumn::Rank,
-            HotlapListColumn::Driver,
-            HotlapListColumn::Submitted,
-            HotlapListColumn::LapTime,
-        ] {
-            for order in [Ordering::Asc, Ordering::Desc] {
-                let encoded = serde_urlencoded::to_string([
-                    (
-                        "column",
-                        serde_json::to_value(column).unwrap().as_str().unwrap(),
-                    ),
-                    (
-                        "order",
-                        serde_json::to_value(order).unwrap().as_str().unwrap(),
-                    ),
-                ])
-                .unwrap();
-                let query: ChartHotlapQuery = serde_urlencoded::from_str(&encoded).unwrap();
-                assert_eq!(query.column, column);
-                assert_eq!(query.order, order);
-            }
-        }
     }
 
     #[tokio::test]

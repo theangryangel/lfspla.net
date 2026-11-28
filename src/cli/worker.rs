@@ -1,8 +1,8 @@
 //! Runs the application's background record processors.
 
-use crate::{
-    cli::Args, db, services::validate_hotlap::HotlapValidation, settings::Settings, storage,
-};
+use crate::{cli::Args, settings::Settings};
+use lfsplanet_core::{db, storage};
+use lfsplanet_hotlaps::services::validate_hotlap::HotlapValidation;
 use lfsplanet_jobs::{Runner, WorkerConfig};
 pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     let settings = Settings::load(&args.config)?;
@@ -10,22 +10,22 @@ pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     let object_store = storage::build(&settings.storage)?;
     let config = WorkerConfig {
         workers: 1,
-        poll_interval: settings.worker.hlvc.poll_interval.duration(),
+        poll_interval: settings.hotlaps.validation.poll_interval.duration(),
     };
-    let notifications = crate::services::deliver_webhook::WebhookNotifications::new(
+    let notifications = lfsplanet_hotlaps::services::deliver_webhook::WebhookNotifications::new(
         database.clone(),
         settings.web.public_base_url.url().clone(),
     )?;
     let webhook_config = WorkerConfig {
-        workers: settings.worker.webhooks.workers.get(),
+        workers: settings.hotlaps.webhooks.workers.get(),
         ..WorkerConfig::default()
     };
     let processor = HotlapValidation {
         database,
         object_store,
-        runtime: settings.lfs.runtime,
-        installation_root: settings.lfs.installation_root.path().to_owned(),
-        settings: settings.worker.hlvc,
+        runtime: settings.hotlaps.runtime,
+        installation_root: settings.hotlaps.installation_root.path().to_owned(),
+        settings: settings.hotlaps.validation,
     };
     tracing::info!("background worker started");
     #[cfg(unix)]

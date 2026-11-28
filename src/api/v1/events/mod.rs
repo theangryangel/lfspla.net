@@ -1,14 +1,12 @@
 //! Public event advertisements, ordered by meeting start time.
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery},
-    models::event::{EventListFilters, Model as Event},
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery};
 use axum::{
     Json,
     extract::{Query, State},
     http::StatusCode,
 };
+use lfsplanet_race_calendar::models::event::{EventListFilters, Model as Event};
 use sea_orm::{AccessMode, IsolationLevel, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};

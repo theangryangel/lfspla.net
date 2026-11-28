@@ -32,8 +32,8 @@ pub(crate) struct PlayerSummary {
     pub flag_code: Option<String>,
 }
 
-impl From<crate::models::Player> for PlayerSummary {
-    fn from(player: crate::models::Player) -> Self {
+impl From<lfsplanet_core::models::Player> for PlayerSummary {
+    fn from(player: lfsplanet_core::models::Player) -> Self {
         Self {
             id: player.id,
             flag_code: player.flag_code.map(|code| code.as_str().to_owned()),

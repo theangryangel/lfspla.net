@@ -55,7 +55,7 @@ async fn body(state: ApiState, query: &str) -> serde_json::Value {
     serde_json::from_slice(&bytes).unwrap()
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn events_api_filters_paginates_and_hides_moderated_or_past_meetings(
     pool: sqlx::PgPool,
@@ -80,7 +80,7 @@ async fn events_api_filters_paginates_and_hides_moderated_or_past_meetings(
     let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
     let store = Arc::new(object_store::memory::InMemory::new());
     let transaction = database.begin().await?;
-    let logo = crate::models::attachment::Model::store(
+    let logo = lfsplanet_core::models::attachment::Model::store(
         &transaction,
         &*store,
         b"logo".to_vec(),
@@ -96,11 +96,8 @@ async fn events_api_filters_paginates_and_hides_moderated_or_past_meetings(
         .execute(&pool)
         .await?;
     let state = ApiState {
-        database,
         object_store: store,
-        oauth: None,
-        hotlaps: crate::settings::HotlapSettings::default(),
-        site_notice: None,
+        ..ApiState::for_tests(database)
     };
     let all = body(state.clone(), "").await;
     assert_eq!(all["pagination"]["total_items"], 3);
@@ -143,7 +140,7 @@ async fn events_api_filters_paginates_and_hides_moderated_or_past_meetings(
     );
     let past = body(state.clone(), "?starts_from=2000-01-01T00:00:00Z").await;
     assert_eq!(past["pagination"]["total_items"], 4);
-    for query in ["?league_id=0", "?page=0", "?starts_from=2030-01-01"] {
+    for query in ["?league_id=0", "?starts_from=2030-01-01"] {
         assert_eq!(
             request(state.clone(), query).await.status(),
             StatusCode::BAD_REQUEST

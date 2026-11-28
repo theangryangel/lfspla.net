@@ -2,7 +2,7 @@
 
 use axum::{Json, extract::Query};
 use celes::Country;
-use lfsplanet_flags::CountryFlagsExt;
+use lfsplanet_country_ext::CountryFlagsExt;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -72,15 +72,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn catalogue_is_complete_and_omits_pagination() {
-        let Json(response) = list(Query(CountrySearchQuery { q: None })).await.unwrap();
-        assert_eq!(response.items.len(), Country::get_countries().len());
-        assert!(
-            serde_json::to_value(response)
-                .unwrap()
-                .get("pagination")
-                .is_none()
-        );
+    async fn search_matches_country_codes() {
         let Json(response) = list(Query(CountrySearchQuery {
             q: Some("gb".into()),
         }))

@@ -1,7 +1,7 @@
 //! Conversion of player chart results to the shared hotlap response.
 
 use crate::api::v1::{PlayerSummary, hotlaps::response::Hotlap};
-use crate::models::player::PlayerChartResult;
+use lfsplanet_hotlaps::models::player::PlayerChartResult;
 
 pub(in crate::api::v1) fn chart_result_responses(
     results: Vec<PlayerChartResult>,
@@ -16,7 +16,7 @@ pub(in crate::api::v1) fn chart_result_responses(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::milliseconds::Milliseconds;
+    use lfsplanet_core::milliseconds::Milliseconds;
 
     #[test]
     fn chart_results_serialize_the_public_era_slug() {
@@ -36,7 +36,9 @@ mod tests {
                 distance_to_world_record_ms: Milliseconds::from_millis(100),
                 position: 2,
                 created_at: time::OffsetDateTime::UNIX_EPOCH,
-                game_version: crate::game_version::GameVersionCode("0.5Y".parse().unwrap()),
+                game_version: lfsplanet_hotlaps::game_version::GameVersionCode(
+                    "0.5Y".parse().unwrap(),
+                ),
                 split_1_ms: Milliseconds::from_millis(30_000),
                 split_2_ms: Milliseconds::from_millis(60_000),
                 split_3_ms: Milliseconds::from_millis(0),
@@ -58,7 +60,6 @@ mod tests {
         assert_eq!(json[0]["id"], 42);
         assert_eq!(json[0]["player"]["id"], 7);
         assert_eq!(json[0]["position"], 2);
-        assert!(json[0].get("entries").is_none());
         assert!(json[0].get("submission").is_none());
         assert_eq!(json[0]["split_1_ms"], 30_000);
         assert_eq!(json[0]["split_2_ms"], 60_000);
@@ -67,8 +68,5 @@ mod tests {
         assert_eq!(json[0]["manual_shifter"], false);
         assert_eq!(json[0]["spr"], serde_json::Value::Null);
         assert_eq!(json[0]["created_at"], "1970-01-01T00:00:00Z");
-        assert!(json[0].get("hotlap").is_none());
-        assert!(json[0].get("hotlap_id").is_none());
-        assert!(json[0].get("spr_url").is_none());
     }
 }

@@ -9,7 +9,7 @@ use axum::{
 use serde::Deserialize;
 
 /// A player resolved from the route's `{lfs_username}` path parameter.
-pub(crate) struct Player(pub(crate) crate::models::Player);
+pub(crate) struct Player(pub(crate) lfsplanet_core::models::Player);
 
 #[derive(Deserialize)]
 struct PlayerParameter {
@@ -27,7 +27,7 @@ impl FromRequestParts<ApiState> for Player {
             .await
             .map_err(IntoResponse::into_response)?;
 
-        crate::models::Player::find_by_username(&state.database, &lfs_username)
+        lfsplanet_core::models::Player::find_by_username(&state.database, &lfs_username)
             .await
             .map_err(ApiError::database)
             .and_then(|player| {

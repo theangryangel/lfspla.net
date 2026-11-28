@@ -1,0 +1,36 @@
+[package]
+name = "lfsplanet_lfs_net_api"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Client for Live for Speed OAuth and HTTP APIs"
+
+[lib]
+bench = false
+doctest = false
+
+[features]
+openapi = ["dep:utoipa"]
+sea-orm = ["dep:sea-orm"]
+
+[dependencies]
+utoipa = { version = "6", optional = true }
+sea-orm = { workspace = true, optional = true, features = ["macros"] }
+anyhow = { workspace = true }
+bytes = { workspace = true }
+oauth2 = { workspace = true }
+reqwest = { workspace = true, default-features = false, features = ["form", "json", "rustls"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time"] }
+url = { workspace = true }
+
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+doc_markdown = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"

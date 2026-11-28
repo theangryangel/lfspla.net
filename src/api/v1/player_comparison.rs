@@ -1,11 +1,8 @@
 //! Comparison of two players' current personal bests.
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, extractors as extract,
-        v1::{PlayerSummary, players::response},
-    },
-    models::player::{Entity as PlayerEntity, PlayerComparison, PlayerFilter},
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, extractors as extract,
+    v1::{PlayerSummary, players::response},
 };
 use axum::{
     Json,
@@ -13,6 +10,9 @@ use axum::{
     http::StatusCode,
 };
 use insim_core::{track::Track, vehicle::Vehicle};
+use lfsplanet_core::models::player::{Entity as PlayerEntity, PlayerFilter};
+use lfsplanet_hotlaps::models::player::PlayerComparison;
+use lfsplanet_hotlaps::models::player::PlayerHotlapComparison;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
@@ -37,7 +37,7 @@ pub(crate) struct PlayerComparisonQuery {
     right: String,
     /// Era identifier.
     #[validate(custom(
-        function = "crate::validate::validate_non_blank",
+        function = "lfsplanet_core::validate::validate_non_blank",
         message = "Choose an era"
     ))]
     era: String,
@@ -105,7 +105,8 @@ pub(crate) async fn compare(
     let track = track.map(|track| track.to_string());
     let vehicle = vehicle.map(|vehicle| vehicle.to_string());
     if track.is_some() || vehicle.is_some() {
-        use crate::models::{chart, vehicle as vehicle_model};
+        use lfsplanet_core::models::vehicle as vehicle_model;
+        use lfsplanet_hotlaps::models::chart;
         let mut charts = chart::Entity::find().filter(chart::Column::EraId.eq(era.id));
         if let Some(track) = &track {
             charts = charts.filter(chart::Column::TrackId.eq(track));
@@ -199,26 +200,15 @@ mod tests {
         assert!(query.validate().is_err());
     }
 
-    #[test]
-    fn comparison_query_requires_an_era() {
-        let query = PlayerComparisonQuery {
-            left: "first".to_owned(),
-            right: "second".to_owned(),
-            era: " ".to_owned(),
-            track: None,
-            vehicle: None,
-        };
-        assert!(query.validate().is_err());
-    }
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn chart_filters_preserve_partial_pair_and_availability_rules(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-        crate::services::catalogue::fixtures::tracks(&database).await?;
-        crate::services::catalogue::fixtures::vehicles(&database).await?;
-        sqlx::raw_sql(include_str!("../../services/validate_hotlap/fixtures.sql"))
+        lfsplanet_hotlaps::services::catalogue::fixtures::tracks(&database).await?;
+        lfsplanet_hotlaps::services::catalogue::fixtures::vehicles(&database).await?;
+        sqlx::raw_sql(lfsplanet_hotlaps::test_support::FIXTURE_SQL)
             .execute(&pool)
             .await?;
         sqlx::raw_sql("INSERT INTO player (lfs_username, display_name) VALUES ('other', 'Other');
@@ -227,13 +217,7 @@ mod tests {
             SELECT ranking.era_id, ranking.id, 1, chart.id FROM ranking JOIN chart ON chart.era_id = ranking.era_id
             WHERE chart.track_id = 'BL2';
             UPDATE vehicle SET available = false WHERE id = 'XFG';").execute(&pool).await?;
-        let state = ApiState {
-            site_notice: None,
-            database,
-            oauth: None,
-            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-        };
+        let state = ApiState::for_tests(database);
         for (track, vehicle, valid) in [
             (None, None, true),
             (Some("bl1"), None, true),

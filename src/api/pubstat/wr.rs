@@ -1,7 +1,7 @@
 use super::{error::Error, version::load};
 use crate::api::extractors::pubstat::WrQuery;
-use crate::models::{Era, hotlap::pubstat::Filters};
-use lfsplanet_pubstat::{Version, wr::WorldRecords};
+use lfsplanet_hotlaps::models::{Era, hotlap::pubstat::Filters};
+use lfsplanet_pubstat_types::{Version, wr::WorldRecords};
 use sea_orm::DatabaseConnection;
 
 pub(super) async fn get(

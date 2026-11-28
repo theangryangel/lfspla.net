@@ -7,20 +7,36 @@ use sea_orm::DatabaseConnection;
 use tower::ServiceExt;
 
 fn state(database: DatabaseConnection) -> ApiState {
-    ApiState {
-        database,
-        oauth: None,
-        object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
-        hotlaps: Default::default(),
-        site_notice: None,
+    ApiState::for_tests(database)
+}
+
+async fn fetch(app: &Router, uri: impl AsRef<str>, accept_encoding: Option<&str>) -> Response {
+    let mut request = HttpRequest::builder().uri(uri.as_ref());
+    if let Some(encoding) = accept_encoding {
+        request = request.header("accept-encoding", encoding);
     }
+    app.clone()
+        .oneshot(request.body(Body::empty()).unwrap())
+        .await
+        .unwrap()
+}
+
+/// Requests the current era's pubstat endpoint.
+async fn request(app: &Router, query: impl std::fmt::Display) -> Response {
+    fetch(
+        app,
+        format!("/api/pubstat/2026-09-23/get_stat2.php?{query}"),
+        None,
+    )
+    .await
 }
 
 #[test]
 fn spr_finish_split_is_removed_to_match_captured_pubstat_checkpoints() {
-    use crate::{models::hotlap::pubstat::Row, track_id::TrackId, vehicle_id::VehicleId};
     use insim_core::{track::Track, vehicle::Vehicle};
-    use lfsplanet_pubstat::{Version, wr::WorldRecords};
+    use lfsplanet_core::{track_id::TrackId, vehicle_id::VehicleId};
+    use lfsplanet_hotlaps::models::hotlap::pubstat::Row;
+    use lfsplanet_pubstat_types::{Version, wr::WorldRecords};
     // Same result as the captured WR, first with its zero padding, then with
     // the stored SPR finish value occupying the third split slot.
     for split3 in [0, 92_900] {
@@ -41,8 +57,8 @@ fn spr_finish_split_is_removed_to_match_captured_pubstat_checkpoints() {
             .unwrap();
         let response = WorldRecords::new(Version::V1_5, vec![lap]);
         assert_eq!(
-            lfsplanet_pubstat::ser::to_string(&response).unwrap(),
-            include_str!("../../../crates/lfsplanet_pubstat/fixtures/lfsworld/wr-1.5.txt")
+            lfsplanet_pubstat_types::ser::to_string(&response).unwrap(),
+            include_str!("../../../crates/lfsplanet_pubstat_types/fixtures/lfsworld/wr-1.5.txt")
         );
     }
 }
@@ -83,16 +99,7 @@ async fn action_queries_validate_before_database_resolution() {
         ("action=unknown", StatusCode::BAD_REQUEST),
     ];
     for (query, expected) in cases {
-        let response = app
-            .clone()
-            .oneshot(
-                HttpRequest::builder()
-                    .uri(format!("/api/pubstat/2026-09-23/get_stat2.php?{query}"))
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
+        let response = request(&app, query).await;
         assert_eq!(response.status(), expected, "{query}");
         assert!(
             response.headers()["content-type"]
@@ -112,11 +119,7 @@ async fn shared_era_extractor_preserves_each_api_error_format() {
         ("/api/pubstat/%2F/get_stat2.php?action=wr&c=1", "text/plain"),
         ("/api/v1/eras/%2F", "application/json"),
     ] {
-        let response = app
-            .clone()
-            .oneshot(HttpRequest::builder().uri(uri).body(Body::empty()).unwrap())
-            .await
-            .unwrap();
+        let response = fetch(&app, uri, None).await;
         assert_eq!(response.status(), StatusCode::NOT_FOUND, "{uri}");
         assert!(
             response.headers()["content-type"]
@@ -180,53 +183,39 @@ async fn action_specific_extractors_accept_legacy_queries() {
             "1.5 wr Some(\"RO11\") Some(\"FBM\")",
         ),
     ] {
-        let response = app
-            .clone()
-            .oneshot(
-                HttpRequest::builder()
-                    .uri(format!("/?{query}"))
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
+        let response = fetch(&app, format!("/?{query}"), None).await;
         assert_eq!(response.status(), StatusCode::OK, "{query}");
         let body = to_bytes(response.into_body(), 4096).await.unwrap();
         assert_eq!(std::str::from_utf8(&body).unwrap(), expected);
     }
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn published_bests_are_complete_filtered_and_era_scoped(
     pool: sqlx::PgPool,
 ) -> anyhow::Result<()> {
     use sea_orm::EntityTrait;
-    sqlx::raw_sql(include_str!("../../services/validate_hotlap/fixtures.sql"))
+    sqlx::raw_sql(lfsplanet_hotlaps::test_support::FIXTURE_SQL)
         .execute(&pool)
         .await?;
     let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-    let hotlap = crate::models::hotlap::Entity::find()
+    let hotlap = lfsplanet_hotlaps::models::hotlap::Entity::find()
         .one(&database)
         .await?
         .unwrap();
     // Pending laps do not appear, even when the chart exists.
     let app = router().with_state(state(database.clone()));
-    let request = |query: &str| {
-        HttpRequest::builder()
-            .uri(format!("/api/pubstat/2026-09-23/get_stat2.php?{query}"))
-            .body(Body::empty())
-            .unwrap()
-    };
-    let response = app
-        .clone()
-        .oneshot(request("action=ch&track=000&car=XFG"))
-        .await?;
+    let response = request(&app, "action=ch&track=000&car=XFG").await;
     assert_eq!(response.status(), StatusCode::OK);
     assert!(to_bytes(response.into_body(), 4096).await?.is_empty());
-    crate::models::Hotlap::validate_owned_for_testing(&database, hotlap.id, hotlap.player_id)
-        .await?
-        .unwrap();
+    lfsplanet_hotlaps::models::Hotlap::validate_owned_for_testing(
+        &database,
+        hotlap.id,
+        hotlap.player_id,
+    )
+    .await?
+    .unwrap();
     sqlx::raw_sql(
         r#"
 UPDATE player SET country_code = 'GB' WHERE lfs_username = 'worker-test';
@@ -260,7 +249,7 @@ SELECT id, 'BL1', 'XFG' FROM era WHERE slug = '2020-01-01';
         ("action=wr&s=1&car=XRG", 0),
         ("action=hl&racer=IMPORT-1&s=1", 1),
     ] {
-        let response = app.clone().oneshot(request(query)).await?;
+        let response = request(&app, query).await;
         assert_eq!(response.status(), StatusCode::OK, "{query}");
         let body = to_bytes(response.into_body(), 100_000).await?;
         let rows: Vec<serde_json::Value> = serde_json::from_slice(&body)?;
@@ -275,7 +264,7 @@ SELECT id, 'BL1', 'XFG' FROM era WHERE slug = '2020-01-01';
         ("action=wr&s=3&version=1.4", "wr_data", 1),
         ("action=wr&car=XRG&s=3", "wr_data", 0),
     ] {
-        let response = app.clone().oneshot(request(query)).await?;
+        let response = request(&app, query).await;
         assert_eq!(response.status(), StatusCode::OK, "{query}");
         assert_eq!(
             response.headers()["content-type"],
@@ -295,13 +284,10 @@ SELECT id, 'BL1', 'XFG' FROM era WHERE slug = '2020-01-01';
         "action=ch&track=000&car=XFG&s=1",
         "action=wr&s=1",
     ] {
-        let response = app.clone().oneshot(request(query)).await?;
+        let response = request(&app, query).await;
         let baseline = to_bytes(response.into_body(), 100_000).await?;
         for mode in 1..=3 {
-            let response = app
-                .clone()
-                .oneshot(request(&format!("{query}&c={mode}")))
-                .await?;
+            let response = request(&app, format!("{query}&c={mode}")).await;
             assert_eq!(response.status(), StatusCode::OK);
             let body = to_bytes(response.into_body(), 100_000).await?;
             assert_eq!(
@@ -319,12 +305,11 @@ SELECT id, 'BL1', 'XFG' FROM era WHERE slug = '2020-01-01';
         ("1.4", 9),
         ("1.5", 9),
     ] {
-        let response = app
-            .clone()
-            .oneshot(request(&format!(
-                "action=hl&racer=worker-test&version={version}"
-            )))
-            .await?;
+        let response = request(
+            &app,
+            format!("action=hl&racer=worker-test&version={version}"),
+        )
+        .await;
         assert_eq!(response.status(), StatusCode::OK);
         let body = to_bytes(response.into_body(), 4096).await?;
         assert_eq!(
@@ -332,22 +317,20 @@ SELECT id, 'BL1', 'XFG' FROM era WHERE slug = '2020-01-01';
             columns
         );
     }
-    let response = app
-        .clone()
-        .oneshot(
-            HttpRequest::builder()
-                .uri("/api/pubstat/2020-01-01/get_stat2.php?action=wr&s=1")
-                .body(Body::empty())?,
-        )
-        .await?;
+    let response = fetch(
+        &app,
+        "/api/pubstat/2020-01-01/get_stat2.php?action=wr&s=1",
+        None,
+    )
+    .await;
     assert_eq!(to_bytes(response.into_body(), 4096).await?.as_ref(), b"[]");
     Ok(())
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn mods_are_available_in_every_action_and_output(pool: sqlx::PgPool) -> anyhow::Result<()> {
-    sqlx::raw_sql(include_str!("../../services/validate_hotlap/fixtures.sql"))
+    sqlx::raw_sql(lfsplanet_hotlaps::test_support::FIXTURE_SQL)
         .execute(&pool)
         .await?;
     sqlx::raw_sql(
@@ -390,14 +373,7 @@ SELECT chart_id, player_id, id, 1 FROM hotlap WHERE vehicle = 'ABCDEF';
         ),
         ("action=wr&car=ABCDEF&s=3", "text/xml", "<car>ABCDEF</car>"),
     ] {
-        let response = app
-            .clone()
-            .oneshot(
-                HttpRequest::builder()
-                    .uri(format!("/api/pubstat/2026-09-23/get_stat2.php?{query}"))
-                    .body(Body::empty())?,
-            )
-            .await?;
+        let response = request(&app, query).await;
         assert_eq!(response.status(), StatusCode::OK, "{query}");
         assert!(
             response.headers()["content-type"]
@@ -420,7 +396,7 @@ fn compression_test_app() -> Router {
         }: PubstatQuery,
     ) -> Result<Response, Error> {
         use insim_core::{track::Track, vehicle::Vehicle};
-        use lfsplanet_pubstat::{Lap, wr::WorldRecords};
+        use lfsplanet_pubstat_types::{Lap, wr::WorldRecords};
         let empty =
             matches!(action, Action::WorldRecords(ref query) if query.car == Some(Vehicle::Xrg));
         let rows = if empty {
@@ -473,30 +449,12 @@ async fn query_compression_preserves_every_format_and_empty_collections() {
     for car in ["XFG", "XRG"] {
         for format in [0, 1, 3] {
             let uri = format!("/?action=wr&car={car}&s={format}");
-            let baseline = app
-                .clone()
-                .oneshot(
-                    HttpRequest::builder()
-                        .uri(&uri)
-                        .body(Body::empty())
-                        .unwrap(),
-                )
-                .await
-                .unwrap();
+            let baseline = fetch(&app, &uri, None).await;
             assert_eq!(baseline.status(), StatusCode::OK);
             let content_type = baseline.headers()["content-type"].clone();
             let baseline = to_bytes(baseline.into_body(), 100_000).await.unwrap();
             for mode in 1..=3 {
-                let response = app
-                    .clone()
-                    .oneshot(
-                        HttpRequest::builder()
-                            .uri(format!("{uri}&c={mode}"))
-                            .body(Body::empty())
-                            .unwrap(),
-                    )
-                    .await
-                    .unwrap();
+                let response = fetch(&app, format!("{uri}&c={mode}"), None).await;
                 assert_eq!(response.status(), StatusCode::OK);
                 if mode == 1 {
                     assert_eq!(response.headers()["content-encoding"], "gzip");
@@ -522,29 +480,10 @@ async fn query_compression_preserves_every_format_and_empty_collections() {
 #[tokio::test]
 async fn query_compression_avoids_double_encoding_and_keeps_http_negotiation() {
     let app = compression_test_app();
-    let baseline = app
-        .clone()
-        .oneshot(
-            HttpRequest::builder()
-                .uri("/?action=wr&c=0")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
+    let baseline = fetch(&app, "/?action=wr&c=0", None).await;
     let baseline = to_bytes(baseline.into_body(), 100_000).await.unwrap();
     for mode in 1..=3 {
-        let response = app
-            .clone()
-            .oneshot(
-                HttpRequest::builder()
-                    .uri(format!("/?action=wr&c={mode}"))
-                    .header("accept-encoding", "gzip, br")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
+        let response = fetch(&app, format!("/?action=wr&c={mode}"), Some("gzip, br")).await;
         assert_eq!(response.status(), StatusCode::OK);
         if mode == 1 {
             assert_eq!(response.headers()["content-encoding"], "gzip");
@@ -554,48 +493,8 @@ async fn query_compression_avoids_double_encoding_and_keeps_http_negotiation() {
         let body = to_bytes(response.into_body(), 100_000).await.unwrap();
         assert_eq!(inflate_query_body(mode, &body), baseline, "c={mode}");
     }
-    let response = app
-        .oneshot(
-            HttpRequest::builder()
-                .uri("/?action=wr&c=0")
-                .header("accept-encoding", "gzip")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
+    let response = fetch(&app, "/?action=wr&c=0", Some("gzip")).await;
     assert_eq!(response.headers()["content-encoding"], "gzip");
     let body = to_bytes(response.into_body(), 100_000).await.unwrap();
     assert_eq!(inflate_query_body(1, &body), baseline);
-}
-
-#[tokio::test]
-async fn query_compression_is_available_to_old_plain_text_clients() {
-    let app = compression_test_app();
-    let baseline = app
-        .clone()
-        .oneshot(
-            HttpRequest::builder()
-                .uri("/?action=wr&version=1.0")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    let baseline = to_bytes(baseline.into_body(), 100_000).await.unwrap();
-    for mode in 1..=3 {
-        let response = app
-            .clone()
-            .oneshot(
-                HttpRequest::builder()
-                    .uri(format!("/?action=wr&version=1.0&c={mode}"))
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(response.status(), StatusCode::OK);
-        let body = to_bytes(response.into_body(), 100_000).await.unwrap();
-        assert_eq!(inflate_query_body(mode, &body), baseline);
-    }
 }

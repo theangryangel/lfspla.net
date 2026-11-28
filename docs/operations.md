@@ -67,11 +67,11 @@ For a new database:
 
 ```sh
 lfsplanet --config /etc/lfsplanet/config.yaml migrate
-lfsplanet --config /etc/lfsplanet/config.yaml maintenance sync-mods
+lfsplanet --config /etc/lfsplanet/config.yaml vehicles sync-mods
 lfsplanet --config /etc/lfsplanet/config.yaml seed /etc/lfsplanet/tracks/*.yaml /etc/lfsplanet/vehicles/*.yaml /etc/lfsplanet/eras/*.yaml
 ```
 
-`sync-mods` requires LFS OAuth credentials and refreshes Vehicle Mods and
+`vehicles sync-mods` requires LFS OAuth credentials and refreshes Vehicle Mods and
 their covers. `seed` imports local track and standard vehicle artwork plus era
 policy; it needs no LFS OAuth credentials. Canonical tracks and standard vehicles
 are populated when their definitions are seeded. Apply these files explicitly.
@@ -84,7 +84,7 @@ Run migrations and install the required era definitions, then import one or more
 CSV exports:
 
 ```sh
-lfsplanet hotlap import-lfsworld tmp/s2hotlaps.csv --spr-dir tmp/sprs
+lfsplanet hotlaps import-lfsworld tmp/s2hotlaps.csv --spr-dir tmp/sprs
 ```
 
 `--spr-dir` is optional. When supplied, the importer scans its subdirectories
@@ -106,43 +106,50 @@ and rerunning resumes with laps that still lack attachments.
 
 ## Routine maintenance
 
+The daily `lfsplanet-maintenance.timer` runs these in order:
+
 ```sh
-lfsplanet maintenance sessions-gc
-lfsplanet maintenance access-tokens-gc
-lfsplanet maintenance sync-mods
-lfsplanet maintenance storage-gc
-lfsplanet maintenance run-all
+lfsplanet gc --all --yes
+lfsplanet hotlaps rebadge --pending
+lfsplanet race-calendar sync
+lfsplanet vehicles sync-mods
 ```
 
-`sessions-gc` removes expired browser sessions. `access-tokens-gc` retains
-expired or revoked personal access tokens for 90 days before removal.
-`sync-mods` requires LFS OAuth credentials. It also resolves hotlaps
+A failing step stops the steps after it for that run; the next run retries them.
+
+`gc` deletes expired browser sessions (`--sessions`), personal access tokens
+revoked or expired more than `--access-token-max-age-days` ago (`--access-tokens`,
+default 90), and unreferenced storage objects (`--storage`, below). Select targets
+individually or with `--all`, and pass either `--yes` to delete or `--dry-run` to
+report what is eligible. Every selected target runs even if an earlier one fails;
+failures are reported together.
+
+`vehicles sync-mods` requires LFS OAuth credentials. It also resolves hotlaps
 waiting on Vehicle Mods metadata and caches covers for new Mods and new Mod
 revisions in local object storage. Failed cover downloads leave a previously
 cached image available and do not fail the catalogue refresh. The cached image
 revision is tracked separately, so a failed download is retried on the next
 sync.
 
-`run-all` retries persisted badge refresh requests left after interrupted
+`hotlaps rebadge --pending` retries persisted badge refresh requests left after interrupted
 or failed publication, deletion, imports, or era edits. Successful publication
 and deletion still attempt an immediate refresh. Calculation and replacement
 hold the catalogue rebuild lock, briefly pausing admissions and other published
-result changes while badges are calculated. Use `hotlap rebadge` to force a
+result changes while badges are calculated. Use `hotlaps rebadge` to force a
 manual rebuild for selected eras.
 
-`storage-gc` reports unreferenced SPRs, RAFs, vehicle images, and other objects
-in the configured attachment store that are at least 24 hours old. Files shared
-by several records remain retained until every reference is removed. It
-streams object listings in bounded batches, so it does not load every stored
-key into memory. It never deletes unless asked:
+`gc --storage` covers unreferenced SPRs, RAFs, vehicle images, and other objects
+in the configured attachment store that are at least `--storage-max-age-hours`
+old (default 24). Files shared by several records remain retained until every
+reference is removed. It streams object listings in bounded batches, so it does
+not load every stored key into memory:
 
 ```sh
-lfsplanet maintenance storage-gc --older-than-hours 24
-lfsplanet maintenance storage-gc --delete
+lfsplanet gc --storage --dry-run --storage-max-age-hours 24
+lfsplanet gc --storage --yes
 ```
 
-`run-all` runs the routine maintenance tasks once. Its `--delete` flag affects only
-eligible storage objects; it attempts all tasks and reports failures together.
+Run `lfsplanet gc --all --dry-run` to see everything a scheduled run would delete.
 
 ## Player restrictions
 
@@ -152,37 +159,37 @@ existing LFS account. These commands use the exact LFS username.
 Check a player's current restrictions:
 
 ```sh
-lfsplanet --config /etc/lfsplanet/config.yaml player show LFS_USERNAME
+lfsplanet --config /etc/lfsplanet/config.yaml players show LFS_USERNAME
 ```
 
 To ban new uploads, deny `uploads`:
 
 ```sh
-lfsplanet --config /etc/lfsplanet/config.yaml player deny uploads LFS_USERNAME
+lfsplanet --config /etc/lfsplanet/config.yaml players deny uploads LFS_USERNAME
 ```
 
 To stop a player from signing in or using a personal access token, deny `auth`:
 
 ```sh
-lfsplanet --config /etc/lfsplanet/config.yaml player deny auth LFS_USERNAME
+lfsplanet --config /etc/lfsplanet/config.yaml players deny auth LFS_USERNAME
 ```
 
 Allow the restriction again to unban the player. For example:
 
 ```sh
-lfsplanet --config /etc/lfsplanet/config.yaml player allow uploads LFS_USERNAME
-lfsplanet --config /etc/lfsplanet/config.yaml player allow auth LFS_USERNAME
+lfsplanet --config /etc/lfsplanet/config.yaml players allow uploads LFS_USERNAME
+lfsplanet --config /etc/lfsplanet/config.yaml players allow auth LFS_USERNAME
 ```
 
 ## Recovery commands
 
-After changing an era's replay-version rules, run `lfsplanet hotlap fix-eras`.
+After changing an era's replay-version rules, run `lfsplanet hotlaps fix-eras`.
 Rebuild badges after rule changes or validator failures. Choose the eras:
 
 ```sh
-lfsplanet hotlap rebadge --era 2007-12-21
-lfsplanet hotlap rebadge --open
-lfsplanet hotlap rebadge --all
+lfsplanet hotlaps rebadge --era 2007-12-21
+lfsplanet hotlaps rebadge --open
+lfsplanet hotlaps rebadge --all
 ```
 
 See [eras and rankings](eras.md) for policy changes and
@@ -192,10 +199,10 @@ To audit stored SPRs without modifying hotlaps, select an `era`, `player` or sin
 For an era, optional `--player` narrows the selection before replay downloads:
 
 ```sh
-lfsplanet hotlap verify-sprs era 0.8
-lfsplanet hotlap verify-sprs era 0.8 --player mgxpower
-lfsplanet hotlap verify-sprs player mgxpower
-lfsplanet hotlap verify-sprs hotlap 123
+lfsplanet hotlaps verify-sprs era 0.8
+lfsplanet hotlaps verify-sprs era 0.8 --player mgxpower
+lfsplanet hotlaps verify-sprs player mgxpower
+lfsplanet hotlaps verify-sprs hotlap 123
 ```
 
 Structured tracing events report hotlap/player/era IDs, track, vehicle, state
@@ -207,9 +214,9 @@ unsuccessfully after finishing the selected scope. No HLVC process is run.
 Add `--delete-invalid` to delete parser-rejected hotlaps in the selected scope:
 
 ```sh
-lfsplanet hotlap verify-sprs era 0.8 --delete-invalid
-lfsplanet hotlap verify-sprs player mgxpower --delete-invalid
-lfsplanet hotlap verify-sprs hotlap 123 --delete-invalid
+lfsplanet hotlaps verify-sprs era 0.8 --delete-invalid
+lfsplanet hotlaps verify-sprs player mgxpower --delete-invalid
+lfsplanet hotlaps verify-sprs hotlap 123 --delete-invalid
 ```
 
 Without the flag, verification is read-only. Storage read failures and hotlaps
@@ -221,7 +228,7 @@ for storage GC.
 After reviewing a result, remove a hotlap by ID:
 
 ```sh
-lfsplanet hotlap delete 123
+lfsplanet hotlaps delete 123
 ```
 
 This immediately deletes the row, including imported laps. For published laps it

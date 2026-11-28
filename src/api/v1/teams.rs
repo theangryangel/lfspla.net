@@ -13,13 +13,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
-        extractors::AuthenticatedPlayer, v1::PlayerSummary,
-    },
-    models::team::{self, TeamError, TeamFilter, TeamOrder, member},
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
+    extractors::AuthenticatedPlayer, v1::PlayerSummary,
 };
+use lfsplanet_core::models::team::{self, TeamError, TeamFilter, TeamOrder, member};
 
 pub(super) fn router() -> OpenApiRouter<ApiState> {
     OpenApiRouter::new()

@@ -1,19 +1,15 @@
 //! Era-wide holders of current individual-chart world records.
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery,
-        extractors as extract, v1::PlayerSummary,
-    },
-    models::{
-        era::rank_world_record_holders,
-        player::{Column as PlayerColumn, Entity as PlayerEntity},
-    },
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery, extractors as extract,
+    v1::PlayerSummary,
 };
 use axum::{
     Json,
     extract::{Query, State},
 };
+use lfsplanet_core::models::player::{Column as PlayerColumn, Entity as PlayerEntity};
+use lfsplanet_hotlaps::models::era::rank_world_record_holders;
 use sea_orm::{
     AccessMode, ColumnTrait, EntityTrait, IsolationLevel, QueryFilter, TransactionTrait,
 };

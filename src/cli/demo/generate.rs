@@ -1,8 +1,8 @@
-use crate::milliseconds::Milliseconds;
 use fake::{
     Dummy, Fake, Faker,
     faker::{internet::en::Username, name::en::Name},
 };
+use lfsplanet_core::milliseconds::Milliseconds;
 use rand::{RngExt, seq::SliceRandom};
 use std::collections::HashSet;
 use time::{Duration, OffsetDateTime};

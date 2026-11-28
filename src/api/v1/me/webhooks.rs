@@ -1,16 +1,14 @@
 //! Browser-managed webhook subscriptions; destination credentials are write-only.
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, ListResponse, extractors::BrowserAuthenticatedPlayer,
-    },
-    models::webhook::{self, WebhookEventKind, WebhookFormat},
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, ListResponse, extractors::BrowserAuthenticatedPlayer,
 };
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
 };
+use lfsplanet_hotlaps::models::webhook::{self, WebhookEventKind, WebhookFormat};
 
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -98,8 +96,8 @@ pub(crate) struct WebhookResponse {
     event_kind: WebhookEventKind,
     enabled: bool,
 }
-impl From<crate::models::Webhook> for WebhookResponse {
-    fn from(model: crate::models::Webhook) -> Self {
+impl From<lfsplanet_hotlaps::models::Webhook> for WebhookResponse {
+    fn from(model: lfsplanet_hotlaps::models::Webhook) -> Self {
         Self {
             id: model.id,
             name: model.name,
@@ -116,7 +114,7 @@ pub(crate) async fn list(
     State(state): State<ApiState>,
     BrowserAuthenticatedPlayer(player): BrowserAuthenticatedPlayer,
 ) -> Result<Json<ListResponse<WebhookResponse>>, ApiError> {
-    let records = crate::models::Webhook::list_for_player(&state.database, player.id)
+    let records = lfsplanet_hotlaps::models::Webhook::list_for_player(&state.database, player.id)
         .await
         .map_err(ApiError::database)?;
     Ok(Json(ListResponse::from(
@@ -142,12 +140,13 @@ pub(crate) async fn create(
     }
     let url = match request.format {
         WebhookFormat::Discord => {
-            crate::services::deliver_webhook::discord::webhook_url(&request.url).map_err(
-                |message| ApiError::new(StatusCode::BAD_REQUEST, "invalid_webhook_url", message),
-            )?
+            lfsplanet_hotlaps::services::deliver_webhook::discord::webhook_url(&request.url)
+                .map_err(|message| {
+                    ApiError::new(StatusCode::BAD_REQUEST, "invalid_webhook_url", message)
+                })?
         }
     };
-    let result = crate::models::Webhook::create(
+    let result = lfsplanet_hotlaps::models::Webhook::create(
         &state.database,
         webhook::NewWebhook {
             player_id: player.id,
@@ -184,11 +183,15 @@ pub(crate) async fn update(
     BrowserAuthenticatedPlayer(player): BrowserAuthenticatedPlayer,
     Json(request): Json<UpdateWebhookRequest>,
 ) -> Result<Json<WebhookResponse>, ApiError> {
-    let record =
-        crate::models::Webhook::set_enabled_owned(&state.database, id, player.id, request.enabled)
-            .await
-            .map_err(ApiError::database)?
-            .ok_or_else(|| ApiError::not_found("webhook_not_found", "Webhook"))?;
+    let record = lfsplanet_hotlaps::models::Webhook::set_enabled_owned(
+        &state.database,
+        id,
+        player.id,
+        request.enabled,
+    )
+    .await
+    .map_err(ApiError::database)?
+    .ok_or_else(|| ApiError::not_found("webhook_not_found", "Webhook"))?;
     Ok(Json(record.into()))
 }
 
@@ -200,7 +203,7 @@ pub(crate) async fn remove(
     State(state): State<ApiState>,
     BrowserAuthenticatedPlayer(player): BrowserAuthenticatedPlayer,
 ) -> Result<StatusCode, ApiError> {
-    if !crate::models::Webhook::delete_owned(&state.database, id, player.id)
+    if !lfsplanet_hotlaps::models::Webhook::delete_owned(&state.database, id, player.id)
         .await
         .map_err(ApiError::database)?
     {

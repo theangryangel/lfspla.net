@@ -1,7 +1,7 @@
 use super::{DemoArgs, persist};
-use crate::models::hotlap::Entity as HotlapEntity;
+use lfsplanet_hotlaps::models::hotlap::Entity as HotlapEntity;
 use sea_orm::{EntityTrait, SqlxPostgresConnector};
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> anyhow::Result<()> {
     let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
@@ -15,7 +15,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         .execute(&pool).await?;
 
     let inserted = persist::populate(&database, &options).await?;
-    let era = crate::models::Era::find_by_slug(&database, &"demo".parse().unwrap())
+    let era = lfsplanet_hotlaps::models::Era::find_by_slug(&database, &"demo".parse().unwrap())
         .await?
         .unwrap();
     assert!(!era.open);
@@ -130,7 +130,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     .await?;
     assert_eq!(out_of_order, 0, "chart positions must follow lap times");
     // Exercise the chart-based joins behind ranking and player API views.
-    let ranking = crate::models::ranking::RankingWithCharts::find(&database, era.id, "all")
+    let ranking = lfsplanet_hotlaps::models::ranking::RankingWithCharts::find(&database, era.id, "all")
         .await?
         .unwrap();
     assert_eq!(ranking.charts.len() as i64, combinations);
@@ -146,7 +146,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
             nation.points
         );
     }
-    let player = crate::models::player::Entity::find_by_id(laps[0].player_id)
+    let player = lfsplanet_core::models::player::Entity::find_by_id(laps[0].player_id)
         .one(&database)
         .await?
         .unwrap();
@@ -167,12 +167,12 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
         results.len()
     );
     assert!(!era.list_podium_counts(&database).await?.is_empty());
-    let activity = crate::models::Hotlap::list(
+    let activity = lfsplanet_hotlaps::models::Hotlap::list(
         &database,
-        crate::models::hotlap::HotlapListFilters::default(),
-        crate::models::hotlap::HotlapListPage {
-            column: crate::models::hotlap::HotlapListColumn::Submitted,
-            order: crate::ordering::Ordering::Desc,
+        lfsplanet_hotlaps::models::hotlap::HotlapListFilters::default(),
+        lfsplanet_hotlaps::models::hotlap::HotlapListPage {
+            column: lfsplanet_hotlaps::models::hotlap::HotlapListColumn::Submitted,
+            order: lfsplanet_core::ordering::Ordering::Desc,
             offset: 0,
             limit: 10,
         },
@@ -188,7 +188,7 @@ async fn accumulates_demo_data_and_skips_duplicate_laps(pool: sqlx::PgPool) -> a
     Ok(())
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyhow::Result<()> {
     sqlx::query(
@@ -198,7 +198,7 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
     .execute(&pool)
     .await?;
     let database = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-    let before = crate::models::Era::find_by_slug(&database, &"2026-09-30".parse().unwrap())
+    let before = lfsplanet_hotlaps::models::Era::find_by_slug(&database, &"2026-09-30".parse().unwrap())
         .await?
         .unwrap();
     persist::populate(
@@ -211,7 +211,7 @@ async fn existing_eras_are_not_populated_or_modified(pool: sqlx::PgPool) -> anyh
         },
     )
     .await?;
-    let after = crate::models::Era::find_by_slug(&database, &"2026-09-30".parse().unwrap())
+    let after = lfsplanet_hotlaps::models::Era::find_by_slug(&database, &"2026-09-30".parse().unwrap())
         .await?
         .unwrap();
     assert_eq!(before, after);

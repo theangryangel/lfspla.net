@@ -1,10 +1,9 @@
 use super::{error::Error, version::load};
+use crate::api::ApiError;
 use crate::api::extractors::pubstat::HlQuery;
-use crate::{
-    api::ApiError,
-    models::{Era, Player, hotlap::pubstat::Filters},
-};
-use lfsplanet_pubstat::{Version, hl::Hotlaps};
+use lfsplanet_core::models::Player;
+use lfsplanet_hotlaps::models::{Era, hotlap::pubstat::Filters};
+use lfsplanet_pubstat_types::{Version, hl::Hotlaps};
 use sea_orm::DatabaseConnection;
 
 pub(super) async fn get(

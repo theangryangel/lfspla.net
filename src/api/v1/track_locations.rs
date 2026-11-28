@@ -70,17 +70,18 @@ pub(crate) async fn get_track_location(
     State(state): State<ApiState>,
 ) -> Result<Json<TrackLocationSummary>, ApiError> {
     use sea_orm::EntityTrait;
-    let location = crate::models::track::location::Entity::find_by_id(code.to_ascii_uppercase())
-        .one(&state.database)
-        .await
-        .map_err(ApiError::database)?
-        .ok_or_else(|| {
-            ApiError::new(
-                StatusCode::NOT_FOUND,
-                "track_location_not_found",
-                "Track location not found",
-            )
-        })?;
+    let location =
+        lfsplanet_core::models::track::location::Entity::find_by_id(code.to_ascii_uppercase())
+            .one(&state.database)
+            .await
+            .map_err(ApiError::database)?
+            .ok_or_else(|| {
+                ApiError::new(
+                    StatusCode::NOT_FOUND,
+                    "track_location_not_found",
+                    "Track location not found",
+                )
+            })?;
     let attachments = super::attachments::load(
         &state.database,
         location.image_attachment_id.into_iter().collect::<Vec<_>>(),
@@ -108,8 +109,8 @@ impl TrackLocationSummary {
         database: &impl sea_orm::ConnectionTrait,
     ) -> Result<std::collections::HashMap<String, Self>, ApiError> {
         use sea_orm::EntityTrait;
-        let locations: Vec<crate::models::TrackLocation> =
-            crate::models::track::location::Entity::find()
+        let locations: Vec<lfsplanet_core::models::TrackLocation> =
+            lfsplanet_core::models::track::location::Entity::find()
                 .all(database)
                 .await
                 .map_err(ApiError::database)?;
@@ -132,7 +133,7 @@ impl TrackLocationSummary {
             .collect())
     }
     fn from_record(
-        location: crate::models::TrackLocation,
+        location: lfsplanet_core::models::TrackLocation,
         attachments: &std::collections::HashMap<i64, super::attachments::Attachment>,
     ) -> Self {
         Self {

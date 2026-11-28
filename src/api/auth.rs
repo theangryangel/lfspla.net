@@ -4,13 +4,13 @@ use crate::api::{
     ApiError, ApiState, ErrorResponse,
     extractors::{browser_player, login, reset_csrf_token, secrets_match, verify_csrf},
 };
-use crate::models::Player;
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Redirect, Response},
     routing::get,
 };
+use lfsplanet_core::models::Player;
 use serde::Deserialize;
 use tower_sessions::Session;
 use utoipa_axum::{router::OpenApiRouter, routes};

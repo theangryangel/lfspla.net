@@ -1,15 +1,13 @@
 //! Track metadata endpoints scoped to an era.
 
 use crate::api::v1::track_locations::TrackLocationSummary;
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
-    models::{Track as TrackRecord, track::TrackOrder},
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract};
 use axum::{
     Json,
     extract::{Query, State},
 };
 use insim_core::vehicle::Vehicle;
+use lfsplanet_core::models::{Track as TrackRecord, track::TrackOrder};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -35,7 +33,7 @@ pub(crate) struct TrackSearchQuery {
     /// Restrict tracks to those paired with this canonical vehicle.
     vehicle: Option<String>,
     /// Only combinations included in rankings of this discipline.
-    discipline: Option<crate::hotlap_discipline::HotLapDiscipline>,
+    discipline: Option<lfsplanet_hotlaps::hotlap_discipline::HotLapDiscipline>,
 }
 
 /// Builds era-scoped track routes.
@@ -114,7 +112,7 @@ pub(crate) async fn list_for_era(
 
 impl TrackSummary {
     pub(crate) fn new(
-        code: crate::track_id::TrackId,
+        code: lfsplanet_core::track_id::TrackId,
         name: String,
         location: TrackLocationSummary,
         reverse: bool,

@@ -1,9 +1,9 @@
 //! Application-local database operations extending the protocol version.
 use super::error::Error;
 use crate::api::extractors::pubstat::{ChartQuery, HlQuery, WrQuery};
-use crate::models::{Era, hotlap::pubstat};
-use lfsplanet_pubstat::track::TrackPubstatExt;
-use lfsplanet_pubstat::{Lap, Version, ch::Chart, hl::Hotlaps, wr::WorldRecords};
+use lfsplanet_hotlaps::models::{Era, hotlap::pubstat};
+use lfsplanet_pubstat_types::track::TrackPubstatExt;
+use lfsplanet_pubstat_types::{Lap, Version, ch::Chart, hl::Hotlaps, wr::WorldRecords};
 use sea_orm::DatabaseConnection;
 
 pub(super) trait PubstatVersionExt {

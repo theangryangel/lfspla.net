@@ -26,9 +26,9 @@ path for all commands below. Keep the usual database backup for the release.
    migrated completion references use `gabor` for Nutter, otherwise
    `<ranking-slug>-completion`.
 
-3. Run `lfsplanet hotlap rebadge --all`. There is no need to reclassify hotlaps for
+3. Run `lfsplanet hotlaps rebadge --all`. There is no need to reclassify hotlaps for
    this change. If a separate era repair is needed, run
-   `lfsplanet hotlap fix-eras` first and rebadge afterwards.
+   `lfsplanet hotlaps fix-eras` first and rebadge afterwards.
 4. Confirm the refresh queue is empty and inspect award totals:
 
    ```sql

@@ -2316,24 +2316,21 @@ dependencies = [
  "encoding_rs",
  "fake",
  "flate2",
- "futures",
  "hex",
  "http-body-util",
- "insim",
  "insim_core",
- "itertools 0.15.0",
- "lfsplanet_flags",
- "lfsplanet_game_version_req",
+ "lfsplanet_core",
+ "lfsplanet_country_ext",
+ "lfsplanet_hotlaps",
  "lfsplanet_jobs",
- "lfsplanet_lfs",
- "lfsplanet_lfs_api",
- "lfsplanet_lfs_leagues",
- "lfsplanet_pubstat",
+ "lfsplanet_lfs_installations",
+ "lfsplanet_lfs_net_api",
+ "lfsplanet_pubstat_types",
+ "lfsplanet_race_calendar",
  "lfsplanet_spr",
  "oauth2",
  "object_store",
  "rand 0.10.4",
- "reqwest 0.13.5",
  "sea-orm",
  "serde",
  "serde-saphyr",
@@ -2362,7 +2359,34 @@ dependencies = [
 ]
 
 [[package]]
-name = "lfsplanet_flags"
+name = "lfsplanet_core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "celes",
+ "futures",
+ "hex",
+ "insim_core",
+ "lfsplanet_country_ext",
+ "lfsplanet_lfs_net_api",
+ "object_store",
+ "rand 0.10.4",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2 0.11.2",
+ "sqlx",
+ "thiserror 2.0.21",
+ "time",
+ "tracing",
+ "url",
+ "utoipa",
+ "validator",
+]
+
+[[package]]
+name = "lfsplanet_country_ext"
 version = "0.1.0"
 dependencies = [
  "celes",
@@ -2383,6 +2407,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "lfsplanet_hotlaps"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "bytes",
+ "celes",
+ "futures",
+ "hex",
+ "insim_core",
+ "itertools 0.15.0",
+ "lfsplanet_core",
+ "lfsplanet_country_ext",
+ "lfsplanet_game_version_req",
+ "lfsplanet_jobs",
+ "lfsplanet_lfs_installations",
+ "lfsplanet_lfs_net_api",
+ "lfsplanet_spr",
+ "object_store",
+ "reqwest 0.13.5",
+ "sea-orm",
+ "serde",
+ "serde-saphyr",
+ "serde_json",
+ "sha2 0.11.2",
+ "size",
+ "sqlx",
+ "strum",
+ "tempfile",
+ "thiserror 2.0.21",
+ "time",
+ "tokio",
+ "tracing",
+ "url",
+ "utoipa",
+ "validator",
+]
+
+[[package]]
 name = "lfsplanet_jobs"
 version = "0.1.0"
 dependencies = [
@@ -2392,7 +2455,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lfsplanet_lfs"
+name = "lfsplanet_lfs_installations"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2404,7 +2467,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lfsplanet_lfs_api"
+name = "lfsplanet_lfs_net_api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2421,7 +2484,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lfsplanet_lfs_leagues"
+name = "lfsplanet_lfs_net_leagues"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2434,7 +2497,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lfsplanet_pubstat"
+name = "lfsplanet_pubstat_types"
 version = "0.1.0"
 dependencies = [
  "insim_core",
@@ -2443,6 +2506,25 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "xml",
+]
+
+[[package]]
+name = "lfsplanet_race_calendar"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "hex",
+ "lfsplanet_core",
+ "lfsplanet_lfs_net_leagues",
+ "object_store",
+ "sea-orm",
+ "serde",
+ "sha2 0.11.2",
+ "sqlx",
+ "tempfile",
+ "time",
+ "url",
 ]
 
 [[package]]

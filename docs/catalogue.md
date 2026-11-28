@@ -29,7 +29,7 @@ LFS installations must already exist; canonical tracks and standard vehicles
 are populated when their definitions are seeded.
 
 Seeding makes no LFS API calls and needs no LFS OAuth credentials.
-`maintenance sync-mods` separately refreshes Vehicle Mods and their covers from
+`vehicles sync-mods` separately refreshes Vehicle Mods and their covers from
 the LFS API, using configured OAuth credentials.
 
 ## Locations and track artwork
@@ -80,8 +80,8 @@ attachment ID and public URL. Dry runs read and validate assets without uploadin
 List stored locations with their track counts, or delete an empty location:
 
 ```sh
-lfsplanet track-location list
-lfsplanet track-location delete OTHER --yes
+lfsplanet track-locations list
+lfsplanet track-locations delete OTHER --yes
 ```
 
 Deletion refuses locations that still contain tracks. Move those tracks in YAML
@@ -314,10 +314,10 @@ Seed a definition and attribute a one-off lifetime badge:
 ```sh
 lfsplanet seed assets/badges/*.yaml --dry-run
 lfsplanet seed assets/badges/*.yaml
-lfsplanet badge grant anniversary LFS_USERNAME
-lfsplanet badge grant anniversary LFS_USERNAME --variant standard --description "Winner of the anniversary event"
-lfsplanet badge list LFS_USERNAME
-lfsplanet badge revoke anniversary LFS_USERNAME
+lfsplanet badges grant anniversary LFS_USERNAME
+lfsplanet badges grant anniversary LFS_USERNAME --variant standard --description "Winner of the anniversary event"
+lfsplanet badges list LFS_USERNAME
+lfsplanet badges revoke anniversary LFS_USERNAME
 ```
 
 Manual grants are lifetime awards, shown beside the player's profile name and

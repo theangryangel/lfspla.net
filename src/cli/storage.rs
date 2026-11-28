@@ -1,6 +1,7 @@
 //! Object-storage garbage collection output.
 
-use crate::{services::storage_gc, settings::StorageSettings};
+use crate::settings::StorageSettings;
+use lfsplanet_core::services::storage_gc;
 use sea_orm::DatabaseConnection;
 
 pub(super) async fn gc(

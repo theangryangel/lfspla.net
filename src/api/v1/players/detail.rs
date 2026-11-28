@@ -1,18 +1,17 @@
 //! Public profile detail for one player.
 
-use crate::era_slug::EraSlug;
+use lfsplanet_hotlaps::era_slug::EraSlug;
+use lfsplanet_hotlaps::models::player::PlayerHotlapProfile;
 
 use super::response::chart_result_responses;
 use crate::api::v1::hotlaps::response::Hotlap;
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors as extract, v1::PlayerSummary},
-    models::{
-        badge::PlayerBadge,
-        player::PlayerProfile,
-        team::{self, TeamFilter, TeamOrder},
-    },
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, extractors as extract, v1::PlayerSummary};
 use axum::{Json, extract::State};
+use lfsplanet_core::models::{
+    badge::PlayerBadge,
+    team::{self, TeamFilter, TeamOrder},
+};
+use lfsplanet_hotlaps::models::player::PlayerProfile;
 use sea_orm::{EntityTrait, FromQueryResult, QuerySelect};
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -57,7 +56,7 @@ pub(crate) struct PlayerEraStatsResponse {
 pub(crate) struct PlayerResponse {
     #[serde(flatten)]
     player: PlayerSummary,
-    profile_links: crate::models::player::ProfileLinks,
+    profile_links: lfsplanet_core::models::player::ProfileLinks,
     teams: Vec<PlayerTeamResponse>,
     stats: PlayerStatsResponse,
     badges: Vec<PlayerBadge>,

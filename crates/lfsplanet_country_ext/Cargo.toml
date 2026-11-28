@@ -1,0 +1,20 @@
+[package]
+name = "lfsplanet_country_ext"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+sea-orm = ["dep:sea-orm"]
+
+[dependencies]
+sea-orm = { workspace = true, optional = true }
+celes = "3.0.0"
+serde = { workspace = true, features = ["derive"] }
+
+[build-dependencies]
+celes = "3.0.0"
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

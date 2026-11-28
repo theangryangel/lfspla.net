@@ -1,10 +1,8 @@
 //! Public, enabled community cards in catalogue display order.
 
 use super::attachments::{self, Attachment};
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse},
-    models::community_card::{self, CommunityCardContent, CommunityCardTheme},
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, ListResponse};
+use crate::community_card::{self, CommunityCardContent, CommunityCardTheme};
 use axum::{Json, extract::State};
 use serde::Serialize;
 use utoipa::ToSchema;

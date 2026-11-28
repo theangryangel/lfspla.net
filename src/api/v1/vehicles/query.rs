@@ -1,13 +1,11 @@
 //! URL filters for the explorer; specifications remain in the upstream JSONB.
-use crate::{
-    api::ApiError,
-    models::{
-        player::{self, PlayerFilter},
-        vehicle::{Column, Entity, VehicleOrder},
-    },
-};
+use crate::api::ApiError;
 use axum::http::StatusCode;
-use lfsplanet_lfs_api::{Drivetrain, Transmission, VehicleClass};
+use lfsplanet_core::models::{
+    player::{self, PlayerFilter},
+    vehicle::{Column, Entity, VehicleOrder},
+};
+use lfsplanet_lfs_net_api::{Drivetrain, Transmission, VehicleClass};
 use sea_orm::{
     ColumnTrait, EntityTrait, ExprTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
     Select,
