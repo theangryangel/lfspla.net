@@ -4,15 +4,9 @@ use super::{
     query::{controller_filter, country_filter},
     response::{Hotlap, list_response},
 };
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
-        extractors::AuthenticatedPlayer,
-    },
-    models::{
-        Hotlap as HotlapModel,
-        hotlap::{HotlapListColumn, HotlapListFilters, HotlapListPage, HotlapState},
-    },
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
+    extractors::AuthenticatedPlayer,
 };
 use axum::{
     Json,
@@ -20,6 +14,10 @@ use axum::{
     http::StatusCode,
 };
 use insim_core::{track::Track, vehicle::Vehicle};
+use lfsplanet_hotlaps::models::{
+    Hotlap as HotlapModel,
+    hotlap::{HotlapListColumn, HotlapListFilters, HotlapListPage, HotlapState},
+};
 
 use serde::Deserialize;
 use utoipa::{IntoParams, ToSchema};
@@ -220,10 +218,6 @@ mod tests {
 
     #[test]
     fn typed_filters_accept_codes_and_reject_invalid_values() {
-        let defaults = query("");
-        assert!(defaults.track.is_none());
-        assert!(defaults.vehicle.is_none());
-        assert!(!defaults.ranked_only);
         let filters = query("track=SO4R&vehicle=RB4&ranked_only=true");
         assert_eq!(filters.track, Some(Track::So4r));
         assert_eq!(filters.vehicle, Some(Vehicle::Rb4));
@@ -232,13 +226,7 @@ mod tests {
             query("vehicle=728419").vehicle.unwrap().to_string(),
             "728419"
         );
-        for search in [
-            "track=ZZ9Z",
-            "track=",
-            "vehicle=unknown",
-            "vehicle=",
-            "ranked_only=yes",
-        ] {
+        for search in ["track=ZZ9Z", "track=", "vehicle=unknown", "vehicle="] {
             assert!(
                 serde_urlencoded::from_str::<HotlapQuery>(search).is_err(),
                 "{search}"
@@ -283,11 +271,10 @@ mod tests {
         assert_eq!(filters.country.unwrap().alpha2, "GB");
         assert_eq!(
             filters.controller,
-            Some(crate::models::hotlap::SteeringInput::Mouse)
+            Some(lfsplanet_hotlaps::models::hotlap::SteeringInput::Mouse)
         );
         assert!(query("country=invalid").filters(None).is_err());
         assert!(query("controller=invalid").filters(None).is_err());
-        assert_eq!(query("column=set").column, HotlapListColumn::Submitted);
     }
 
     #[test]

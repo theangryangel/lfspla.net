@@ -1,10 +1,10 @@
 use super::*;
-use crate::models::player;
 use axum::{
     Extension,
     body::{Body, to_bytes},
     http::{Request, StatusCode},
 };
+use lfsplanet_core::models::player;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, sea_query::Expr};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -54,18 +54,28 @@ async fn call_session(
     (status, value)
 }
 
+/// Sends a token-authenticated (or anonymous) request and asserts its status.
+async fn expect(
+    state: &ApiState,
+    method: &str,
+    path: &str,
+    token: Option<&str>,
+    body: Value,
+    status: StatusCode,
+) -> Value {
+    let (actual, value) = call(state, method, path, token, body).await;
+    assert_eq!(actual, status, "{method} {path}: {value}");
+    value
+}
+
 fn details() -> Value {
     json!({"name":"Management test", "tag":"[T]", "description":"About", "website_url":"example.com", "tags":["race","drift"], "accepts_applications":false})
 }
 
 async fn fixture(pool: sqlx::PgPool) -> anyhow::Result<(ApiState, Vec<(i64, String)>)> {
-    let state = ApiState {
-        database: sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        oauth: None,
-        object_store: Arc::new(object_store::memory::InMemory::new()),
-        hotlaps: Default::default(),
-        site_notice: None,
-    };
+    let state = ApiState::for_tests(sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(
+        pool,
+    ));
     let mut players = Vec::new();
     for name in ["manage-owner", "manage-member", "manage-other"] {
         let player = player::ActiveModel {
@@ -75,7 +85,7 @@ async fn fixture(pool: sqlx::PgPool) -> anyhow::Result<(ApiState, Vec<(i64, Stri
         }
         .insert(&state.database)
         .await?;
-        let token = crate::models::PersonalAccessToken::create(
+        let token = crate::personal_access_token::Model::create(
             &state.database,
             player.id,
             "test",
@@ -87,7 +97,7 @@ async fn fixture(pool: sqlx::PgPool) -> anyhow::Result<(ApiState, Vec<(i64, Stri
     Ok((state, players))
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn team_management_enforces_roles_and_preserves_ownership(
     pool: sqlx::PgPool,
@@ -95,67 +105,67 @@ async fn team_management_enforces_roles_and_preserves_ownership(
     let (state, players) = fixture(pool).await?;
     let (owner, token) = &players[0];
     let (member, member_token) = &players[1];
-    assert_eq!(
-        call(&state, "POST", "/api/v1/teams", None, details())
-            .await
-            .0,
-        StatusCode::UNAUTHORIZED
-    );
+    expect(
+        &state,
+        "POST",
+        "/api/v1/teams",
+        None,
+        details(),
+        StatusCode::UNAUTHORIZED,
+    )
+    .await;
     let mut invalid = details();
     invalid["name"] = json!(" ");
-    assert_eq!(
-        call(&state, "POST", "/api/v1/teams", Some(token), invalid)
-            .await
-            .0,
-        StatusCode::BAD_REQUEST
-    );
+    expect(
+        &state,
+        "POST",
+        "/api/v1/teams",
+        Some(token),
+        invalid,
+        StatusCode::BAD_REQUEST,
+    )
+    .await;
     let (status, created) = call(&state, "POST", "/api/v1/teams", Some(token), details()).await;
     assert_eq!(status, StatusCode::CREATED, "{created}");
     let id = created["id"].as_i64().unwrap();
     let base = format!("/api/v1/teams/{id}");
     assert_eq!(created["website_url"], "https://example.com/");
-    assert_eq!(
-        call(&state, "PUT", &base, Some(member_token), details())
-            .await
-            .0,
-        StatusCode::FORBIDDEN
-    );
-    assert_eq!(
-        call(
-            &state,
-            "DELETE",
-            &format!("{base}/members/{owner}"),
-            Some(token),
-            Value::Null
-        )
-        .await
-        .0,
-        StatusCode::CONFLICT
-    );
-    assert_eq!(
-        call(
-            &state,
-            "POST",
-            &format!("{base}/invites"),
-            Some(member_token),
-            json!({})
-        )
-        .await
-        .0,
-        StatusCode::FORBIDDEN
-    );
-    assert_eq!(
-        call(
-            &state,
-            "POST",
-            &format!("{base}/invites"),
-            Some(token),
-            json!({"max_uses":0})
-        )
-        .await
-        .0,
-        StatusCode::BAD_REQUEST
-    );
+    expect(
+        &state,
+        "PUT",
+        &base,
+        Some(member_token),
+        details(),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    expect(
+        &state,
+        "DELETE",
+        &format!("{base}/members/{owner}"),
+        Some(token),
+        Value::Null,
+        StatusCode::CONFLICT,
+    )
+    .await;
+    expect(
+        &state,
+        "POST",
+        &format!("{base}/invites"),
+        Some(member_token),
+        json!({}),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    expect(
+        &state,
+        "POST",
+        &format!("{base}/invites"),
+        Some(token),
+        json!({"max_uses":0}),
+        StatusCode::BAD_REQUEST,
+    )
+    .await;
     let (_, invite) = call(
         &state,
         "POST",
@@ -166,38 +176,37 @@ async fn team_management_enforces_roles_and_preserves_ownership(
     .await;
     let secret = invite["token"].as_str().unwrap();
     let invite_path = format!("/api/v1/team-invites/{secret}");
-    assert_eq!(
-        call(&state, "GET", &invite_path, None, Value::Null).await.0,
-        StatusCode::OK
-    );
+    expect(
+        &state,
+        "GET",
+        &invite_path,
+        None,
+        Value::Null,
+        StatusCode::OK,
+    )
+    .await;
     assert_eq!(
         call(&state, "GET", &base, None, Value::Null).await.1["team"]["member_count"],
         1
     );
-    assert_eq!(
-        call(
-            &state,
-            "POST",
-            &format!("{invite_path}/accept"),
-            Some(member_token),
-            Value::Null
-        )
-        .await
-        .0,
-        StatusCode::OK
-    );
-    assert_eq!(
-        call(
-            &state,
-            "POST",
-            &format!("{invite_path}/accept"),
-            Some(member_token),
-            Value::Null
-        )
-        .await
-        .0,
-        StatusCode::OK
-    );
+    expect(
+        &state,
+        "POST",
+        &format!("{invite_path}/accept"),
+        Some(member_token),
+        Value::Null,
+        StatusCode::OK,
+    )
+    .await;
+    expect(
+        &state,
+        "POST",
+        &format!("{invite_path}/accept"),
+        Some(member_token),
+        Value::Null,
+        StatusCode::OK,
+    )
+    .await;
     let (_, invites) = call(
         &state,
         "GET",
@@ -216,12 +225,15 @@ async fn team_management_enforces_roles_and_preserves_ownership(
         "/api/v1/teams/{}/invites/{}",
         other_team["id"], invite["invite"]["id"]
     );
-    assert_eq!(
-        call(&state, "DELETE", &foreign, Some(token), Value::Null)
-            .await
-            .0,
-        StatusCode::NOT_FOUND
-    );
+    expect(
+        &state,
+        "DELETE",
+        &foreign,
+        Some(token),
+        Value::Null,
+        StatusCode::NOT_FOUND,
+    )
+    .await;
     let (_, spare) = call(
         &state,
         "POST",
@@ -244,71 +256,81 @@ async fn team_management_enforces_roles_and_preserves_ownership(
             .unwrap()["revoked_at"]
             .clone()
     };
-    assert_eq!(
-        call(&state, "DELETE", &spare_path, Some(token), Value::Null)
-            .await
-            .0,
-        StatusCode::NO_CONTENT
-    );
+    expect(
+        &state,
+        "DELETE",
+        &spare_path,
+        Some(token),
+        Value::Null,
+        StatusCode::NO_CONTENT,
+    )
+    .await;
     let first_revoked_at = revoked_at().await;
     assert!(!first_revoked_at.is_null());
-    assert_eq!(
-        call(&state, "DELETE", &spare_path, Some(token), Value::Null)
-            .await
-            .0,
-        StatusCode::NO_CONTENT
-    );
+    expect(
+        &state,
+        "DELETE",
+        &spare_path,
+        Some(token),
+        Value::Null,
+        StatusCode::NO_CONTENT,
+    )
+    .await;
     assert_eq!(revoked_at().await, first_revoked_at);
-    assert_eq!(
-        call(
-            &state,
-            "POST",
-            &format!("{base}/transfer-ownership"),
-            Some(token),
-            json!({"player_id":member})
-        )
-        .await
-        .0,
-        StatusCode::NO_CONTENT
-    );
-    assert_eq!(
-        call(&state, "GET", &invite_path, None, Value::Null).await.0,
-        StatusCode::NOT_FOUND
-    );
-    assert_eq!(
-        call(&state, "PUT", &base, Some(token), details()).await.0,
-        StatusCode::FORBIDDEN
-    );
-    assert_eq!(
-        call(&state, "PUT", &base, Some(member_token), details())
-            .await
-            .0,
-        StatusCode::NO_CONTENT
-    );
-    assert_eq!(
-        call(
-            &state,
-            "DELETE",
-            &format!("{base}/members/{owner}"),
-            Some(token),
-            Value::Null
-        )
-        .await
-        .0,
-        StatusCode::NO_CONTENT
-    );
-    assert_eq!(
-        call(
-            &state,
-            "DELETE",
-            &format!("{base}/members/{member}"),
-            Some(member_token),
-            Value::Null
-        )
-        .await
-        .0,
-        StatusCode::CONFLICT
-    );
+    expect(
+        &state,
+        "POST",
+        &format!("{base}/transfer-ownership"),
+        Some(token),
+        json!({"player_id":member}),
+        StatusCode::NO_CONTENT,
+    )
+    .await;
+    expect(
+        &state,
+        "GET",
+        &invite_path,
+        None,
+        Value::Null,
+        StatusCode::NOT_FOUND,
+    )
+    .await;
+    expect(
+        &state,
+        "PUT",
+        &base,
+        Some(token),
+        details(),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    expect(
+        &state,
+        "PUT",
+        &base,
+        Some(member_token),
+        details(),
+        StatusCode::NO_CONTENT,
+    )
+    .await;
+    expect(
+        &state,
+        "DELETE",
+        &format!("{base}/members/{owner}"),
+        Some(token),
+        Value::Null,
+        StatusCode::NO_CONTENT,
+    )
+    .await;
+    expect(
+        &state,
+        "DELETE",
+        &format!("{base}/members/{member}"),
+        Some(member_token),
+        Value::Null,
+        StatusCode::CONFLICT,
+    )
+    .await;
     let (_, invite) = call(
         &state,
         "POST",
@@ -317,60 +339,61 @@ async fn team_management_enforces_roles_and_preserves_ownership(
         json!({}),
     )
     .await;
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &format!("{base}/status"),
-            Some(member_token),
-            json!({"status":"disbanded"})
-        )
-        .await
-        .0,
-        StatusCode::NO_CONTENT
-    );
-    assert_eq!(
-        call(
-            &state,
-            "POST",
-            &format!("{base}/invites"),
-            Some(member_token),
-            json!({})
-        )
-        .await
-        .0,
-        StatusCode::CONFLICT
-    );
+    expect(
+        &state,
+        "PUT",
+        &format!("{base}/status"),
+        Some(member_token),
+        json!({"status":"disbanded"}),
+        StatusCode::NO_CONTENT,
+    )
+    .await;
+    expect(
+        &state,
+        "POST",
+        &format!("{base}/invites"),
+        Some(member_token),
+        json!({}),
+        StatusCode::CONFLICT,
+    )
+    .await;
     let detail = call(&state, "GET", &base, None, Value::Null).await.1;
     assert_eq!(detail["team"]["status"], "disbanded");
     assert_eq!(detail["team"]["accepts_applications"], false);
     let mut open = details();
     open["accepts_applications"] = json!(true);
-    assert_eq!(
-        call(&state, "PUT", &base, Some(member_token), open).await.0,
-        StatusCode::CONFLICT
-    );
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &format!("{base}/status"),
-            Some(member_token),
-            json!({"status":"active"})
-        )
-        .await
-        .0,
-        StatusCode::NO_CONTENT
-    );
+    expect(
+        &state,
+        "PUT",
+        &base,
+        Some(member_token),
+        open,
+        StatusCode::CONFLICT,
+    )
+    .await;
+    expect(
+        &state,
+        "PUT",
+        &format!("{base}/status"),
+        Some(member_token),
+        json!({"status":"active"}),
+        StatusCode::NO_CONTENT,
+    )
+    .await;
     let path = format!("/api/v1/team-invites/{}", invite["token"].as_str().unwrap());
-    assert_eq!(
-        call(&state, "GET", &path, None, Value::Null).await.0,
-        StatusCode::NOT_FOUND
-    );
+    expect(
+        &state,
+        "GET",
+        &path,
+        None,
+        Value::Null,
+        StatusCode::NOT_FOUND,
+    )
+    .await;
     Ok(())
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn limited_invites_are_atomic_and_browser_writes_require_csrf(
     pool: sqlx::PgPool,
@@ -438,23 +461,28 @@ async fn limited_invites_are_atomic_and_browser_writes_require_csrf(
     )
     .await;
     let invite_id = invite["invite"]["id"].as_i64().unwrap();
-    crate::models::team::invite::Entity::update_many()
+    lfsplanet_core::models::team::invite::Entity::update_many()
         .col_expr(
-            crate::models::team::invite::Column::ExpiresAt,
+            lfsplanet_core::models::team::invite::Column::ExpiresAt,
             Expr::value(time::OffsetDateTime::UNIX_EPOCH),
         )
-        .filter(crate::models::team::invite::Column::Id.eq(invite_id))
+        .filter(lfsplanet_core::models::team::invite::Column::Id.eq(invite_id))
         .exec(&state.database)
         .await?;
     let path = format!("/api/v1/team-invites/{}", invite["token"].as_str().unwrap());
-    assert_eq!(
-        call(&state, "GET", &path, None, Value::Null).await.0,
-        StatusCode::NOT_FOUND
-    );
+    expect(
+        &state,
+        "GET",
+        &path,
+        None,
+        Value::Null,
+        StatusCode::NOT_FOUND,
+    )
+    .await;
     Ok(())
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn mine_filters_owner_and_member_teams_before_pagination(
     pool: sqlx::PgPool,
@@ -463,12 +491,15 @@ async fn mine_filters_owner_and_member_teams_before_pagination(
     let (_, owner_token) = &players[0];
     let (_, member_token) = &players[1];
     let (_, other_token) = &players[2];
-    assert_eq!(
-        call(&state, "GET", "/api/v1/teams?mine=true", None, Value::Null)
-            .await
-            .0,
-        StatusCode::UNAUTHORIZED
-    );
+    expect(
+        &state,
+        "GET",
+        "/api/v1/teams?mine=true",
+        None,
+        Value::Null,
+        StatusCode::UNAUTHORIZED,
+    )
+    .await;
     let (_, empty) = call(
         &state,
         "GET",
@@ -509,12 +540,15 @@ async fn mine_filters_owner_and_member_teams_before_pagination(
         "/api/v1/team-invites/{}/accept",
         invite["token"].as_str().unwrap()
     );
-    assert_eq!(
-        call(&state, "POST", &path, Some(owner_token), Value::Null)
-            .await
-            .0,
-        StatusCode::OK
-    );
+    expect(
+        &state,
+        "POST",
+        &path,
+        Some(owner_token),
+        Value::Null,
+        StatusCode::OK,
+    )
+    .await;
     let (_, first) = call(
         &state,
         "GET",
@@ -574,7 +608,7 @@ async fn mine_filters_owner_and_member_teams_before_pagination(
     Ok(())
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn multiple_owners_can_manage_roles_without_losing_the_last_owner(
     pool: sqlx::PgPool,
@@ -593,30 +627,24 @@ async fn multiple_owners_can_manage_roles_without_losing_the_last_owner(
     let base = format!("/api/v1/teams/{}", created["id"]);
     let first_role = format!("{base}/members/{first}/role");
     let second_role = format!("{base}/members/{second}/role");
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &first_role,
-            Some(first_token),
-            json!({"role":"owner"})
-        )
-        .await
-        .0,
-        StatusCode::NO_CONTENT
-    );
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &first_role,
-            Some(first_token),
-            json!({"role":"member"})
-        )
-        .await
-        .0,
-        StatusCode::CONFLICT
-    );
+    expect(
+        &state,
+        "PUT",
+        &first_role,
+        Some(first_token),
+        json!({"role":"owner"}),
+        StatusCode::NO_CONTENT,
+    )
+    .await;
+    expect(
+        &state,
+        "PUT",
+        &first_role,
+        Some(first_token),
+        json!({"role":"member"}),
+        StatusCode::CONFLICT,
+    )
+    .await;
     let (_, invite) = call(
         &state,
         "POST",
@@ -630,30 +658,24 @@ async fn multiple_owners_can_manage_roles_without_losing_the_last_owner(
         invite["token"].as_str().unwrap()
     );
     call(&state, "POST", &accept, Some(second_token), Value::Null).await;
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &second_role,
-            Some(second_token),
-            json!({"role":"owner"})
-        )
-        .await
-        .0,
-        StatusCode::FORBIDDEN
-    );
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &second_role,
-            Some(first_token),
-            json!({"role":"owner"})
-        )
-        .await
-        .0,
-        StatusCode::NO_CONTENT
-    );
+    expect(
+        &state,
+        "PUT",
+        &second_role,
+        Some(second_token),
+        json!({"role":"owner"}),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    expect(
+        &state,
+        "PUT",
+        &second_role,
+        Some(first_token),
+        json!({"role":"owner"}),
+        StatusCode::NO_CONTENT,
+    )
+    .await;
     let (_, detail) = call(&state, "GET", &base, None, Value::Null).await;
     assert_eq!(
         detail["members"]
@@ -665,53 +687,52 @@ async fn multiple_owners_can_manage_roles_without_losing_the_last_owner(
         2
     );
     for token in [first_token, second_token] {
-        assert_eq!(
-            call(&state, "PUT", &base, Some(token), details()).await.0,
-            StatusCode::NO_CONTENT
-        );
+        expect(
+            &state,
+            "PUT",
+            &base,
+            Some(token),
+            details(),
+            StatusCode::NO_CONTENT,
+        )
+        .await;
     }
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &first_role,
-            Some(second_token),
-            json!({"role":"member"})
-        )
-        .await
-        .0,
-        StatusCode::NO_CONTENT
-    );
-    assert_eq!(
-        call(&state, "PUT", &base, Some(first_token), details())
-            .await
-            .0,
-        StatusCode::FORBIDDEN
-    );
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &second_role,
-            Some(second_token),
-            json!({"role":"member"})
-        )
-        .await
-        .0,
-        StatusCode::CONFLICT
-    );
-    assert_eq!(
-        call(
-            &state,
-            "PUT",
-            &first_role,
-            Some(second_token),
-            json!({"role":"owner"})
-        )
-        .await
-        .0,
-        StatusCode::NO_CONTENT
-    );
+    expect(
+        &state,
+        "PUT",
+        &first_role,
+        Some(second_token),
+        json!({"role":"member"}),
+        StatusCode::NO_CONTENT,
+    )
+    .await;
+    expect(
+        &state,
+        "PUT",
+        &base,
+        Some(first_token),
+        details(),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
+    expect(
+        &state,
+        "PUT",
+        &second_role,
+        Some(second_token),
+        json!({"role":"member"}),
+        StatusCode::CONFLICT,
+    )
+    .await;
+    expect(
+        &state,
+        "PUT",
+        &first_role,
+        Some(second_token),
+        json!({"role":"owner"}),
+        StatusCode::NO_CONTENT,
+    )
+    .await;
     let (a, b) = tokio::join!(
         call(
             &state,

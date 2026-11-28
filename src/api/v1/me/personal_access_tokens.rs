@@ -1,13 +1,11 @@
 //! Browser-managed personal access tokens for API clients.
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, ListResponse, extractors::BrowserAuthenticatedPlayer,
-    },
-    models::personal_access_token::{
-        self, Column as PersonalAccessTokenColumn, CreatePersonalAccessToken,
-        Entity as PersonalAccessTokenEntity, Model as PersonalAccessToken,
-    },
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, ListResponse, extractors::BrowserAuthenticatedPlayer,
+};
+use crate::personal_access_token::{
+    self, Column as PersonalAccessTokenColumn, CreatePersonalAccessToken,
+    Entity as PersonalAccessTokenEntity, Model as PersonalAccessToken,
 };
 use axum::{
     Json,
@@ -96,7 +94,7 @@ pub(crate) async fn create(
     BrowserAuthenticatedPlayer(player): BrowserAuthenticatedPlayer,
     Json(request): Json<CreatePersonalAccessTokenRequest>,
 ) -> Result<(StatusCode, Json<CreatedPersonalAccessTokenResponse>), ApiError> {
-    let created = crate::models::PersonalAccessToken::issue(
+    let created = crate::personal_access_token::Model::issue(
         &state.database,
         player.id,
         CreatePersonalAccessToken {
@@ -145,7 +143,7 @@ pub(crate) async fn revoke(
     State(state): State<ApiState>,
     BrowserAuthenticatedPlayer(player): BrowserAuthenticatedPlayer,
 ) -> Result<StatusCode, ApiError> {
-    let revoked = crate::models::PersonalAccessToken::revoke(&state.database, player.id, token_id)
+    let revoked = crate::personal_access_token::Model::revoke(&state.database, player.id, token_id)
         .await
         .map_err(ApiError::database)?;
     if !revoked {
@@ -196,10 +194,6 @@ mod tests {
         }
         assert!(command(&"é".repeat(100), None).validate().is_ok());
         assert!(command(&"é".repeat(101), None).validate().is_err());
-    }
-
-    #[test]
-    fn token_request_derives_all_field_validation() {
         assert!(command(" useful name ", Some(365)).validate().is_ok());
         assert!(command("useful name", Some(0)).validate().is_err());
     }

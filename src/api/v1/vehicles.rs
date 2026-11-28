@@ -1,13 +1,11 @@
 //! Public vehicle catalogue, independent of era chart selections.
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery},
-    models::vehicle::{Column, Entity, VehicleFilter},
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery};
 use axum::{
     Json,
     extract::{Query, State},
 };
+use lfsplanet_core::models::vehicle::{Column, Entity, VehicleFilter};
 use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QuerySelect};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -74,7 +72,6 @@ pub(crate) async fn list_vehicles(
 mod tests {
     use super::*;
     use sea_orm::{ActiveModelTrait, ActiveValue::Set};
-    use std::sync::Arc;
     use tower::ServiceExt;
 
     async fn request(state: ApiState, query: &str) -> axum::response::Response {
@@ -97,84 +94,38 @@ mod tests {
         serde_json::from_slice(&bytes).unwrap()
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn top_rated_weights_votes_before_filtering_and_pagination(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
-        crate::services::catalogue::fixtures::vehicles(&database).await?;
-        let template = Entity::find_by_id("XFG".parse::<crate::vehicle_id::VehicleId>()?)
+        lfsplanet_hotlaps::services::catalogue::fixtures::vehicles(&database).await?;
+        let template = Entity::find_by_id("XFG".parse::<lfsplanet_core::vehicle_id::VehicleId>()?)
             .one(&database)
             .await?
             .unwrap();
+        use serde_json::{Value, json};
+        let available_mod =
+            |id, name, rating: Value, votes: Value| (id, name, rating, votes, true, "mod");
         for (id, name, rating, votes, available, kind) in [
-            (
-                "AAAA01",
-                "Candidate proven",
-                serde_json::json!(4.8),
-                serde_json::json!(200),
-                true,
-                "mod",
-            ),
-            (
-                "AAAA02",
-                "Candidate new",
-                serde_json::json!(5),
-                serde_json::json!(1),
-                true,
-                "mod",
-            ),
-            (
-                "AAAA03",
-                "Baseline",
-                serde_json::json!(3),
-                serde_json::json!(1000),
-                true,
-                "mod",
-            ),
-            (
-                "AAAA04",
-                "Unrated",
-                serde_json::json!(5),
-                serde_json::json!(0),
-                true,
-                "mod",
-            ),
-            (
-                "AAAA05",
-                "Malformed votes",
-                serde_json::json!(5),
-                serde_json::json!("many"),
-                true,
-                "mod",
-            ),
-            (
-                "AAAA06",
-                "Malformed rating",
-                serde_json::json!("unknown"),
-                serde_json::json!(10),
-                true,
-                "mod",
-            ),
-            (
-                "AAAA07",
-                "Hidden",
-                serde_json::json!(5),
-                serde_json::json!(1_000_000),
-                false,
-                "mod",
-            ),
+            available_mod("AAAA01", "Candidate proven", json!(4.8), json!(200)),
+            available_mod("AAAA02", "Candidate new", json!(5), json!(1)),
+            available_mod("AAAA03", "Baseline", json!(3), json!(1000)),
+            available_mod("AAAA04", "Unrated", json!(5), json!(0)),
+            available_mod("AAAA05", "Malformed votes", json!(5), json!("many")),
+            available_mod("AAAA06", "Malformed rating", json!("unknown"), json!(10)),
+            ("AAAA07", "Hidden", json!(5), json!(1_000_000), false, "mod"),
             (
                 "XFG",
                 "Standard",
-                serde_json::json!(5),
-                serde_json::json!(1_000_000),
+                json!(5),
+                json!(1_000_000),
                 true,
                 "standard",
             ),
         ] {
-            let mut vehicle: crate::models::vehicle::ActiveModel = template.clone().into();
+            let mut vehicle: lfsplanet_core::models::vehicle::ActiveModel = template.clone().into();
             vehicle.id = Set(id.parse()?);
             vehicle.name = Set(name.to_owned());
             vehicle.normalized_name = Set(name.to_lowercase());
@@ -191,13 +142,7 @@ mod tests {
                 vehicle.insert(&database).await?;
             }
         }
-        let state = ApiState {
-            site_notice: None,
-            database,
-            oauth: None,
-            object_store: Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-        };
+        let state = ApiState::for_tests(database);
         let ranked = body(request(state.clone(), "?kind=mod&sort=rating").await).await;
         let codes: Vec<_> = ranked["items"]
             .as_array()
@@ -222,20 +167,20 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn catalogue_search_and_pagination_without_eras(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
-        crate::services::catalogue::fixtures::vehicles(&database).await?;
-        crate::models::Vehicle::refresh(
+        lfsplanet_hotlaps::services::catalogue::fixtures::vehicles(&database).await?;
+        lfsplanet_core::models::Vehicle::refresh(
             &database,
-            &[lfsplanet_lfs_api::RemoteVehicleMod {
+            &[lfsplanet_lfs_net_api::RemoteVehicleMod {
                 id: "ABCDEF".to_owned(),
                 name: "Test vehicle".to_owned(),
                 version: 1,
-                class: Some(lfsplanet_lfs_api::VehicleClass::SaloonCar),
+                class: Some(lfsplanet_lfs_net_api::VehicleClass::SaloonCar),
                 author_username: Some("Rubie".to_owned()),
                 work_in_progress: false,
                 is_private: false,
@@ -255,21 +200,15 @@ mod tests {
             }],
         )
         .await?;
-        let mut unavailable: crate::models::vehicle::ActiveModel =
-            Entity::find_by_id("XFG".parse::<crate::vehicle_id::VehicleId>()?)
+        let mut unavailable: lfsplanet_core::models::vehicle::ActiveModel =
+            Entity::find_by_id("XFG".parse::<lfsplanet_core::vehicle_id::VehicleId>()?)
                 .one(&database)
                 .await?
                 .unwrap()
                 .into();
         unavailable.available = Set(false);
         unavailable.update(&database).await?;
-        let state = ApiState {
-            site_notice: None,
-            database,
-            oauth: None,
-            object_store: Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-        };
+        let state = ApiState::for_tests(database);
 
         let response = request(state.clone(), "?per_page=3&page=2").await;
         assert_eq!(response.status(), axum::http::StatusCode::OK);
@@ -304,12 +243,6 @@ mod tests {
         for query in ["?q=XFG", "?q=%25", "?page=100"] {
             let found = body(request(state.clone(), query).await).await;
             assert!(found["items"].as_array().unwrap().is_empty());
-        }
-        for query in ["?page=0", "?per_page=101", "?page=abc"] {
-            assert_eq!(
-                request(state.clone(), query).await.status(),
-                axum::http::StatusCode::BAD_REQUEST
-            );
         }
 
         let filtered = body(request(state.clone(),

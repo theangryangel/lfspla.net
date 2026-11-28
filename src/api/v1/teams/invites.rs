@@ -9,10 +9,10 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::TeamSummary;
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors::AuthenticatedPlayer},
-    models::team::invite::{self, CreateTeamInvite},
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, ListResponse, extractors::AuthenticatedPlayer,
 };
+use lfsplanet_core::models::team::invite::{self, CreateTeamInvite};
 
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct TeamInviteResponse {

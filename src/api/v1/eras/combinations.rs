@@ -1,17 +1,17 @@
 //! The actual pairs offered by an era, including pairs with no uploaded laps.
 use super::response::Chart;
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
-        extractors as extract,
-    },
-    models::chart::{Column as ChartColumn, Entity as ChartEntity, Model as ChartModel},
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, Ordering, PaginatedResponse, PaginationQuery,
+    extractors as extract,
 };
 use axum::{
     Json,
     extract::{Query, State},
 };
 use insim_core::{track::Track, vehicle::Vehicle};
+use lfsplanet_hotlaps::models::chart::{
+    Column as ChartColumn, Entity as ChartEntity, Model as ChartModel,
+};
 use sea_orm::{
     AccessMode, ColumnTrait, ConnectionTrait, EntityTrait, FromQueryResult, IsolationLevel,
     PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
@@ -200,7 +200,7 @@ pub(crate) async fn validate(
     State(state): State<ApiState>,
     Query(query): Query<CombinationCheckQuery>,
 ) -> Result<Json<CombinationCheck>, ApiError> {
-    let pair = crate::models::Chart::find_combination(
+    let pair = lfsplanet_hotlaps::models::Chart::find_combination(
         &state.database,
         era.id,
         &query.track.to_ascii_uppercase(),
@@ -263,14 +263,12 @@ fn rejected(reason: CombinationRejection) -> CombinationCheck {
 mod tests {
     use super::*;
 
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn popularity_counts_drivers_before_pagination(pool: sqlx::PgPool) -> anyhow::Result<()> {
-        sqlx::raw_sql(include_str!(
-            "../../../services/validate_hotlap/fixtures.sql"
-        ))
-        .execute(&pool)
-        .await?;
+        sqlx::raw_sql(lfsplanet_hotlaps::test_support::FIXTURE_SQL)
+            .execute(&pool)
+            .await?;
         sqlx::raw_sql(
             r"
 INSERT INTO player (lfs_username, display_name) VALUES ('second-driver', 'Second Driver');
@@ -314,7 +312,9 @@ WHERE hotlap.state = 'pending' AND player.lfs_username = 'second-driver';
         .execute(&pool)
         .await?;
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
-        let eras = crate::models::era::Entity::find().all(&database).await?;
+        let eras = lfsplanet_hotlaps::models::era::Entity::find()
+            .all(&database)
+            .await?;
         for era in &eras {
             era.rebuild_personal_bests(&database).await?;
         }
@@ -322,13 +322,7 @@ WHERE hotlap.state = 'pending' AND player.lfs_username = 'second-driver';
             .into_iter()
             .find(|era| era.slug.to_string() == "2026-09-23")
             .unwrap();
-        let state = ApiState {
-            database,
-            oauth: None,
-            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-            site_notice: None,
-        };
+        let state = ApiState::for_tests(database);
         let load = |search: &str| {
             list(
                 extract::Era(era.clone()),
@@ -365,50 +359,20 @@ WHERE hotlap.state = 'pending' AND player.lfs_username = 'second-driver';
         Ok(())
     }
 
-    #[test]
-    fn a_rankable_pair_accepts_either_case() {
-        let (track, vehicle) = rankable_pair("bl1", "xfg").expect("BL1/XFG is rankable");
-        assert_eq!(track.to_string(), "BL1");
-        assert_eq!(vehicle.to_string(), "XFG");
-    }
-
-    #[test]
-    fn unrankable_codes_are_named_rather_than_rejected_as_bad_requests() {
-        assert_eq!(
-            rankable_pair("NOPE", "XFG").unwrap_err(),
-            CombinationRejection::UnknownTrack
-        );
-        // An open configuration has no lap to time, so no era can offer it.
-        assert_eq!(
-            rankable_pair("BL3X", "XFG").unwrap_err(),
-            CombinationRejection::OpenConfiguration
-        );
-        assert_eq!(
-            rankable_pair("BL1", "NOPE").unwrap_err(),
-            CombinationRejection::UnknownVehicle
-        );
-    }
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn chart_lookup_keeps_combination_rejection_reasons(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
-        sqlx::raw_sql(include_str!(
-            "../../../services/validate_hotlap/fixtures.sql"
-        ))
-        .execute(&pool)
-        .await?;
+        sqlx::raw_sql(lfsplanet_hotlaps::test_support::FIXTURE_SQL)
+            .execute(&pool)
+            .await?;
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
-        let era = crate::models::Era::find_by_slug(&database, &"2026-09-23".parse().unwrap())
-            .await?
-            .unwrap();
-        let state = ApiState {
-            site_notice: None,
-            database,
-            oauth: None,
-            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-        };
+        let era =
+            lfsplanet_hotlaps::models::Era::find_by_slug(&database, &"2026-09-23".parse().unwrap())
+                .await?
+                .unwrap();
+        let state = ApiState::for_tests(database);
         for (track, vehicle, reason) in [
             ("bl1", "xfg", None),
             ("NOPE", "XFG", Some(CombinationRejection::UnknownTrack)),

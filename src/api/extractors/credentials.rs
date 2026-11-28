@@ -3,17 +3,15 @@
 //! Cookie-authenticated writes require a CSRF token. Each extractor checks
 //! this from the request method.
 
-use crate::{
-    api::{ApiError, ApiState},
-    models::{
-        Player,
-        player::{Column as PlayerColumn, Entity as PlayerEntity},
-    },
-};
+use crate::api::{ApiError, ApiState};
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
     http::{HeaderMap, StatusCode, header, request::Parts},
     response::{IntoResponse, Response},
+};
+use lfsplanet_core::models::{
+    Player,
+    player::{Column as PlayerColumn, Entity as PlayerEntity},
 };
 use oauth2::CsrfToken;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
@@ -151,7 +149,7 @@ async fn resolve(
             credential: Credential::BrowserSession,
         });
     };
-    let player = crate::models::PersonalAccessToken::authenticate(database, token)
+    let player = crate::personal_access_token::Model::authenticate(database, token)
         .await
         .map_err(ApiError::database)?
         .ok_or_else(invalid_access_token)?;

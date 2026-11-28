@@ -1,15 +1,13 @@
 //! Immediate hotlap validation for test environments.
 
 use super::response::Hotlap;
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
-    models::{badge::rebuild_published_badges, hotlap::TestValidationError},
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer};
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
 };
+use lfsplanet_hotlaps::models::{badge::rebuild_published_badges, hotlap::TestValidationError};
 
 #[utoipa::path(
     post,
@@ -43,18 +41,21 @@ pub(crate) async fn validate_for_testing(
         ));
     }
 
-    let (hotlap, era) =
-        crate::models::Hotlap::validate_owned_for_testing(&state.database, hotlap_id, player.id)
-            .await
-            .map_err(|error| match error {
-                TestValidationError::UnsupportedCombination => ApiError::new(
-                    StatusCode::CONFLICT,
-                    "combination_not_eligible",
-                    "The hotlap's combination is not eligible for this era",
-                ),
-                TestValidationError::Database(error) => ApiError::database(error),
-            })?
-            .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Hotlap"))?;
+    let (hotlap, era) = lfsplanet_hotlaps::models::Hotlap::validate_owned_for_testing(
+        &state.database,
+        hotlap_id,
+        player.id,
+    )
+    .await
+    .map_err(|error| match error {
+        TestValidationError::UnsupportedCombination => ApiError::new(
+            StatusCode::CONFLICT,
+            "combination_not_eligible",
+            "The hotlap's combination is not eligible for this era",
+        ),
+        TestValidationError::Database(error) => ApiError::database(error),
+    })?
+    .ok_or_else(|| ApiError::not_found("hotlap_not_found", "Hotlap"))?;
     // Rebuild badges after publishing, as the background validator does.
     rebuild_published_badges(&state.database, hotlap.era_id).await;
 
@@ -75,33 +76,28 @@ mod tests {
     use super::*;
     use sea_orm::EntityTrait;
 
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn transactional_validation_retains_conflict_and_owner_scope(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
-        sqlx::raw_sql(include_str!(
-            "../../../services/validate_hotlap/fixtures.sql"
-        ))
-        .execute(&pool)
-        .await?;
+        sqlx::raw_sql(lfsplanet_hotlaps::test_support::FIXTURE_SQL)
+            .execute(&pool)
+            .await?;
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
-        let player = crate::models::Player::find_by_username(&database, "worker-test")
+        let player = lfsplanet_core::models::Player::find_by_username(&database, "worker-test")
             .await?
             .unwrap();
-        let hotlap = crate::models::hotlap::Entity::find()
+        let hotlap = lfsplanet_hotlaps::models::hotlap::Entity::find()
             .one(&database)
             .await?
             .unwrap();
         let state = ApiState {
-            site_notice: None,
-            database,
-            oauth: None,
-            object_store: std::sync::Arc::new(object_store::memory::InMemory::new()),
             hotlaps: crate::settings::HotlapSettings {
                 allow_test_validation: true,
                 ..Default::default()
             },
+            ..ApiState::for_tests(database)
         };
         sqlx::query("UPDATE vehicle SET available = false WHERE id = 'XFG'")
             .execute(&pool)

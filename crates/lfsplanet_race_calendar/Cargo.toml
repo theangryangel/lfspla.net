@@ -1,0 +1,28 @@
+[package]
+name = "lfsplanet_race_calendar"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+test-database = ["lfsplanet_core/test-database"]
+
+[dependencies]
+anyhow = { workspace = true }
+bytes = { workspace = true }
+hex = { workspace = true }
+lfsplanet_core = { workspace = true }
+lfsplanet_lfs_net_leagues = { workspace = true }
+object_store = { workspace = true }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+time = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints.rust]
+unsafe_code = "deny"

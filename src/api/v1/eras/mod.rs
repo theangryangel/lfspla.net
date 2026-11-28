@@ -1,6 +1,6 @@
 //! Era capability endpoints.
 
-use crate::era_slug::EraSlug;
+use lfsplanet_hotlaps::era_slug::EraSlug;
 
 mod charts;
 mod combinations;
@@ -12,11 +12,9 @@ mod upload;
 pub(crate) mod vehicles;
 mod world_records;
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract},
-    models::{era, ranking as ranking_store, ranking::RankingFilter},
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, ListResponse, extractors as extract};
 use axum::{Json, extract::State};
+use lfsplanet_hotlaps::models::{era, ranking as ranking_store, ranking::RankingFilter};
 use rankings::RankingSummary;
 use sea_orm::{EntityTrait, QueryOrder};
 use serde::Serialize;
@@ -102,7 +100,10 @@ pub(crate) async fn detail(
 }
 
 /// Builds the era navigation payload shared by the list and detail endpoints.
-fn era_summary(era: crate::models::Era, rankings: Vec<crate::models::Ranking>) -> EraSummary {
+fn era_summary(
+    era: lfsplanet_hotlaps::models::Era,
+    rankings: Vec<lfsplanet_hotlaps::models::Ranking>,
+) -> EraSummary {
     EraSummary {
         id: era.slug,
         title: era.title,

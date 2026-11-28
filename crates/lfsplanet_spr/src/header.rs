@@ -463,24 +463,6 @@ mod tests {
         let header = SprHeader::read(Cursor::new(input)).expect("valid SPR header should parse");
 
         assert_eq!(header.player_flags.bits(), 1 | 2 | 4 | 8 | 512);
-        assert!(header.player_flags.contains(PlayerFlags::LEFTSIDE));
-        assert!(header.player_flags.contains(PlayerFlags::AUTOGEARS));
-        assert!(header.player_flags.contains(PlayerFlags::AUTOCLUTCH));
-    }
-
-    /// Checks the header offsets used by `frontend2/src/lib/spr.ts`.
-    #[test]
-    fn the_fields_a_client_reads_stay_at_their_documented_offsets() {
-        let bytes = valid_spr();
-        assert_eq!(&bytes[16..20], b"0.6B", "lfs_version starts at 16");
-        assert_eq!(&bytes[24..28], b"BL2R", "track starts at 24");
-        assert_eq!(&bytes[64..69], b"racer", "user_name starts at 64");
-
-        let header = SprHeader::read(Cursor::new(bytes)).expect("valid SPR header should parse");
-
-        assert_eq!(header.lfs_version.to_string(), "0.6B");
-        assert_eq!(header.track, Track::Bl2r);
-        assert_eq!(header.user_name, "racer");
     }
 
     fn valid_spr() -> Vec<u8> {

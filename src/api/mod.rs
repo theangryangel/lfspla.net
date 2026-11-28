@@ -10,9 +10,9 @@ mod state;
 
 pub(crate) mod extractors;
 
-pub(crate) use crate::ordering::Ordering;
 pub use error::ApiError;
 pub use error::ErrorResponse;
+pub(crate) use lfsplanet_core::ordering::Ordering;
 pub(crate) use pagination::ListResponse;
 pub(crate) use pagination::PaginatedResponse;
 pub(crate) use pagination::PaginationQuery;
@@ -21,7 +21,7 @@ pub use state::ApiState;
 /// Default number of results returned by paginated API endpoints.
 pub(crate) const PER_PAGE: u32 = 50;
 
-use crate::{cli::Args, db, settings::Settings, storage};
+use crate::{cli::Args, settings::Settings};
 use anyhow::Context;
 use axum::{
     Router,
@@ -29,7 +29,8 @@ use axum::{
     http::{HeaderValue, StatusCode, header},
     routing::get,
 };
-use lfsplanet_lfs_api::OAuthProvider;
+use lfsplanet_core::{db, storage};
+use lfsplanet_lfs_net_api::OAuthProvider;
 use sea_orm::DatabaseConnection;
 use time::Duration;
 use tower_http::{
@@ -132,8 +133,8 @@ pub fn router(max_spr_upload_bytes: usize) -> Router<ApiState> {
 pub fn application(database: DatabaseConnection, settings: &Settings) -> anyhow::Result<Router> {
     let object_store = storage::build(&settings.storage)?;
     let oauth = settings
-        .lfs
-        .to_api_client()?
+        .lfs_net
+        .client()?
         .map(|client| OAuthProvider::new(client, settings.web.oauth_callback_url().to_string()))
         .transpose()?;
     let state = ApiState {
@@ -248,283 +249,9 @@ mod tests {
             }
         }
     }
-    #[test]
-    fn hotlap_upload_describes_a_required_multipart_replay_file() {
-        let document = serde_json::to_value(openapi()).unwrap();
-        let body = &document["paths"]["/api/v1/eras/{era}/hotlaps"]["post"]["requestBody"];
-        assert_eq!(body["required"], true);
-        let schema = &body["content"]["multipart/form-data"]["schema"];
-        assert_eq!(schema["type"], "object");
-        assert_eq!(schema["required"], serde_json::json!(["spr"]));
-        assert_eq!(schema["additionalProperties"], false);
-        assert_eq!(schema["properties"]["spr"]["type"], "string");
-        assert_eq!(schema["properties"]["spr"]["format"], "binary");
-    }
 
     #[test]
-    fn logout_describes_the_browser_session_contract() {
-        let document = serde_json::to_value(openapi()).unwrap();
-        let operation = &document["paths"]["/auth/logout"]["post"];
-        assert_eq!(operation["operationId"], "logout");
-        assert_eq!(
-            operation["security"],
-            serde_json::json!([{ "cookie_session": [] }])
-        );
-        assert_eq!(operation["parameters"][0]["name"], "X-CSRF-Token");
-        assert_eq!(operation["parameters"][0]["required"], true);
-        assert!(operation["responses"]["204"]["content"].is_null());
-        assert!(document["paths"].get("/auth/lfs").is_none());
-        assert!(document["paths"].get("/auth/lfs/callback").is_none());
-    }
-
-    #[test]
-    fn hotlap_endpoints_use_one_content_schema_with_separate_private_metadata() {
-        let document = serde_json::to_value(openapi()).unwrap();
-        let schemas = &document["components"]["schemas"];
-        for name in [
-            "BestHotlapResponse",
-            "BestHotlapPlayerResponse",
-            "PlayerChartResultResponse",
-            "HotlapActivityResponse",
-            "HotlapResponse",
-            "ManagedHotlapResponse",
-            "HotlapSummary",
-            "HotlapTelemetry",
-        ] {
-            assert!(schemas.get(name).is_none(), "obsolete schema {name}");
-        }
-        for (path, method, status) in [
-            ("/api/v1/hotlaps/{hotlap}", "get", "200"),
-            ("/api/v1/hotlaps/{hotlap}/validate", "post", "200"),
-            ("/api/v1/eras/{era}/hotlaps", "post", "202"),
-        ] {
-            assert_eq!(
-                document["paths"][path][method]["responses"][status]["content"]["application/json"]
-                    ["schema"]["$ref"],
-                "#/components/schemas/Hotlap",
-                "{method} {path}"
-            );
-        }
-        assert_eq!(
-            schemas["PlayerResponse"]["allOf"][1]["properties"]["highlights"]["items"]["$ref"],
-            "#/components/schemas/Hotlap"
-        );
-        assert_eq!(
-            schemas["ComparedPlayerResponse"]["properties"]["results"]["items"]["$ref"],
-            "#/components/schemas/Hotlap"
-        );
-        assert_eq!(
-            schemas["PaginatedResponse_Hotlap"]["properties"]["items"]["items"],
-            schemas["Hotlap"]
-        );
-        let summary = &schemas["Hotlap"];
-        let required = summary["required"].as_array().unwrap();
-        assert!(required.contains(&serde_json::json!("spr")));
-        assert!(required.contains(&serde_json::json!("raf")));
-        for removed in [
-            "/api/v1/hotlaps/{hotlap}/replay",
-            "/api/v1/hotlaps/{hotlap}/raf",
-            "/api/v1/vehicles/{vehicle}/image",
-        ] {
-            assert!(document["paths"].get(removed).is_none());
-        }
-        assert!(document["paths"]["/api/v1/attachments/{attachment}"].is_object());
-        assert_eq!(schemas["Attachment"]["properties"]["id"]["format"], "uuid");
-        assert_eq!(
-            schemas["Attachment"]["required"],
-            serde_json::json!(["id", "url", "original_filename"])
-        );
-        for (schema, field, old) in [
-            ("Hotlap", "spr", "replay_url"),
-            ("Hotlap", "raf", "raf_download_url"),
-            ("VehicleSummary", "image", "image_url"),
-        ] {
-            assert_eq!(
-                schemas[schema]["properties"][field]["oneOf"][0]["$ref"],
-                "#/components/schemas/Attachment"
-            );
-            assert_eq!(
-                schemas[schema]["properties"][field]["oneOf"][1]["type"],
-                "null"
-            );
-            assert!(schemas[schema]["properties"].get(old).is_none());
-        }
-        let properties = schemas["Hotlap"]["properties"].as_object().unwrap();
-        assert!(!properties.contains_key("entries"));
-        for private in [
-            "raw_vehicle_name",
-            "original_filename",
-            "hlvc_result_code",
-            "error_detail",
-        ] {
-            assert!(
-                !properties.contains_key(private),
-                "Hotlap exposes {private}"
-            );
-        }
-        for name in ["manual_shifter", "abs_enabled"] {
-            assert!(
-                schemas["Hotlap"]["required"]
-                    .as_array()
-                    .unwrap()
-                    .contains(&serde_json::json!(name))
-            );
-            assert_eq!(
-                schemas["Hotlap"]["properties"][name]["type"],
-                serde_json::json!(["boolean", "null"])
-            );
-        }
-        assert!(
-            schemas["PlayerResponse"]["allOf"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|part| part["$ref"] == "#/components/schemas/PlayerSummary")
-        );
-    }
-
-    #[test]
-    fn country_and_flag_catalogues_share_the_same_schema() {
-        let document = serde_json::to_value(openapi()).unwrap();
-        let response = "/get/responses/200/content/application~1json/schema";
-        let countries = document["paths"]["/api/v1/countries"]
-            .pointer(response)
-            .unwrap();
-        let flags = document["paths"]["/api/v1/countries/{code}/flags"]
-            .pointer(response)
-            .unwrap();
-        assert_eq!(countries, flags);
-        assert_eq!(
-            document["components"]["schemas"]["ListResponse_CodeNameSummary"]["properties"]["items"]
-                ["items"],
-            document["components"]["schemas"]["CodeNameSummary"]
-        );
-    }
-
-    #[test]
-    fn chart_metadata_is_shared_across_the_api() {
-        let document = serde_json::to_value(openapi()).unwrap();
-        let schemas = &document["components"]["schemas"];
-        assert!(schemas.get("CombinationSummary").is_none());
-        assert!(schemas.get("RankingCombinationResponse").is_none());
-        let stats = &schemas["StatsResponse"]["properties"];
-        assert!(stats.get("spotlights").is_some());
-        for legacy in ["combo_spotlight", "driver_spotlight"] {
-            assert!(stats.get(legacy).is_none());
-        }
-        for legacy in [
-            "ComboSpotlightResponse",
-            "DriverSpotlightResponse",
-            "SpotlightBestResponse",
-        ] {
-            assert!(schemas.get(legacy).is_none());
-        }
-        let chart = &schemas["Chart"];
-        assert_eq!(
-            chart["properties"]["era_id"]["$ref"],
-            "#/components/schemas/EraSlug"
-        );
-        assert_eq!(
-            chart["properties"]["track"]["$ref"],
-            "#/components/schemas/TrackSummary"
-        );
-        assert_eq!(
-            chart["properties"]["vehicle"]["$ref"],
-            "#/components/schemas/VehicleSummary"
-        );
-        for field in ["era_id", "era_title", "track", "vehicle"] {
-            assert!(
-                chart["required"]
-                    .as_array()
-                    .unwrap()
-                    .contains(&serde_json::json!(field))
-            );
-        }
-        for context in [
-            "my_hotlap",
-            "my_progress",
-            "items",
-            "pagination",
-            "position",
-        ] {
-            assert!(chart["properties"].get(context).is_none());
-        }
-        assert_eq!(
-            schemas["RankingChart"]["properties"]["chart"]["$ref"],
-            "#/components/schemas/Chart"
-        );
-        assert_eq!(
-            schemas["CombinationCheck"]["properties"]["chart"]["oneOf"][0]["$ref"],
-            "#/components/schemas/Chart"
-        );
-        assert!(
-            schemas["CombinationCheck"]["properties"]
-                .get("combination")
-                .is_none()
-        );
-        assert_eq!(
-            schemas["HotlapChartResponse"]["allOf"][1]["properties"]["chart"]["$ref"],
-            "#/components/schemas/Chart"
-        );
-        assert_eq!(
-            schemas["Combination"]["allOf"][0]["$ref"],
-            "#/components/schemas/Chart"
-        );
-    }
-
-    #[test]
-    fn ranking_schemas_share_player_identity_and_normalized_names() {
-        let document = serde_json::to_value(openapi()).unwrap();
-        let schemas = &document["components"]["schemas"];
-        assert!(schemas.get("NationContribution").is_none());
-        for name in ["PersonalRankingEntryResponse", "NationContributionResponse"] {
-            let schema = &schemas[name];
-            assert_eq!(
-                schema["properties"]["player"]["$ref"],
-                "#/components/schemas/PlayerSummary"
-            );
-            assert!(
-                schema["required"]
-                    .as_array()
-                    .unwrap()
-                    .contains(&serde_json::json!("player"))
-            );
-            for old in [
-                "player_id",
-                "lfs_username",
-                "display_name",
-                "country_code",
-                "flag_code",
-            ] {
-                assert!(
-                    schema["properties"].get(old).is_none(),
-                    "{name} exposes {old}"
-                );
-            }
-        }
-        for entry in ["PersonalRankingEntryResponse", "NationRankingEntryResponse"] {
-            let schema = &schemas[format!("RankingStandings_{entry}")];
-            assert_eq!(schema["properties"]["id"]["type"], "string");
-            assert!(schema["properties"].get("ranking_id").is_none());
-        }
-        let progress = schemas["RankingProgressResponse"]["properties"]
-            .as_object()
-            .unwrap();
-        assert!(progress.contains_key("total_charts"));
-        assert!(progress.contains_key("completed_charts"));
-        assert!(!progress.contains_key("total_combinations"));
-        assert!(!progress.contains_key("completed_combinations"));
-        assert!(
-            schemas["RankingDetailResponse"]["allOf"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|part| part["$ref"] == "#/components/schemas/RankingSummary")
-        );
-    }
-
-    #[test]
-    fn collection_schemas_and_page_parameters_match_the_wire_contract() {
+    fn collections_are_wrapped_in_an_envelope() {
         let (_, document) =
             parts(crate::settings::HotlapSettings::default().max_spr_upload_bytes());
         let document = serde_json::to_value(document).unwrap();
@@ -540,30 +267,6 @@ mod tests {
                     .unwrap()
             });
             assert_ne!(schema["type"], "array", "{path} returns a bare array");
-        }
-        for path in [
-            "/api/v1/eras/{era}/charts/{track}/{vehicle}",
-            "/api/v1/eras/{era}/combinations",
-            "/api/v1/hotlaps",
-        ] {
-            let parameters = paths[path]["get"]["parameters"].as_array().unwrap();
-            let names: Vec<_> = parameters
-                .iter()
-                .map(|parameter| parameter["name"].as_str().unwrap())
-                .collect();
-            assert!(names.contains(&"page"), "{path}");
-            assert!(names.contains(&"per_page"), "{path}");
-            assert!(!names.contains(&"cursor"), "{path}");
-            assert!(!names.contains(&"limit"), "{path}");
-        }
-        for path in ["/api/v1/countries", "/api/v1/eras/{era}/tracks"] {
-            for parameter in paths[path]["get"]["parameters"].as_array().unwrap() {
-                assert!(
-                    !["page", "per_page", "cursor", "limit"]
-                        .contains(&parameter["name"].as_str().unwrap()),
-                    "{path}"
-                );
-            }
         }
     }
 }

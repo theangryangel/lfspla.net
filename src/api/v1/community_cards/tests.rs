@@ -1,9 +1,9 @@
 use super::*;
-use crate::services::catalogue;
-use sea_orm::SqlxPostgresConnector;
+use crate::community_card::catalogue;
+use sea_orm::{SqlxPostgresConnector, TransactionTrait};
 use std::sync::Arc;
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn endpoint_returns_only_visible_cards_in_stable_order_with_public_images(
     pool: sqlx::PgPool,
@@ -28,19 +28,19 @@ async fn endpoint_returns_only_visible_cards_in_stable_order_with_public_images(
         )?;
         paths.push(path);
     }
-    let sources = catalogue::load::files(&paths)?;
-    catalogue::seed(&database, &sources, Some(store.as_ref()), false, |_| Ok(())).await?;
+    let cards = catalogue::load(&paths)?;
+    let transaction = database.begin().await?;
+    lfsplanet_core::db::lock_catalogue_write(&transaction).await?;
+    catalogue::apply(&transaction, &cards, Some(store.as_ref()), false).await?;
+    transaction.commit().await?;
     sqlx::raw_sql(r#"
         INSERT INTO community_card (id, title, starts_at, ends_at, content) VALUES
         ('future', 'Future card', now() + interval '1 day', NULL, '{"type":"announcement","body":"Not yet visible"}'),
         ('expired', 'Expired card', NULL, now() - interval '1 day', '{"type":"announcement","body":"No longer visible"}');
     "#).execute(&pool).await?;
     let state = ApiState {
-        database,
         object_store: store,
-        oauth: None,
-        hotlaps: crate::settings::HotlapSettings::default(),
-        site_notice: None,
+        ..ApiState::for_tests(database)
     };
     // Exercise the routed HTTP representation, including the tagged enum schema.
     use tower::ServiceExt;

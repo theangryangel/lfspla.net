@@ -1,0 +1,58 @@
+//! One-shot, operator-visible HLVC diagnostics.
+
+use lfsplanet_hotlaps::installation_id::InstallationId;
+use std::path::Path;
+
+use anyhow::Context;
+
+use crate::{cli::Args, settings::Settings};
+use lfsplanet_hotlaps::services::manage_lfs::resolve_installation;
+
+/// Validates one local replay without storing or publishing anything.
+pub(super) async fn run(
+    args: &Args,
+    installation_id: &InstallationId,
+    replay_path: &Path,
+) -> anyhow::Result<()> {
+    lfsplanet_lfs_installations::ensure_supported()?;
+    let settings = Settings::load(&args.config)?;
+    let replay = tokio::fs::read(replay_path)
+        .await
+        .with_context(|| format!("failed to read replay {}", replay_path.display()))?;
+    let installation =
+        resolve_installation(settings.hotlaps.installation_root.path(), installation_id)?;
+    let diagnostic = lfsplanet_lfs_installations::validate(
+        &settings.hotlaps.runtime,
+        &installation,
+        &replay,
+        settings.hotlaps.validation.timeout.duration(),
+    )
+    .await?;
+
+    println!("Runner status: {}", diagnostic.output.status);
+    println!(
+        "--- Runner stdout ---\n{}",
+        String::from_utf8_lossy(&diagnostic.output.stdout)
+    );
+    eprintln!(
+        "--- Runtime stderr ---\n{}",
+        String::from_utf8_lossy(&diagnostic.output.stderr)
+    );
+
+    println!(
+        "RAF captured: {}",
+        diagnostic.raf.as_ref().map_or(0, |raf| raf.bytes.len())
+    );
+
+    let result = diagnostic
+        .result()
+        .context("could not obtain a complete HLVC result")?;
+    println!("Runner exit code: {}", result.process_exit_code);
+    println!("Runtime exit code: {}", result.runtime_exit_code);
+    println!(
+        "LFS HLVC result: {} ({})",
+        result.lfs.code(),
+        result.lfs.description()
+    );
+    Ok(())
+}

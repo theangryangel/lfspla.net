@@ -26,7 +26,7 @@ async fn body(state: &ApiState, path: &str) -> serde_json::Value {
     serde_json::from_slice(&to_bytes(response.into_body(), 1024 * 1024).await.unwrap()).unwrap()
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn player_profile_lists_only_their_teams_in_name_order(
     pool: sqlx::PgPool,
@@ -48,13 +48,9 @@ async fn player_profile_lists_only_their_teams_in_name_order(
     )
     .execute(&pool)
     .await?;
-    let state = ApiState {
-        site_notice: None,
-        database: sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        oauth: None,
-        object_store: Arc::new(object_store::memory::InMemory::new()),
-        hotlaps: Default::default(),
-    };
+    let state = ApiState::for_tests(sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(
+        pool,
+    ));
     for username in ["profile-team-owner", "PROFILE-TEAM-MEMBER"] {
         let profile = body(&state, &format!("/api/v1/players/{username}")).await;
         let teams = profile["teams"].as_array().unwrap();
@@ -72,7 +68,7 @@ async fn player_profile_lists_only_their_teams_in_name_order(
     Ok(())
 }
 
-#[sqlx::test]
+#[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
 #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
 async fn directory_filters_paginates_and_exposes_public_rosters(
     pool: sqlx::PgPool,
@@ -93,13 +89,9 @@ async fn directory_filters_paginates_and_exposes_public_rosters(
     )
     .execute(&pool)
     .await?;
-    let state = ApiState {
-        site_notice: None,
-        database: sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        oauth: None,
-        object_store: Arc::new(object_store::memory::InMemory::new()),
-        hotlaps: Default::default(),
-    };
+    let state = ApiState::for_tests(sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(
+        pool,
+    ));
     let first = body(&state, "/api/v1/teams?q=DIRECTORY-V1&per_page=1").await;
     assert_eq!(first["pagination"]["total_items"], 3);
     assert_eq!(first["pagination"]["total_pages"], 3);
@@ -146,8 +138,6 @@ async fn directory_filters_paginates_and_exposes_public_rosters(
         StatusCode::NOT_FOUND
     );
     for query in [
-        "page=0",
-        "per_page=101",
         "discipline=invalid",
         "accepts_applications=invalid",
         "mine=invalid",

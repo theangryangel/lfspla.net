@@ -1,8 +1,8 @@
 # Replay validation
 
 The validator runs LFS HLVC against queued SPR replays. It requires Linux,
-Wine, and Bubblewrap. Their paths are configured under `lfs`; see
-[configuration](configuration.md#local-lfs-runtime).
+Wine, and Bubblewrap. Their paths are configured under `hotlaps.runtime`; see
+[configuration](configuration.md#local-lfs-installations).
 
 Valid drag replays return `1` (OK). False starts normally return `8` (no HLVC
 best lap in the replay header); a false start with a modified header can return
@@ -20,17 +20,17 @@ These requirements are not verified at startup.
 
 ## Adding an LFS installation
 
-`lfsplanet lfs` manages named installations beneath `lfs.installation_root`. A name is a
+`lfsplanet hotlaps installation` manages named installations beneath `hotlaps.installation_root`. A name is a
 safe path component and is not derived from an era.
 
 ```sh
-lfsplanet lfs add 0.8 \
+lfsplanet hotlaps installation add 0.8 \
   --download-url 'https://www.lfs.net/file_lfs.php?name=LFS_S3_8C20_setup.exe' \
   --username YOUR_USERNAME \
   --unlock-code "$LFS_UNLOCK_CODE"
 
-lfsplanet lfs update 0.8
-lfsplanet lfs path 0.8
+lfsplanet hotlaps installation update 0.8
+lfsplanet hotlaps installation path 0.8
 ```
 
 To diagnose one local replay without uploading or storing it, run it through
@@ -38,7 +38,7 @@ the same HLVC sandbox directly. The command prints runner and runtime exit
 codes plus captured stdout and stderr, and the number of RAF bytes captured:
 
 ```sh
-lfsplanet hotlap validate 0.8 /path/to/replay.spr
+lfsplanet hotlaps validate 0.8 /path/to/replay.spr
 ```
 
 Downloads are cached under `installation_root/.cache/installers`, outside each
@@ -53,8 +53,8 @@ inspection.
 Remove expendable version-dependent data after installation or update:
 
 ```sh
-lfsplanet lfs trim 0.7 --dds --yes
-lfsplanet lfs trim 0.8 --dds --lgh --yes
+lfsplanet hotlaps installation trim 0.7 --dds --yes
+lfsplanet hotlaps installation trim 0.8 --dds --lgh --yes
 ```
 
 `--dds` clears `data/dds` while retaining the directory. `--lgh` removes only

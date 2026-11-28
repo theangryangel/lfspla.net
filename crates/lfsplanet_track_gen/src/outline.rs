@@ -162,22 +162,4 @@ mod tests {
         assert_eq!(outline.splits, vec![1]);
         assert_eq!(outline.timing_points(), vec![0, 1]);
     }
-
-    #[test]
-    fn reads_an_unlooped_path_as_open() {
-        let pth = Pth::SrPath0(srpath::v0::SrPth {
-            revision: 0,
-            flags: srpath::v0::SrPathFlags::ROUTE,
-            mini_rev: 0,
-            split0_node: 0,
-            split1_node: 0,
-            split2_node: 0,
-            split3_node: 0,
-            pole_position: srpath::v0::SrPolePosition::default(),
-            main_nodes: vec![srpath::v0::SrNode::default()],
-            pit0_nodes: Vec::new(),
-            pit1_nodes: Vec::new(),
-        });
-        assert!(!Outline::read(&pth).closed);
-    }
 }

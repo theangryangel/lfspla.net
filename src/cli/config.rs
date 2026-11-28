@@ -5,7 +5,8 @@ use std::io::Write;
 use anyhow::Context;
 use clap::{ArgGroup, Args};
 
-use crate::settings::{NonEmptyString, OAuthSettings, PublicBaseUrl, Settings};
+use crate::settings::{PublicBaseUrl, Settings};
+use lfsplanet_lfs_net_api::OAuthCredentials;
 
 /// Selects the defaults used in a generated configuration.
 #[derive(Clone, Debug, Eq, PartialEq, Args)]
@@ -24,10 +25,7 @@ pub(crate) fn run(args: &GenerateConfigArgs) -> anyhow::Result<()> {
     let mut settings = Settings::default();
     if !args.production {
         // Keep OAuth structurally configured while making setup's required edit explicit.
-        settings.lfs.oauth = Some(OAuthSettings {
-            client_id: NonEmptyString::new("REPLACE_ME"),
-            client_secret: NonEmptyString::new("REPLACE_ME"),
-        });
+        settings.lfs_net.oauth = Some(OAuthCredentials::new("REPLACE_ME", "REPLACE_ME"));
         // Development services run on the host; PostgreSQL is published by Compose.
         // Browsers reach both the frontend and auth routes through Vite over HTTP.
         settings.web.public_base_url = PublicBaseUrl::try_from(

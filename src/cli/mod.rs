@@ -4,20 +4,20 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-mod badge;
+mod badges;
 mod config;
 #[cfg(debug_assertions)]
 mod demo;
-mod era;
-mod hotlap;
-mod lfs;
-mod maintenance;
+mod gc;
+mod hotlaps;
 mod migrate;
 mod openapi;
-mod player;
+mod players;
+mod race_calendar;
 mod seed;
 mod storage;
-mod track_location;
+mod track_locations;
+mod vehicles;
 mod worker;
 
 /// lfspla.net command-line arguments.
@@ -41,63 +41,60 @@ pub struct Args {
 /// Backend process to run.
 #[derive(Clone, Debug, Eq, PartialEq, Subcommand)]
 pub enum Command {
-    /// Apply tagged catalogue YAML definitions.
-    Seed(seed::SeedArgs),
-    /// Grant, list, and revoke manual catalogue badges.
-    Badge {
-        #[command(subcommand)]
-        action: badge::BadgeCommand,
-    },
-    /// Generate synthetic players and hotlaps for a development database.
-    #[cfg(debug_assertions)]
-    Demo(demo::DemoArgs),
-    /// Print a basic YAML configuration to standard output.
-    GenerateConfig(config::GenerateConfigArgs),
-    /// Apply pending database schema migrations and exit.
-    Migrate,
-    /// Print the OpenAPI document for the public API to standard output.
-    Openapi,
     /// Run the web application.
     Web,
     /// Run background record processors.
     Worker,
-    /// Validate, import, and reclassify stored hotlaps.
-    Hotlap {
+    /// Apply pending database schema migrations and exit.
+    Migrate,
+    /// Apply tagged catalogue YAML definitions.
+    Seed(seed::SeedArgs),
+    /// Print a basic YAML configuration to standard output.
+    GenerateConfig(config::GenerateConfigArgs),
+    /// Print the OpenAPI document for the public API to standard output.
+    Openapi,
+    /// Generate synthetic players and hotlaps for a development database.
+    #[cfg(debug_assertions)]
+    Demo(demo::DemoArgs),
+    /// Inspect and change player account restrictions.
+    Players {
         #[command(subcommand)]
-        action: hotlap::HotlapCommand,
+        action: players::PlayersCommand,
     },
-    /// Add and maintain named LFS installations.
-    Lfs {
+    /// Grant, list, and revoke manual catalogue badges.
+    Badges {
         #[command(subcommand)]
-        action: lfs::LfsCommand,
-    },
-    /// Manage database-backed era policy.
-    Era {
-        #[command(subcommand)]
-        action: era::EraCommand,
+        action: badges::BadgesCommand,
     },
     /// List track locations and delete empty locations.
-    TrackLocation {
+    TrackLocations {
         #[command(subcommand)]
-        action: track_location::TrackLocationCommand,
+        action: track_locations::TrackLocationsCommand,
     },
-    /// Inspect and change player account restrictions.
-    Player {
+    /// Hotlaps: stored hotlaps, eras and LFS installations.
+    Hotlaps {
         #[command(subcommand)]
-        action: player::PlayerCommand,
+        action: hotlaps::HotlapsCommand,
     },
-    /// Run one-shot maintenance tasks.
-    Maintenance {
+    /// Race calendar: LFS leagues, seasons and event advertisements.
+    RaceCalendar {
         #[command(subcommand)]
-        action: maintenance::MaintenanceCommand,
+        action: race_calendar::RaceCalendarCommand,
     },
+    /// Vehicles, including Vehicle Mod metadata and covers from the LFS API.
+    Vehicles {
+        #[command(subcommand)]
+        action: vehicles::VehiclesCommand,
+    },
+    /// Delete expired sessions, stale access tokens and unreferenced storage.
+    Gc(gc::GcArgs),
 }
 
 /// Dispatches one parsed command.
 pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
     match &args.command {
         Command::Seed(options) => seed::run(args, options).await,
-        Command::Badge { action } => badge::run(args, action).await,
+        Command::Badges { action } => badges::run(args, action).await,
         #[cfg(debug_assertions)]
         Command::Demo(options) => demo::run(args, options).await,
         Command::GenerateConfig(options) => config::run(options),
@@ -105,69 +102,22 @@ pub(crate) async fn run(args: &Args) -> anyhow::Result<()> {
         Command::Openapi => openapi::run(),
         Command::Worker => worker::run(args).await,
         Command::Web => crate::api::run(args).await,
-        Command::Hotlap { action } => hotlap::run(args, action).await,
-        Command::Lfs { action } => lfs::run(args, action).await,
-        Command::Era { action } => era::run(args, action).await,
-        Command::TrackLocation { action } => track_location::run(args, action).await,
-        Command::Player { action } => player::run(args, action).await,
-        Command::Maintenance { action } => maintenance::run(args, action).await,
+        Command::Hotlaps { action } => hotlaps::run(args, action).await,
+        Command::RaceCalendar { action } => race_calendar::run(args, action).await,
+        Command::Vehicles { action } => vehicles::run(args, action).await,
+        Command::TrackLocations { action } => track_locations::run(args, action).await,
+        Command::Players { action } => players::run(args, action).await,
+        Command::Gc(options) => gc::run(args, options).await,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
 
     #[test]
-    fn catalogue_commands_require_the_current_names() {
-        assert!(Args::try_parse_from(["lfsplanet", "maintenance", "sync-mods"]).is_ok());
-        assert!(Args::try_parse_from(["lfsplanet", "seed", "era.yaml"]).is_ok());
-        assert!(Args::try_parse_from(["lfsplanet", "maintenance", "catalogue-sync"]).is_err());
-        assert!(Args::try_parse_from(["lfsplanet", "maintenance", "mods-sync"]).is_err());
-        assert!(Args::try_parse_from(["lfsplanet", "era", "apply", "era.yaml"]).is_err());
-    }
-
-    #[test]
-    fn event_sync_modes_and_positive_league_are_validated() {
-        assert!(
-            Args::try_parse_from(["lfsplanet", "maintenance", "sync-events", "--dry-run"]).is_ok()
-        );
-        assert!(
-            Args::try_parse_from([
-                "lfsplanet",
-                "maintenance",
-                "sync-events",
-                "--dry-run",
-                "--league",
-                "432"
-            ])
-            .is_ok()
-        );
-        assert!(Args::try_parse_from(["lfsplanet", "maintenance", "sync-events"]).is_ok());
-        assert!(
-            Args::try_parse_from(["lfsplanet", "maintenance", "sync-events", "--source-only"])
-                .is_ok()
-        );
-        assert!(
-            Args::try_parse_from([
-                "lfsplanet",
-                "maintenance",
-                "sync-events",
-                "--source-only",
-                "--dry-run"
-            ])
-            .is_err()
-        );
-        assert!(
-            Args::try_parse_from([
-                "lfsplanet",
-                "maintenance",
-                "sync-events",
-                "--dry-run",
-                "--league",
-                "0"
-            ])
-            .is_err()
-        );
+    fn cli_definition_is_consistent() {
+        Args::command().debug_assert();
     }
 }

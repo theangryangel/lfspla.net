@@ -76,8 +76,9 @@ For the relational badge migration and rebadge sequence, see the
 
 ## Event imports
 
-Event imports run as part of `maintenance run-all` through the daily
-`lfsplanet-maintenance.timer`, alongside Vehicle Mod synchronization and cleanup.
+Event imports run as a step of the daily `lfsplanet-maintenance.timer`
+(`race-calendar sync`), alongside garbage collection, pending badge refreshes and
+Vehicle Mod synchronization.
 Inspect `journalctl -u lfsplanet-maintenance.service` for import reports and failures.
-For an immediate event-only refresh, run `lfsplanet maintenance sync-events` with
+For an immediate event-only refresh, run `lfsplanet race-calendar sync` with
 the deployed configuration.

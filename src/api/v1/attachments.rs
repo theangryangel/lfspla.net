@@ -1,12 +1,12 @@
 //! Shared file identities and proxied delivery.
 use crate::api::{ApiError, ApiState, ErrorResponse};
-use crate::models::attachment;
 use axum::{
     body::Body,
     extract::{Path, State},
     http::{StatusCode, header},
     response::Response,
 };
+use lfsplanet_core::models::attachment;
 use object_store::{ObjectStoreExt, path::Path as ObjectPath};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, prelude::Uuid};
 use serde::Serialize;
@@ -79,7 +79,7 @@ pub(crate) async fn download(
         .await
         .map_err(ApiError::database)?
         .ok_or_else(not_found)?;
-    let disposition = crate::storage::download_disposition(&attachment);
+    let disposition = lfsplanet_core::storage::download_disposition(&attachment);
     let path = ObjectPath::from(attachment.object_key.as_str());
     let file = state
         .object_store
@@ -127,7 +127,7 @@ mod tests {
             .unwrap()
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn downloads_stream_bytes_with_filenames_and_public_caching(
         pool: sqlx::PgPool,
@@ -185,17 +185,14 @@ mod tests {
         assert_eq!(first.original_filename.as_deref(), Some("first lap.spr"));
         assert_eq!(first.filename.as_deref(), Some("driver_BL1_XFG_132900.spr"));
         assert_eq!(
-            crate::storage::download_disposition(&first),
+            lfsplanet_core::storage::download_disposition(&first),
             "attachment; filename=\"driver_BL1_XFG_132900.spr\"; filename*=UTF-8''driver_BL1_XFG_132900.spr"
         );
         assert_ne!(first.public_id, second.public_id);
         assert_eq!(first.object_key, second.object_key);
         let state = ApiState {
-            site_notice: None,
-            database,
-            oauth: None,
             object_store: store.clone(),
-            hotlaps: Default::default(),
+            ..ApiState::for_tests(database)
         };
         for (file, bytes) in [
             (&first, b"same bytes".as_slice()),
@@ -223,7 +220,7 @@ mod tests {
             assert!(!response.headers().contains_key(header::LOCATION));
             assert_eq!(
                 response.headers()[header::CONTENT_DISPOSITION],
-                crate::storage::download_disposition(file)
+                lfsplanet_core::storage::download_disposition(file)
             );
             assert_eq!(
                 axum::body::to_bytes(response.into_body(), 100).await?,
@@ -231,10 +228,10 @@ mod tests {
             );
         }
         assert!(
-            crate::storage::download_disposition(&unnamed)
+            lfsplanet_core::storage::download_disposition(&unnamed)
                 .contains(&format!("{}.zip", unnamed.public_id))
         );
-        assert!(crate::storage::download_disposition(&image).starts_with("inline;"));
+        assert!(lfsplanet_core::storage::download_disposition(&image).starts_with("inline;"));
         assert_eq!(
             download(Path(Uuid::from_u128(99)), State(state.clone()))
                 .await

@@ -1,11 +1,15 @@
 mod generate;
 mod persist;
 #[cfg(test)]
-mod tests;
+mod tests {
+    use lfsplanet_hotlaps::models::player::PlayerHotlapActivity;
+    include!("tests.rs");
+}
 
-use crate::{cli::Args, db, settings::Settings};
+use crate::{cli::Args, settings::Settings};
 use anyhow::ensure;
 use clap::Args as ClapArgs;
+use lfsplanet_core::db;
 #[derive(Clone, Debug, Eq, PartialEq, ClapArgs)]
 pub(crate) struct DemoArgs {
     /// Confirm database writes.

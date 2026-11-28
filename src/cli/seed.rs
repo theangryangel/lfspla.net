@@ -1,14 +1,15 @@
 //! Operator output and arguments for local catalogue seeding.
 
-use crate::{
-    db,
+use crate::{community_card, settings::Settings};
+use anyhow::{bail, ensure};
+use clap::Args;
+use lfsplanet_core::db;
+use lfsplanet_hotlaps::{
     models::era::definition::{EraDefinition, combination_keys},
     services::catalogue,
-    settings::Settings,
 };
-use anyhow::bail;
-use clap::Args;
-use std::path::PathBuf;
+use sea_orm::TransactionTrait;
+use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, Eq, PartialEq, Args)]
 pub(crate) struct SeedArgs {
@@ -24,29 +25,61 @@ pub(crate) struct SeedArgs {
 }
 
 pub(crate) async fn run(args: &super::Args, options: &SeedArgs) -> anyhow::Result<()> {
-    let documents = catalogue::load::files(&options.files)?;
+    ensure!(
+        options.files.iter().all(|path| path != Path::new("-")),
+        "stdin is not supported; supply catalogue YAML file paths"
+    );
+    // Community cards belong to the web application; every other kind to hotlaps.
+    let mut card_files = Vec::new();
+    let mut catalogue_files = Vec::new();
+    for path in &options.files {
+        if community_card::catalogue::is_card(path)? {
+            card_files.push(path.clone());
+        } else {
+            catalogue_files.push(path.clone());
+        }
+    }
+    let cards = community_card::catalogue::load(&card_files)?;
+    let documents = if catalogue_files.is_empty() {
+        Vec::new()
+    } else {
+        catalogue::load::files(&catalogue_files)?
+    };
     let settings = Settings::load(&args.config)?;
     let database = db::connect(&settings.database, 2).await?;
     let store = if options.dry_run {
         None
     } else {
-        Some(crate::storage::build(&settings.storage)?)
+        Some(lfsplanet_core::storage::build(&settings.storage)?)
     };
-    let applied = catalogue::seed(
-        &database,
+    // One transaction and catalogue lock covers both, so a batch applies atomically.
+    let transaction = database.begin().await?;
+    db::lock_catalogue_write(&transaction).await?;
+    let pending = catalogue::seed_in(
+        &transaction,
         &documents,
         store.as_deref(),
         options.dry_run,
         |changes| review_changes(changes, options.yes, options.dry_run),
     )
     .await?;
+    let community_cards =
+        community_card::catalogue::apply(&transaction, &cards, store.as_deref(), options.dry_run)
+            .await?;
+    let applied = if options.dry_run {
+        transaction.rollback().await?;
+        pending.applied
+    } else {
+        transaction.commit().await?;
+        pending.finish(&database).await?
+    };
     report_applied(
         &applied.eras,
         options.dry_run,
         !applied.locations.is_empty()
             || !applied.tracks.is_empty()
             || !applied.vehicles.is_empty()
-            || !applied.community_cards.is_empty()
+            || !community_cards.is_empty()
             || !applied.badges.is_empty(),
     );
     for id in &applied.locations {
@@ -89,7 +122,7 @@ pub(crate) async fn run(args: &super::Args, options: &SeedArgs) -> anyhow::Resul
             }
         );
     }
-    for id in &applied.community_cards {
+    for id in &community_cards {
         println!(
             "Community card {id} {}.",
             if options.dry_run {
@@ -127,7 +160,11 @@ fn review_changes(
     Ok(())
 }
 
-fn report_applied(applied: &[crate::era_slug::EraSlug], dry_run: bool, artwork_changed: bool) {
+fn report_applied(
+    applied: &[lfsplanet_hotlaps::era_slug::EraSlug],
+    dry_run: bool,
+    artwork_changed: bool,
+) {
     if dry_run {
         println!("Dry run complete; no catalogue changes committed.");
     } else if applied.is_empty() && !artwork_changed {

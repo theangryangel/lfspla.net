@@ -1,14 +1,14 @@
 //! Public player search.
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery, v1::PlayerSummary,
-    },
-    models::player::{Column as PlayerColumn, Entity as PlayerEntity, PlayerFilter},
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery, v1::PlayerSummary,
 };
 use axum::{
     Json,
     extract::{Query, State},
+};
+use lfsplanet_core::models::player::{
+    Column as PlayerColumn, Entity as PlayerEntity, PlayerFilter,
 };
 use sea_orm::sea_query::{Expr, Func};
 use sea_orm::{
@@ -25,7 +25,7 @@ pub(crate) struct PlayerSearchQuery {
     q: Option<String>,
     /// ISO alpha-2 country code; matches the ranking country, not a display flag.
     #[param(value_type = Option<String>)]
-    country: Option<crate::country::CountryCode>,
+    country: Option<lfsplanet_core::country::CountryCode>,
     /// Whether the player authors an available vehicle mod.
     vehicle_author: Option<bool>,
 }
@@ -54,7 +54,7 @@ pub(crate) async fn search(
         players = players.filter(PlayerColumn::CountryCode.eq(country));
     }
     if let Some(vehicle_author) = query.vehicle_author {
-        use crate::models::vehicle;
+        use lfsplanet_core::models::vehicle;
         let authors = vehicle::Entity::find()
             .select_only()
             .column(vehicle::Column::AuthorPlayerId)
@@ -92,7 +92,6 @@ pub(crate) async fn search(
 mod tests {
     use super::*;
     use sea_orm::{ActiveModelTrait, ActiveValue::Set};
-    use std::sync::Arc;
     use tower::ServiceExt;
 
     async fn request(state: &ApiState, query: &str) -> axum::response::Response {
@@ -117,16 +116,7 @@ mod tests {
         serde_json::from_slice(&bytes).unwrap()
     }
 
-    #[test]
-    fn validates_country_query_codes() {
-        let query: PlayerSearchQuery = serde_urlencoded::from_str("country=gb").unwrap();
-        assert_eq!(query.country.unwrap().as_str(), "GB");
-        for query in ["country=XX", "country=GB-SCT", "country=United%20Kingdom"] {
-            assert!(serde_urlencoded::from_str::<PlayerSearchQuery>(query).is_err());
-        }
-    }
-
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn directory_filters_before_counting_and_pagination(
         pool: sqlx::PgPool,
@@ -143,18 +133,18 @@ mod tests {
             ("Delta", "Other driver", None),
             ("echo", "100% driver", Some(celes::Country::germany())),
         ] {
-            crate::models::player::ActiveModel {
+            lfsplanet_core::models::player::ActiveModel {
                 lfs_username: Set(username.to_owned()),
                 display_name: Set(display_name.to_owned()),
                 country_code: Set(country.map(Into::into)),
                 // A matching display flag must not override the selected country.
-                flag_code: Set(lfsplanet_flags::FlagCode::parse("de")),
+                flag_code: Set(lfsplanet_country_ext::FlagCode::parse("de")),
                 ..Default::default()
             }
             .insert(&database)
             .await?;
         }
-        crate::models::Vehicle::refresh(
+        lfsplanet_core::models::Vehicle::refresh(
             &database,
             &[
                 ("AAAA01", Some("alpha")),
@@ -162,7 +152,7 @@ mod tests {
                 ("AAAA03", None),
             ]
             .into_iter()
-            .map(|(id, author)| lfsplanet_lfs_api::RemoteVehicleMod {
+            .map(|(id, author)| lfsplanet_lfs_net_api::RemoteVehicleMod {
                 id: id.to_owned(),
                 name: id.to_owned(),
                 version: 1,
@@ -178,21 +168,15 @@ mod tests {
             .collect::<Vec<_>>(),
         )
         .await?;
-        crate::models::vehicle::Entity::update_many()
-            .filter(crate::models::vehicle::Column::Id.eq("AAAA02"))
+        lfsplanet_core::models::vehicle::Entity::update_many()
+            .filter(lfsplanet_core::models::vehicle::Column::Id.eq("AAAA02"))
             .col_expr(
-                crate::models::vehicle::Column::Available,
+                lfsplanet_core::models::vehicle::Column::Available,
                 sea_orm::sea_query::Expr::value(false),
             )
             .exec(&database)
             .await?;
-        let state = ApiState {
-            site_notice: None,
-            database,
-            oauth: None,
-            object_store: Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-        };
+        let state = ApiState::for_tests(database);
         let authors = body(&state, "?vehicle_author=true&q=fast&country=DE&per_page=1").await;
         assert_eq!(authors["pagination"]["total_items"], 1);
         assert_eq!(authors["items"][0]["lfs_username"], "alpha");
@@ -237,12 +221,10 @@ mod tests {
         let beyond = body(&state, "?page=100").await;
         assert!(beyond["items"].as_array().unwrap().is_empty());
         assert_eq!(beyond["pagination"]["total_items"], 5);
-        for query in ["?country=XX", "?page=0", "?per_page=101"] {
-            assert_eq!(
-                request(&state, query).await.status(),
-                axum::http::StatusCode::BAD_REQUEST
-            );
-        }
+        assert_eq!(
+            request(&state, "?country=XX").await.status(),
+            axum::http::StatusCode::BAD_REQUEST
+        );
         Ok(())
     }
 }

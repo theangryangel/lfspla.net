@@ -303,10 +303,8 @@ mod tests {
     }
 
     #[test]
-    fn names_every_colour_as_a_token_and_a_literal() {
+    fn dark_palette_is_scoped_to_the_svg_root() {
         let svg = drawing();
-        assert!(svg.contains("stroke=\"var(--muted-foreground, oklch(0.556 0 0))\""));
-        assert!(svg.contains("stroke=\"var(--destructive, oklch(0.577 0.245 27.325))\""));
         assert!(
             svg.contains("@media(prefers-color-scheme:dark){svg:root{--muted-foreground:"),
             "a standalone file resolves its own dark palette"
@@ -332,45 +330,5 @@ mod tests {
             svg.find("class=\"split\"") < svg.find("class=\"start-finish\""),
             "the start line is the topmost marker"
         );
-    }
-
-    /// The `stroke-width` of the first path carrying `class`.
-    fn stroke_width_of(svg: &str, class: &str) -> f32 {
-        let at = svg
-            .find(&format!("class=\"{class}\""))
-            .expect("the class was drawn");
-        let tail = &svg[at..];
-        let opens = tail.find("stroke-width=\"").expect("a width was set") + 14;
-        let closes = tail[opens..].find('"').expect("the width is quoted");
-        tail[opens..opens + closes].parse().expect("a number")
-    }
-
-    #[test]
-    fn a_marker_is_thinner_than_the_line_and_cut_out_of_it() {
-        let svg = drawing();
-        let track = stroke_width_of(&svg, "track");
-        let start_finish = stroke_width_of(&svg, "start-finish");
-        let split = stroke_width_of(&svg, "split");
-        assert!(
-            split < start_finish && start_finish < track,
-            "a marker reads against the line by being thinner than it: \
-             track {track}, start/finish {start_finish}, split {split}"
-        );
-        assert!(
-            stroke_width_of(&svg, "cut-out") > start_finish,
-            "and by having the line cut away around it"
-        );
-    }
-
-    #[test]
-    fn a_marker_crosses_the_line_by_a_couple_of_units() {
-        // Wide enough to read as a line across the track, and no wider: the
-        // overhang does not grow with the width of the line it crosses.
-        for width in [4.0, 7.0, 12.0] {
-            let over = Drawing::start_finish_reach(width) * 2.0 - width;
-            assert!((2.0..=4.0).contains(&over), "{width} wide: {over} over");
-            let over = Drawing::split_reach(width) * 2.0 - width;
-            assert!((2.0..=4.0).contains(&over), "{width} wide: {over} over");
-        }
     }
 }

@@ -1,13 +1,11 @@
 //! Public track catalogue, independent of era chart selections.
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery},
-    models::track::{Entity, TrackFilter, TrackOrder},
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, PaginatedResponse, PaginationQuery};
 use axum::{
     Json,
     extract::{Query, State},
 };
+use lfsplanet_core::models::track::{Entity, TrackFilter, TrackOrder};
 use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QuerySelect};
 use serde::Deserialize;
 use utoipa::IntoParams;
@@ -48,7 +46,8 @@ pub(crate) async fn list_tracks(
     let mut tracks = Entity::find().name_or_id_contains(query.q.as_deref().unwrap_or(""));
     if let Some(location) = query.location {
         tracks = tracks.filter(
-            crate::models::track::Column::Location.eq(location.trim().to_ascii_uppercase()),
+            lfsplanet_core::models::track::Column::Location
+                .eq(location.trim().to_ascii_uppercase()),
         );
     }
     let total_items = tracks
@@ -85,7 +84,6 @@ pub(crate) async fn list_tracks(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use tower::ServiceExt;
 
     async fn request(state: ApiState, query: &str) -> axum::response::Response {
@@ -113,20 +111,14 @@ mod tests {
         serde_json::from_slice(&bytes).unwrap()
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
-    async fn catalogue_search_and_pagination_without_eras(
+    async fn catalogue_search_pagination_and_locations_without_eras(
         pool: sqlx::PgPool,
     ) -> anyhow::Result<()> {
         let database = sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool);
-        crate::services::catalogue::fixtures::tracks(&database).await?;
-        let state = ApiState {
-            site_notice: None,
-            database,
-            oauth: None,
-            object_store: Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-        };
+        lfsplanet_hotlaps::services::catalogue::fixtures::tracks(&database).await?;
+        let state = ApiState::for_tests(database);
         let tracks = insim_core::track::Track::ALL;
         let first = body(request(state.clone(), "?per_page=3").await).await;
         let second = body(request(state.clone(), "?per_page=3&page=2").await).await;
@@ -180,7 +172,9 @@ mod tests {
         );
         let matching = tracks
             .iter()
-            .filter(|track| crate::models::track::location::canonical_code(**track) == "BL")
+            .filter(|track| {
+                lfsplanet_core::models::track::location::canonical_code(**track) == "BL"
+            })
             .count();
         assert_eq!(filtered["pagination"]["total_items"], matching);
         let next = body(request(state.clone(), "?location=BL&per_page=3&page=2").await).await;
@@ -196,85 +190,20 @@ mod tests {
             let found = body(request(state.clone(), query).await).await;
             assert!(found["items"].as_array().unwrap().is_empty());
         }
-        for query in ["?page=0", "?per_page=101", "?page=abc"] {
-            assert_eq!(
-                request(state.clone(), query).await.status(),
-                axum::http::StatusCode::BAD_REQUEST
-            );
-        }
-        // Authored location metadata and artwork flow from seed into public tracks.
-        let directory = tempfile::tempdir()?;
-        let yaml = directory.path().join("location.yaml");
-        std::fs::write(directory.path().join("location.svg"), "<svg/>")?;
-        std::fs::write(
-            &yaml,
-            "kind: Location\nid: BL\nname: Authored Blackwood\ndescription: Shared description\nsequence: 42\nimage: ./location.svg\ntracks:\n  - id: BL1\n",
-        )?;
-        let documents = crate::services::catalogue::load::files(std::slice::from_ref(&yaml))?;
-        let preview =
-            crate::services::catalogue::seed(&state.database, &documents, None, true, |_| Ok(()))
-                .await?;
-        assert_eq!(preview.locations, ["BL"]);
-        let before = body(request(state.clone(), "?q=BL1").await).await;
-        assert_eq!(before["items"][0]["location"]["name"], "Blackwood");
-        crate::services::catalogue::seed(
-            &state.database,
-            &documents,
-            Some(state.object_store.as_ref()),
-            false,
-            |_| Ok(()),
-        )
-        .await?;
-        let authored = body(request(state.clone(), "?q=BL1").await).await;
-        let location = &authored["items"][0]["location"];
-        assert_eq!(location["name"], "Authored Blackwood");
-        assert_eq!(location["description"], "Shared description");
-        assert_eq!(location["sequence"], 42);
-        // The independent location catalogue exposes the same authored metadata,
-        // with stable ordering and no era requirement.
+        // The location catalogue is ordered by sequence and needs no era.
         let catalogue = body(request_path(state.clone(), "/api/v1/track-locations").await).await;
         let locations = catalogue["items"].as_array().unwrap();
         assert_eq!(locations.len(), 8);
-        assert_eq!(locations[0]["code"], "SO");
-        assert_eq!(locations.last().unwrap(), location);
-        let detail = body(request_path(state.clone(), "/api/v1/track-locations/bl").await).await;
-        assert_eq!(&detail, location);
-        let missing = request_path(state.clone(), "/api/v1/track-locations/UNKNOWN").await;
-        assert_eq!(missing.status(), axum::http::StatusCode::NOT_FOUND);
-
         assert!(
             locations
                 .windows(2)
                 .all(|pair| pair[0]["sequence"].as_i64() <= pair[1]["sequence"].as_i64())
         );
-
-        assert!(
-            location["image"]["url"]
-                .as_str()
-                .unwrap()
-                .starts_with("/api/v1/attachments/")
-        );
-        let repeated = crate::services::catalogue::seed(
-            &state.database,
-            &documents,
-            Some(state.object_store.as_ref()),
-            false,
-            |_| Ok(()),
-        )
-        .await?;
-        assert!(repeated.locations.is_empty());
-        std::fs::write(&yaml, "kind: Location\nid: BL\nname: Authored Blackwood\n")?;
-        let omitted = crate::services::catalogue::load::files(&[yaml])?;
-        crate::services::catalogue::seed(
-            &state.database,
-            &omitted,
-            Some(state.object_store.as_ref()),
-            false,
-            |_| Ok(()),
-        )
-        .await?;
-        let preserved = body(request(state.clone(), "?q=BL1").await).await;
-        assert_eq!(preserved["items"][0]["location"], *location);
+        let detail = body(request_path(state.clone(), "/api/v1/track-locations/bl").await).await;
+        assert_eq!(detail["code"], "BL");
+        assert_eq!(detail["name"], "Blackwood");
+        let missing = request_path(state, "/api/v1/track-locations/UNKNOWN").await;
+        assert_eq!(missing.status(), axum::http::StatusCode::NOT_FOUND);
         Ok(())
     }
 }

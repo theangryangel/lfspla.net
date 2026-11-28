@@ -14,16 +14,16 @@ Think of the eras files as desired state, or seeding/fixture data.
 ```sh
 lfsplanet seed assets/eras/*.yaml --dry-run
 lfsplanet seed assets/eras/*.yaml
-lfsplanet era list
-lfsplanet era export 2007-12-21 > era.yaml
+lfsplanet hotlaps era list
+lfsplanet hotlaps era export 2007-12-21 > era.yaml
 lfsplanet seed era.yaml --yes
-lfsplanet era open 2007-12-21
-lfsplanet era close 2007-12-21
-lfsplanet era delete 2007-12-21 --yes
+lfsplanet hotlaps era open 2007-12-21
+lfsplanet hotlaps era close 2007-12-21
+lfsplanet hotlaps era delete 2007-12-21 --yes
 ```
 
 Era documents declare `kind: Era`. See [catalogue seeding](catalogue.md) for
-input formats, validation, and dry runs. `era export` emits tagged YAML suitable
+input formats, validation, and dry runs. `hotlaps era export` emits tagged YAML suitable
 for `seed`.
 
 Each ranking has a `discipline`: `circuit` (the default for existing definitions)

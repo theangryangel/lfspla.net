@@ -1,15 +1,15 @@
 //! Shared chart identity and catalogue metadata used by era and spotlight responses.
 
 use super::{tracks::TrackSummary, vehicles::VehicleSummary};
+use crate::api::ApiError;
 use crate::api::v1::track_locations::TrackLocationSummary;
-use crate::{
-    api::ApiError,
+use lfsplanet_core::models::{
+    track::{Column as TrackColumn, Entity as TrackEntity},
+    vehicle::{Column as VehicleColumn, Entity as VehicleEntity},
+};
+use lfsplanet_hotlaps::{
     era_slug::EraSlug,
-    models::{
-        Chart as ChartModel, Era,
-        track::{Column as TrackColumn, Entity as TrackEntity},
-        vehicle::{Column as VehicleColumn, Entity as VehicleEntity},
-    },
+    models::{Chart as ChartModel, Era},
 };
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 use serde::Serialize;

@@ -1,8 +1,9 @@
 //! Common public collection filters, parsed at the HTTP boundary.
 
-use crate::{api::ApiError, models::hotlap::SteeringInput};
+use crate::api::ApiError;
 use axum::http::StatusCode;
 use celes::Country;
+use lfsplanet_hotlaps::models::hotlap::SteeringInput;
 use sea_orm::ActiveEnum;
 
 pub(crate) fn country_filter(value: Option<&str>) -> Result<Option<Country>, ApiError> {

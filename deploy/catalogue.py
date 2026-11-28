@@ -88,7 +88,7 @@ files.file(
 server.shell(
     name="Synchronize Vehicle Mods",
     commands=[
-        f"{app_root}/lfsplanet --config {config_dir}/config.yaml maintenance sync-mods"
+        f"{app_root}/lfsplanet --config {config_dir}/config.yaml vehicles sync-mods"
     ],
     _sudo_user=app_user,
     _env=storage_environment,
@@ -105,7 +105,7 @@ server.shell(
 )
 
 server.shell(
-    name="Apply lfsplanet era definitions",
+    name="Apply lfsplanet hotlaps era definitions",
     commands=[
         f"{app_root}/lfsplanet --config {config_dir}/config.yaml seed "
         f"{apply_confirmation}{config_dir}/eras/*.yaml "

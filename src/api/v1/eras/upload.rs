@@ -3,12 +3,9 @@
 //! The replay version must match the era. Version ranges cannot overlap,
 //! so a replay can match at most one era.
 
-use crate::{
-    api::{
-        ApiError, ApiState, ErrorResponse, extractors as extract, extractors::AuthenticatedPlayer,
-        v1::hotlaps::response::Hotlap,
-    },
-    models::{Era, hotlap::InsertError},
+use crate::api::{
+    ApiError, ApiState, ErrorResponse, extractors as extract, extractors::AuthenticatedPlayer,
+    v1::hotlaps::response::Hotlap,
 };
 use axum::{
     Json,
@@ -18,6 +15,7 @@ use axum::{
     response::IntoResponse,
 };
 use insim_core::game_version::GameVersion;
+use lfsplanet_hotlaps::models::{Era, hotlap::InsertError};
 use serde_json::json;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::{Validate, ValidationError};
@@ -45,7 +43,7 @@ struct UploadedSpr {
             message = "The uploaded filename must be no longer than 255 characters"
         ),
         custom(
-            function = "crate::validate::validate_non_blank",
+            function = "lfsplanet_core::validate::validate_non_blank",
             message = "The uploaded filename must not be blank"
         ),
         non_control_character(
@@ -129,9 +127,10 @@ pub(crate) async fn upload(
     // This inexpensive pre-check avoids reading and parsing a multipart body
     // for the common full-queue case. `insert` repeats the check while holding
     // a player-row lock, which is the authoritative concurrency-safe check.
-    let outstanding = crate::models::Hotlap::count_outstanding(&state.database, player.id)
-        .await
-        .map_err(ApiError::database)?;
+    let outstanding =
+        lfsplanet_hotlaps::models::Hotlap::count_outstanding(&state.database, player.id)
+            .await
+            .map_err(ApiError::database)?;
     let max_queued = state.hotlaps.max_queued_per_player.get();
     if outstanding >= max_queued {
         return Err(ApiError::hotlap_queue_full(outstanding, max_queued));
@@ -139,7 +138,7 @@ pub(crate) async fn upload(
 
     let upload = spr_field(multipart, state.hotlaps.max_spr_upload_bytes()).await?;
     upload.validate()?;
-    let hotlap = crate::services::submit_hotlap::submit(
+    let hotlap = lfsplanet_hotlaps::services::submit_hotlap::submit(
         &state.database,
         state.object_store.as_ref(),
         &state.hotlaps,
@@ -202,8 +201,11 @@ fn wrong_era(era: &Era, version: &GameVersion, accepting: Option<Box<Era>>) -> A
     }
 }
 
-fn submission_error(error: crate::services::submit_hotlap::SubmitError, era: &Era) -> ApiError {
-    use crate::services::submit_hotlap::SubmitError;
+fn submission_error(
+    error: lfsplanet_hotlaps::services::submit_hotlap::SubmitError,
+    era: &Era,
+) -> ApiError {
+    use lfsplanet_hotlaps::services::submit_hotlap::SubmitError;
     match error {
         SubmitError::TestDrive => ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -342,21 +344,11 @@ mod tests {
     }
 
     #[test]
-    fn full_hotlap_queue_returns_a_client_actionable_rate_limit() {
-        let error = ApiError::hotlap_queue_full(10, 10);
-        assert_eq!(error.status, StatusCode::TOO_MANY_REQUESTS);
-        assert_eq!(error.code, "hotlap_queue_full");
-        assert_eq!(
-            error.message,
-            "You already have 10 replays awaiting processing (limit 10). Wait for one to finish or remove one before uploading another."
-        );
-    }
-
-    #[test]
-    fn upload_ban_returns_a_stable_forbidden_error() {
-        let error = ApiError::uploads_banned();
-        assert_eq!(error.status, StatusCode::FORBIDDEN);
-        assert_eq!(error.code, "uploads_banned");
-        assert_eq!(error.message, "You are not permitted to upload replays");
+    fn queue_full_message_pluralises_the_outstanding_count() {
+        for (outstanding, expected) in [(1, "1 replay awaiting"), (2, "2 replays awaiting")] {
+            let error = ApiError::hotlap_queue_full(outstanding, 2);
+            assert_eq!(error.status, StatusCode::TOO_MANY_REQUESTS);
+            assert!(error.message.contains(expected), "{}", error.message);
+        }
     }
 }

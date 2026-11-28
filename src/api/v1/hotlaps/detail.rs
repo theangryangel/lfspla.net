@@ -2,18 +2,16 @@
 
 use super::response::Hotlap;
 
-use crate::{
-    api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer},
-    models::{
-        Era, Hotlap as HotlapModel,
-        era::Entity as EraEntity,
-        hotlap::{self, HotlapFilter},
-        player,
-    },
-};
+use crate::api::{ApiError, ApiState, ErrorResponse, extractors::AuthenticatedPlayer};
 use axum::{
     Json,
     extract::{Path, State},
+};
+use lfsplanet_core::models::player;
+use lfsplanet_hotlaps::models::{
+    Era, Hotlap as HotlapModel,
+    era::Entity as EraEntity,
+    hotlap::{self, HotlapFilter},
 };
 use sea_orm::EntityTrait;
 
@@ -100,7 +98,7 @@ fn hotlap_not_found() -> ApiError {
 
 fn response(
     hotlap: HotlapModel,
-    player: crate::models::Player,
+    player: lfsplanet_core::models::Player,
     era: &Era,
     owner: bool,
     attachments: &std::collections::HashMap<i64, crate::api::v1::attachments::Attachment>,
@@ -116,10 +114,8 @@ fn response(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        milliseconds::Milliseconds,
-        models::hotlap::{HotlapState, SteeringInput},
-    };
+    use lfsplanet_core::milliseconds::Milliseconds;
+    use lfsplanet_hotlaps::models::hotlap::{HotlapState, SteeringInput};
 
     #[test]
     fn private_submission_metadata_is_only_serialized_for_the_owner() {
@@ -129,7 +125,7 @@ mod tests {
             player_id: 7,
             era_id: 1,
             chart_id: 1,
-            track: crate::track_id::TrackId("BL1".parse().unwrap()),
+            track: lfsplanet_core::track_id::TrackId("BL1".parse().unwrap()),
             vehicle: "XFG".parse().unwrap(),
             raw_vehicle_name: "Private replay name".to_owned(),
             mod_version: None,
@@ -146,7 +142,7 @@ mod tests {
             abs_enabled: None,
             player_flags: lfsplanet_spr::PlayerFlags::empty().into(),
             created_at: time::OffsetDateTime::UNIX_EPOCH,
-            game_version: crate::game_version::GameVersionCode("0.5Y".parse().unwrap()),
+            game_version: lfsplanet_hotlaps::game_version::GameVersionCode("0.5Y".parse().unwrap()),
             state: HotlapState::Valid,
             hlvc_result_code: Some(0),
             error_detail: None,
@@ -155,7 +151,7 @@ mod tests {
             started_at: None,
             finished_at: None,
         };
-        let player = crate::models::Player {
+        let player = lfsplanet_core::models::Player {
             id: 7,
             lfs_username: "driver".to_owned(),
             display_name: "Driver".to_owned(),
@@ -234,8 +230,8 @@ mod tests {
         assert_eq!(public["player"]["id"], 7);
         assert_eq!(public["state"], "valid");
         assert_eq!(public["position"], serde_json::Value::Null);
-        let make_page = || crate::models::hotlap::HotlapPage {
-            entries: vec![crate::models::hotlap::HotlapListEntry {
+        let make_page = || lfsplanet_hotlaps::models::hotlap::HotlapPage {
+            entries: vec![lfsplanet_hotlaps::models::hotlap::HotlapListEntry {
                 hotlap: hotlap.clone(),
                 player: player.clone(),
                 era: era.clone(),

@@ -2,23 +2,9 @@
 
 mod api;
 mod cli;
-mod country;
-mod db;
-mod era_slug;
-mod game_version;
-mod hotlap_discipline;
-mod installation_id;
-mod milliseconds;
-mod models;
-mod ordering;
-mod player_flags;
-mod ranking_slug;
-mod services;
+mod community_card;
+mod personal_access_token;
 mod settings;
-mod storage;
-mod track_id;
-mod validate;
-mod vehicle_id;
 
 use clap::Parser;
 use cli::Args;

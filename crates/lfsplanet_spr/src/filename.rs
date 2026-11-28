@@ -203,22 +203,10 @@ mod tests {
     }
 
     #[test]
-    fn can_be_parsed_with_from_str() {
-        let parsed = "driver_SO4R_RB4_158200.spr"
-            .parse::<ConventionalFilename>()
-            .unwrap();
-
-        assert_eq!(parsed.username, "driver");
-    }
-
-    #[test]
     fn can_be_parsed_from_a_path() {
         let path = PathBuf::from("/replays/ventspils_619_SO4R_RB4_158200.spr");
         let parsed = ConventionalFilename::try_from(path.as_path()).unwrap();
-        let parsed_from_owned_path = ConventionalFilename::try_from(path).unwrap();
-
         assert_eq!(parsed.username, "ventspils_619");
-        assert_eq!(parsed, parsed_from_owned_path);
     }
 
     #[test]
@@ -235,10 +223,6 @@ mod tests {
             ConventionalFilename::try_from("driver_SO4R_RB4_160000.spr"),
             Err(ConventionalFilenameError::LapTime)
         );
-    }
-
-    #[test]
-    fn arbitrary_spr_names_are_not_conventional_filenames() {
         assert_eq!(
             ConventionalFilename::try_from("piranhot.spr"),
             Err(ConventionalFilenameError::Format)

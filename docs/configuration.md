@@ -19,8 +19,11 @@ Set its public URL and database URL before use.
 
 Deployment uses HTTPS and secure cookies.
 
-`worker.hlvc.poll_interval_seconds` and `worker.hlvc.timeout_seconds` control
-hotlap validation. `worker.webhooks.workers` sets concurrent deliveries per
+Sections follow the crates that own them: `database` and `storage` (core), `lfs_net`
+(`lfsplanet_lfs_net_api`), `web` (the binary) and `hotlaps`.
+
+`hotlaps.validation.poll_interval_seconds` and `hotlaps.validation.timeout_seconds`
+control hotlap validation. `hotlaps.webhooks.workers` sets concurrent deliveries per
 worker process and defaults to 3. Deliveries to the same destination are
 serialized. Keep the count within the worker's database connection limit. The
 deployment inventory sets it with `webhook_workers` in
@@ -61,32 +64,61 @@ constructed. Changing the location does not migrate existing objects; copy them
 to the new location while preserving their relative keys. See the
 [attachment storage cutover guide](attachments.md) for the deployment procedure.
 
-## Local LFS runtime
+## lfs.net
 
-All LFS settings live under `lfs`. Platform runtime fields are flattened within
-that section alongside installation locations, OAuth credentials and HTTP limits:
+`lfs_net` configures how the application reaches lfs.net: the API client used for
+OAuth login and Vehicle Mod synchronisation, and the HTTP timeout that also bounds
+installer downloads. Rename an existing `lfs` section to `lfs_net`; the old key is
+rejected.
 
 ```yaml
-lfs:
-  installation_root: /srv/lfs
-  wine_prefix: /srv/lfs/.wine
-  wine_executable: /usr/bin/wine
-  bubblewrap_executable: /usr/bin/bwrap
+lfs_net:
   outbound_http_timeout_seconds: 15
+  oauth:
+    client_id: …
+    client_secret: …
 ```
 
-Move existing top-level `lfs_installation_root` to `lfs.installation_root`.
-Remove `installer_download_root`; installers are cached automatically under
-`installation_root/.cache/installers`. Move fields from `lfs_runtime` directly
-beneath `lfs`. The old top-level names are rejected. Relative installation and
-Wine prefix paths resolve against the configuration file's directory;
-executable paths are used as given.
+## Local LFS installations
 
-Linux uses Wine and Bubblewrap for installation, updates and replay validation.
-Other platforms ignore unrecognized fields in `lfs` and return an unsupported
-error for those operations. Linux rejects unknown fields in `lfs`; other sections
-retain their existing validation on every platform. Installation trimming uses portable filesystem code.
-The unsupported implementation is also compiled and tested on Linux.
+Installations, the platform runtime, validation and webhook delivery are hotlap
+settings:
+
+```yaml
+hotlaps:
+  installation_root: /srv/lfs
+  runtime:
+    wine_prefix: /srv/lfs/.wine
+    wine_executable: /usr/bin/wine
+    bubblewrap_executable: /usr/bin/bwrap
+  validation:
+    poll_interval_seconds: 2
+    timeout_seconds: 300
+  webhooks:
+    workers: 3
+```
+
+To upgrade an existing file:
+
+- Rename the `lfs` section to `lfs_net`, keeping `oauth` and
+  `outbound_http_timeout_seconds`.
+- Move `lfs.installation_root` to `hotlaps.installation_root`.
+- Move `lfs.wine_prefix`, `lfs.wine_executable` and `lfs.bubblewrap_executable`
+  into `hotlaps.runtime`.
+- Move `worker.hlvc` to `hotlaps.validation` and `worker.webhooks` to
+  `hotlaps.webhooks`, then remove `worker`.
+
+The old keys are rejected. Installers are cached automatically under
+`installation_root/.cache/installers`. Relative installation and Wine prefix paths
+resolve against the configuration file's directory; executable paths are used as
+given.
+
+Linux uses Wine and Bubblewrap for installation, updates and replay validation, and
+rejects unknown fields in `hotlaps.runtime`. Other platforms ignore unrecognized
+fields in `hotlaps.runtime` and return an unsupported error for those operations.
+Every other section rejects unknown fields on every platform. Installation trimming
+uses portable filesystem code. The unsupported implementation is also compiled and
+tested on Linux.
 
 ## Site notice and upload pause
 

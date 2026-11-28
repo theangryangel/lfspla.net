@@ -17,4 +17,4 @@ Each definition creates or updates that vehicle’s canonical row. Omitted vehic
 definitions leave existing rows untouched; omitted image fields preserve artwork. Identical bytes
 retain the existing attachment ID and URL. Images are not bundled in the frontend.
 
-`maintenance sync-mods` refreshes Vehicle Mods and their covers only.
+`vehicles sync-mods` refreshes Vehicle Mods and their covers only.

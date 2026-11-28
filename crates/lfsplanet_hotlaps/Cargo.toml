@@ -1,0 +1,49 @@
+[package]
+name = "lfsplanet_hotlaps"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+test-support = []
+test-database = ["lfsplanet_core/test-database"]
+
+[dependencies]
+anyhow = { workspace = true }
+bytes = { workspace = true }
+celes = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+insim_core = { workspace = true }
+itertools = { workspace = true }
+lfsplanet_core = { workspace = true }
+lfsplanet_country_ext = { workspace = true }
+lfsplanet_game_version_req = { workspace = true }
+lfsplanet_jobs = { workspace = true }
+lfsplanet_lfs_installations = { workspace = true }
+lfsplanet_lfs_net_api = { workspace = true }
+lfsplanet_spr = { workspace = true }
+object_store = { workspace = true }
+reqwest = { workspace = true }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde-saphyr = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+size = { workspace = true }
+sqlx = { workspace = true }
+strum = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+utoipa = { workspace = true }
+validator = { workspace = true }
+
+[dev-dependencies]
+axum = { workspace = true }
+
+[lints.rust]
+unsafe_code = "deny"

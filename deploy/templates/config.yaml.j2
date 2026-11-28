@@ -15,20 +15,19 @@ hotlaps:
   allow_test_validation: false
   max_spr_upload_bytes: {{ max_spr_upload_bytes | tojson }}
   allow_uploads: true
-
-worker:
-  hlvc:
+  installation_root: {{ (state_dir ~ "/games") | tojson }}
+  runtime:
+    wine_prefix: {{ (state_dir ~ "/wine") | tojson }}
+    wine_executable: "/usr/bin/wine"
+    bubblewrap_executable: "/usr/bin/bwrap"
+  validation:
     poll_interval_seconds: 2
     timeout_seconds: 300
   webhooks:
     workers: {{ webhook_workers | tojson }}
-
-lfs:
-  installation_root: {{ (state_dir ~ "/games") | tojson }}
-  wine_prefix: {{ (state_dir ~ "/wine") | tojson }}
-  wine_executable: "/usr/bin/wine"
-  bubblewrap_executable: "/usr/bin/bwrap"
 {% if oauth_client_id %}
+
+lfs_net:
   oauth:
     client_id: {{ oauth_client_id | tojson }}
     client_secret: {{ oauth_client_secret | tojson }}

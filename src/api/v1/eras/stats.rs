@@ -59,7 +59,6 @@ pub(crate) async fn get_era_stats(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use tower::ServiceExt;
 
     async fn body(app: &axum::Router, path: &str) -> (axum::http::StatusCode, serde_json::Value) {
@@ -80,14 +79,12 @@ mod tests {
         (status, serde_json::from_slice(&bytes).unwrap())
     }
 
-    #[sqlx::test]
+    #[sqlx::test(migrator = "lfsplanet_core::db::MIGRATOR")]
     #[cfg_attr(not(feature = "test-database"), ignore = "requires PostgreSQL")]
     async fn era_stats_count_and_cache_independently(pool: sqlx::PgPool) -> anyhow::Result<()> {
-        sqlx::raw_sql(include_str!(
-            "../../../services/validate_hotlap/fixtures.sql"
-        ))
-        .execute(&pool)
-        .await?;
+        sqlx::raw_sql(lfsplanet_hotlaps::test_support::FIXTURE_SQL)
+            .execute(&pool)
+            .await?;
         sqlx::raw_sql(r"
             UPDATE hotlap SET state = 'valid', hlvc_result_code = 1, finished_at = now();
             INSERT INTO era (slug, title, version_requirement, installation_id)
@@ -100,13 +97,9 @@ mod tests {
             INSERT INTO chart (era_id, track_id, vehicle_id)
                 SELECT id, 'BL1', 'XFG' FROM era WHERE slug = 'empty-era';
         ").execute(&pool).await?;
-        let state = ApiState {
-            site_notice: None,
-            database: sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone()),
-            oauth: None,
-            object_store: Arc::new(object_store::memory::InMemory::new()),
-            hotlaps: Default::default(),
-        };
+        let state = ApiState::for_tests(sea_orm::SqlxPostgresConnector::from_sqlx_postgres_pool(
+            pool.clone(),
+        ));
         let app =
             crate::api::router(state.hotlaps.max_spr_upload_bytes()).with_state(state.clone());
         let (status, totals) = body(&app, "/api/v1/eras/2026-09-23/stats").await;
